@@ -1,7 +1,7 @@
 "use client"
 
-import type React from "react"
-import { useEffect, useState } from "react"
+import React from "react"
+import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,8 +13,8 @@ import { useRouter } from "next/navigation"
 
 export default function ForgotPasswordPage() {
   const router = useRouter()
-  const [step, setStep] = useState(1)
-  const [contactMethod, setContactMethod] = useState("email")
+  const [step, setStep] = useState(1) // 1: Request OTP, 2: Verify OTP, 3: Reset Password, 4: Success
+  const [contactMethod, setContactMethod] = useState("email") // "email" or "phone"
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
@@ -30,7 +30,8 @@ export default function ForgotPasswordPage() {
     confirmPassword: "",
   })
 
-  useEffect(() => {
+  // Timer for OTP resend
+  React.useEffect(() => {
     let interval: NodeJS.Timeout
     if (otpTimer > 0) {
       interval = setInterval(() => {
@@ -62,16 +63,13 @@ export default function ForgotPasswordPage() {
       return
     }
 
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 2000))
+    // Simulate API call
+    setTimeout(() => {
       setIsLoading(false)
       setSuccess(`OTP sent to your ${contactMethod}: ${contact}`)
       setStep(2)
-      setOtpTimer(60)
-    } catch (err) {
-      setError("Failed to send OTP. Please try again.")
-      setIsLoading(false)
-    }
+      setOtpTimer(60) // 60 seconds timer
+    }, 2000)
   }
 
   const handleVerifyOTP = async (e: React.FormEvent) => {
@@ -85,19 +83,17 @@ export default function ForgotPasswordPage() {
       return
     }
 
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+    // Simulate API call
+    setTimeout(() => {
       setIsLoading(false)
-
       if (formData.otp === "123456") {
+        // Demo OTP for testing
         setSuccess("OTP verified successfully!")
         setStep(3)
       } else {
         setError("Invalid OTP. Please try again.")
       }
-    } catch (err) {
-      setError("Failed to verify OTP. Please try again.")
-    }
+    }, 1500)
   }
 
   const handleResetPassword = async (e: React.FormEvent) => {
@@ -117,13 +113,11 @@ export default function ForgotPasswordPage() {
       return
     }
 
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 2000))
+    // Simulate API call
+    setTimeout(() => {
       setIsLoading(false)
       setStep(4)
-    } catch (err) {
-      setError("Failed to reset password. Please try again.")
-    }
+    }, 2000)
   }
 
   const handleResendOTP = () => {
@@ -137,33 +131,6 @@ export default function ForgotPasswordPage() {
     }, 1000)
   }
 
-  const handleBackClick = () => {
-    if (step > 1) {
-      setStep(step - 1)
-      setFormData({ ...formData, otp: "", newPassword: "", confirmPassword: "" })
-      setError("")
-      setSuccess("")
-    } else {
-      router.back()
-    }
-  }
-
-  const handleChangeContactMethod = () => {
-    setStep(1)
-    setFormData({ email: "", phone: "", otp: "", newPassword: "", confirmPassword: "" })
-    setError("")
-    setSuccess("")
-    setOtpTimer(0)
-  }
-
-  const handleContinueToLogin = () => {
-    router.push("/login")
-  }
-
-  const handleBackToHome = () => {
-    router.push("/")
-  }
-
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
     const secs = seconds % 60
@@ -174,9 +141,8 @@ export default function ForgotPasswordPage() {
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
       {/* Back Button - Floating */}
       <Button
-        onClick={handleBackClick}
+        onClick={() => router.back()}
         className="fixed top-6 left-6 z-50 bg-white/90 hover:bg-white text-gray-700 hover:text-gray-900 shadow-lg backdrop-blur-sm border border-gray-200 rounded-full w-12 h-12 p-0"
-        aria-label="Go back"
       >
         <ArrowLeft className="h-5 w-5" />
       </Button>
@@ -211,6 +177,7 @@ export default function ForgotPasswordPage() {
                     </Alert>
                   )}
 
+                  {/* Contact Method Selection */}
                   <div className="space-y-3">
                     <label className="text-sm font-medium text-gray-700">Choose recovery method:</label>
                     <div className="grid grid-cols-2 gap-2">
@@ -218,7 +185,7 @@ export default function ForgotPasswordPage() {
                         type="button"
                         variant={contactMethod === "email" ? "default" : "outline"}
                         onClick={() => setContactMethod("email")}
-                        className="flex items-center justify-center gap-2"
+                        className="flex items-center gap-2"
                       >
                         <Mail className="h-4 w-4" />
                         Email
@@ -227,7 +194,7 @@ export default function ForgotPasswordPage() {
                         type="button"
                         variant={contactMethod === "phone" ? "default" : "outline"}
                         onClick={() => setContactMethod("phone")}
-                        className="flex items-center justify-center gap-2"
+                        className="flex items-center gap-2"
                       >
                         <Phone className="h-4 w-4" />
                         Phone
@@ -235,6 +202,7 @@ export default function ForgotPasswordPage() {
                     </div>
                   </div>
 
+                  {/* Email Input */}
                   {contactMethod === "email" && (
                     <div className="space-y-2">
                       <label htmlFor="email" className="text-sm font-medium text-gray-700">
@@ -250,13 +218,13 @@ export default function ForgotPasswordPage() {
                           value={formData.email}
                           onChange={handleInputChange}
                           className="pl-10"
-                          disabled={isLoading}
                           required
                         />
                       </div>
                     </div>
                   )}
 
+                  {/* Phone Input */}
                   {contactMethod === "phone" && (
                     <div className="space-y-2">
                       <label htmlFor="phone" className="text-sm font-medium text-gray-700">
@@ -272,18 +240,13 @@ export default function ForgotPasswordPage() {
                           value={formData.phone}
                           onChange={handleInputChange}
                           className="pl-10"
-                          disabled={isLoading}
                           required
                         />
                       </div>
                     </div>
                   )}
 
-                  <Button
-                    type="submit"
-                    className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-50"
-                    disabled={isLoading}
-                  >
+                  <Button type="submit" className="w-full bg-green-600 hover:bg-green-700" disabled={isLoading}>
                     {isLoading ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -301,7 +264,7 @@ export default function ForgotPasswordPage() {
                 <div className="mt-6 text-center">
                   <p className="text-sm text-gray-600">
                     Remember your password?{" "}
-                    <Link href="/login" className="text-green-600 hover:text-green-700 font-medium hover:underline">
+                    <Link href="/login" className="text-green-600 hover:text-green-700 font-medium">
                       Back to Login
                     </Link>
                   </p>
@@ -349,18 +312,12 @@ export default function ForgotPasswordPage() {
                         onChange={handleInputChange}
                         className="pl-10 text-center text-lg tracking-widest"
                         maxLength={6}
-                        disabled={isLoading}
                         required
                       />
                     </div>
-                    <p className="text-xs text-gray-500 text-center">Demo OTP: 123456</p>
                   </div>
 
-                  <Button
-                    type="submit"
-                    className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-50"
-                    disabled={isLoading}
-                  >
+                  <Button type="submit" className="w-full bg-green-600 hover:bg-green-700" disabled={isLoading}>
                     {isLoading ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -392,11 +349,7 @@ export default function ForgotPasswordPage() {
                 </form>
 
                 <div className="mt-6 text-center">
-                  <Button
-                    variant="ghost"
-                    onClick={handleChangeContactMethod}
-                    className="text-gray-600 hover:text-gray-700"
-                  >
+                  <Button variant="ghost" onClick={() => setStep(1)} className="text-gray-600 hover:text-gray-700">
                     ← Change contact method
                   </Button>
                 </div>
@@ -440,14 +393,12 @@ export default function ForgotPasswordPage() {
                         value={formData.newPassword}
                         onChange={handleInputChange}
                         className="pl-10 pr-10"
-                        disabled={isLoading}
                         required
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
                         className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
-                        aria-label={showPassword ? "Hide password" : "Show password"}
                       >
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
@@ -469,25 +420,19 @@ export default function ForgotPasswordPage() {
                         value={formData.confirmPassword}
                         onChange={handleInputChange}
                         className="pl-10 pr-10"
-                        disabled={isLoading}
                         required
                       />
                       <button
                         type="button"
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                         className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
-                        aria-label={showConfirmPassword ? "Hide password" : "Show password"}
                       >
                         {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
                   </div>
 
-                  <Button
-                    type="submit"
-                    className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-50"
-                    disabled={isLoading}
-                  >
+                  <Button type="submit" className="w-full bg-green-600 hover:bg-green-700" disabled={isLoading}>
                     {isLoading ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -520,13 +465,15 @@ export default function ForgotPasswordPage() {
                   You can now use your new password to sign in to your lot owner account.
                 </p>
 
-                <Button onClick={handleContinueToLogin} className="w-full bg-green-600 hover:bg-green-700 mb-3">
-                  Continue to Login
+                <Button asChild className="w-full bg-green-600 hover:bg-green-700">
+                  <Link href="/login">Continue to Login</Link>
                 </Button>
 
-                <Button onClick={handleBackToHome} variant="outline" className="w-full bg-transparent">
-                  Back to Home
-                </Button>
+                <div className="mt-4">
+                  <Button asChild variant="outline" className="w-full bg-transparent">
+                    <Link href="/">Back to Home</Link>
+                  </Button>
+                </div>
               </CardContent>
             </>
           )}

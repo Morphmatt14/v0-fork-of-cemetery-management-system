@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ArrowLeft, User, Mail, Phone, MapPin, CheckCircle, Send, MessageSquare, Calendar } from "lucide-react"
+import Link from "next/link"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 
@@ -18,7 +19,6 @@ export default function RegisterPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [selectedService, setSelectedService] = useState("")
-  const [errors, setErrors] = useState<Record<string, string>>({})
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -63,78 +63,24 @@ export default function RegisterPage() {
       ...prev,
       [name]: value,
     }))
-    // Clear error for this field
-    if (errors[name]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev }
-        delete newErrors[name]
-        return newErrors
-      })
-    }
-  }
-
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {}
-
-    if (!formData.firstName.trim()) newErrors.firstName = "First name is required"
-    if (!formData.lastName.trim()) newErrors.lastName = "Last name is required"
-    if (!formData.email.trim()) newErrors.email = "Email is required"
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = "Valid email is required"
-    if (!formData.phone.trim()) newErrors.phone = "Phone number is required"
-
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
-    if (!validateForm()) return
-
     setIsSubmitting(true)
 
-    try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000))
+    // Simulate API call
+    setTimeout(() => {
+      setIsSubmitting(false)
+      setIsSubmitted(true)
 
-      // Store registration data
-      const registrationData = {
+      // In a real app, this would send to your backend API
+      console.log("Registration Request:", {
         ...formData,
         selectedService,
         submittedAt: new Date().toISOString(),
-      }
-
-      localStorage.setItem("registrationRequest", JSON.stringify(registrationData))
-      setIsSubmitted(true)
-
-      // Log for demo purposes
-      console.log("Registration Request:", registrationData)
-    } catch (error) {
-      console.error("Registration error:", error)
-      setErrors({ submit: "Failed to submit registration. Please try again." })
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  const handleBackClick = () => {
-    router.back()
-  }
-
-  const handleServiceSelect = (serviceTitle: string) => {
-    setSelectedService(serviceTitle)
-  }
-
-  const handleClearService = () => {
-    setSelectedService("")
-  }
-
-  const handleBrowseServices = () => {
-    router.push("/guest/info")
-  }
-
-  const handleBackToHome = () => {
-    router.push("/")
+      })
+    }, 2000)
   }
 
   if (isSubmitted) {
@@ -142,9 +88,8 @@ export default function RegisterPage() {
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
         {/* Back Button - Floating */}
         <Button
-          onClick={handleBackClick}
+          onClick={() => router.back()}
           className="fixed top-6 left-6 z-50 bg-white/90 hover:bg-white text-gray-700 hover:text-gray-900 shadow-lg backdrop-blur-sm border border-gray-200 rounded-full w-12 h-12 p-0"
-          aria-label="Go back"
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
@@ -159,9 +104,9 @@ export default function RegisterPage() {
 
             <h2 className="text-3xl font-bold text-gray-900 mb-4">Registration Request Submitted!</h2>
 
-            <div className="bg-gray-50 rounded-lg p-6 mb-6 text-left">
-              <h3 className="font-semibold text-gray-900 mb-4">Your Request Details:</h3>
-              <div className="space-y-2 text-sm">
+            <div className="bg-gray-50 rounded-lg p-6 mb-6">
+              <h3 className="font-semibold text-gray-900 mb-2">Your Request Details:</h3>
+              <div className="text-left space-y-2">
                 <p>
                   <span className="font-medium">Name:</span> {formData.firstName} {formData.lastName}
                 </p>
@@ -202,11 +147,11 @@ export default function RegisterPage() {
             </Alert>
 
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button onClick={handleBrowseServices} className="flex-1 bg-green-600 hover:bg-green-700">
-                Browse Services
+              <Button asChild className="flex-1 bg-green-600 hover:bg-green-700">
+                <Link href="/guest/info">Browse Services</Link>
               </Button>
-              <Button onClick={handleBackToHome} variant="outline" className="flex-1 bg-transparent">
-                Back to Home
+              <Button asChild variant="outline" className="flex-1 bg-transparent">
+                <Link href="/">Back to Home</Link>
               </Button>
             </div>
           </CardContent>
@@ -219,9 +164,8 @@ export default function RegisterPage() {
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
       {/* Back Button - Floating */}
       <Button
-        onClick={handleBackClick}
+        onClick={() => router.back()}
         className="fixed top-6 left-6 z-50 bg-white/90 hover:bg-white text-gray-700 hover:text-gray-900 shadow-lg backdrop-blur-sm border border-gray-200 rounded-full w-12 h-12 p-0"
-        aria-label="Go back"
       >
         <ArrowLeft className="h-5 w-5" />
       </Button>
@@ -274,18 +218,11 @@ export default function RegisterPage() {
                           ? "border-green-500 bg-green-50"
                           : "border-gray-200 hover:border-gray-300"
                       }`}
-                      onClick={() => handleServiceSelect(service.title)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          handleServiceSelect(service.title)
-                        }
-                      }}
+                      onClick={() => setSelectedService(service.title)}
                     >
                       <div className="aspect-video relative overflow-hidden rounded-lg mb-3">
                         <Image
-                          src={service.image || "/placeholder.svg?height=200&width=300"}
+                          src={service.image || "/placeholder.svg"}
                           alt={service.title}
                           fill
                           className="object-cover"
@@ -296,11 +233,9 @@ export default function RegisterPage() {
                       <p className="text-green-600 font-semibold">{service.price}</p>
                     </div>
                   ))}
-                  {selectedService && (
-                    <Button variant="outline" className="w-full bg-transparent" onClick={handleClearService}>
-                      Clear Selection
-                    </Button>
-                  )}
+                  <Button variant="outline" className="w-full bg-transparent" onClick={() => setSelectedService("")}>
+                    Clear Selection
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -320,12 +255,6 @@ export default function RegisterPage() {
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-6">
-                  {errors.submit && (
-                    <Alert variant="destructive">
-                      <AlertDescription>{errors.submit}</AlertDescription>
-                    </Alert>
-                  )}
-
                   {/* Personal Information */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold text-gray-900">Personal Information</h3>
@@ -341,10 +270,8 @@ export default function RegisterPage() {
                           value={formData.firstName}
                           onChange={handleInputChange}
                           placeholder="Enter your first name"
-                          className={errors.firstName ? "border-red-500" : ""}
-                          disabled={isSubmitting}
+                          required
                         />
-                        {errors.firstName && <p className="text-red-500 text-sm mt-1">{errors.firstName}</p>}
                       </div>
                       <div>
                         <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">
@@ -356,10 +283,8 @@ export default function RegisterPage() {
                           value={formData.lastName}
                           onChange={handleInputChange}
                           placeholder="Enter your last name"
-                          className={errors.lastName ? "border-red-500" : ""}
-                          disabled={isSubmitting}
+                          required
                         />
-                        {errors.lastName && <p className="text-red-500 text-sm mt-1">{errors.lastName}</p>}
                       </div>
                     </div>
 
@@ -375,10 +300,8 @@ export default function RegisterPage() {
                           value={formData.email}
                           onChange={handleInputChange}
                           placeholder="Enter your email"
-                          className={errors.email ? "border-red-500" : ""}
-                          disabled={isSubmitting}
+                          required
                         />
-                        {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
                       </div>
                       <div>
                         <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
@@ -391,10 +314,8 @@ export default function RegisterPage() {
                           value={formData.phone}
                           onChange={handleInputChange}
                           placeholder="Enter your phone number"
-                          className={errors.phone ? "border-red-500" : ""}
-                          disabled={isSubmitting}
+                          required
                         />
-                        {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
                       </div>
                     </div>
 
@@ -408,7 +329,6 @@ export default function RegisterPage() {
                         value={formData.address}
                         onChange={handleInputChange}
                         placeholder="Enter your complete address"
-                        disabled={isSubmitting}
                       />
                     </div>
                   </div>
@@ -427,7 +347,7 @@ export default function RegisterPage() {
                         value={formData.requestType}
                         onChange={handleInputChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                        disabled={isSubmitting}
+                        required
                       >
                         <option value="account-registration">Account Registration (Lot Owner Portal)</option>
                         <option value="service-consultation">Service Consultation</option>
@@ -446,7 +366,7 @@ export default function RegisterPage() {
                             type="button"
                             variant="ghost"
                             size="sm"
-                            onClick={handleClearService}
+                            onClick={() => setSelectedService("")}
                             className="text-gray-500 hover:text-gray-700"
                           >
                             Remove
@@ -475,7 +395,6 @@ export default function RegisterPage() {
                           value={formData.preferredDate}
                           onChange={handleInputChange}
                           min={new Date().toISOString().split("T")[0]}
-                          disabled={isSubmitting}
                         />
                       </div>
                       <div>
@@ -488,7 +407,6 @@ export default function RegisterPage() {
                           value={formData.preferredTime}
                           onChange={handleInputChange}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                          disabled={isSubmitting}
                         >
                           <option value="">Select time</option>
                           <option value="9:00 AM">9:00 AM</option>
@@ -512,7 +430,7 @@ export default function RegisterPage() {
                         value={formData.contactMethod}
                         onChange={handleInputChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                        disabled={isSubmitting}
+                        required
                       >
                         <option value="phone">Phone Call</option>
                         <option value="email">Email</option>
@@ -540,7 +458,6 @@ export default function RegisterPage() {
                         onChange={handleInputChange}
                         placeholder="Please share any specific questions, requirements, or additional information..."
                         rows={4}
-                        disabled={isSubmitting}
                       />
                     </div>
                   </div>
@@ -550,7 +467,7 @@ export default function RegisterPage() {
                     <Button
                       type="submit"
                       disabled={isSubmitting}
-                      className="w-full bg-green-600 hover:bg-green-700 text-white py-3 text-lg disabled:opacity-50"
+                      className="w-full bg-green-600 hover:bg-green-700 text-white py-3 text-lg"
                     >
                       {isSubmitting ? (
                         <>
