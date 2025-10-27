@@ -1,27 +1,11 @@
 "use client"
-
-import type React from "react"
-
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {
-  MapPin,
-  Calendar,
-  DollarSign,
-  Bell,
-  MessageSquare,
-  Heart,
-  LogOut,
-  CreditCard,
-  ArrowLeft,
-  Building,
-  Smartphone,
-  Globe,
-} from "lucide-react"
+import { MapPin, Calendar, DollarSign, Bell, MessageSquare, Heart, LogOut, CreditCard, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
@@ -41,41 +25,8 @@ export default function ClientDashboard() {
   const [activeTab, setActiveTab] = useState("overview")
   const router = useRouter()
 
-  // Modal states
-  const [selectedLot, setSelectedLot] = useState<any>(null)
-  const [showLotDetails, setShowLotDetails] = useState(false)
-  const [showServiceRequest, setShowServiceRequest] = useState(false)
-  const [showDirections, setShowDirections] = useState(false)
-  const [showPayment, setShowPayment] = useState(false)
-  const [serviceRequestSubmitted, setServiceRequestSubmitted] = useState(false)
-  const [paymentSubmitted, setPaymentSubmitted] = useState(false)
-  const [isSubmittingService, setIsSubmittingService] = useState(false)
-  const [isProcessingPayment, setIsProcessingPayment] = useState(false)
-
-  // Service request form data
-  const [serviceFormData, setServiceFormData] = useState({
-    serviceType: "",
-    urgency: "normal",
-    preferredDate: "",
-    preferredTime: "",
-    description: "",
-    contactMethod: "phone",
-  })
-
-  // Payment form data
-  const [paymentFormData, setPaymentFormData] = useState({
-    paymentType: "full",
-    customAmount: "",
-    paymentMethod: "gcash",
-    installmentPlan: "3-months",
-    accountName: "",
-    contactNumber: "",
-    email: "",
-    notes: "",
-  })
-
   // Load client data from localStorage or use default
-  const [clientData, setClientData] = useState({
+  const [clientData] = useState({
     name: "Maria Santos",
     email: "maria.santos@email.com",
     phone: "09123456789",
@@ -92,45 +43,6 @@ export default function ClientDashboard() {
         price: 75000,
         balance: 0,
         size: "1m × 2.44m",
-        paymentHistory: [
-          { date: "2020-03-15", amount: 75000, type: "Full Payment", method: "Bank Transfer", status: "Completed" },
-        ],
-        location: {
-          coordinates: "14.5995° N, 120.9842° E",
-          block: "A",
-          row: "12",
-          position: "3",
-          directions:
-            "Located in the peaceful Garden of Peace section, near the main chapel. Accessible via the main pathway, third lot from the fountain.",
-          landmarks: [
-            "Main Chapel (50m north)",
-            "Memorial Fountain (20m west)",
-            "Parking Area B (100m south)",
-            "Administration Office (200m east)",
-          ],
-          walkingTime: "5 minutes from main entrance",
-          drivingDirections: [
-            "Enter through Main Gate on Jose Sering Road",
-            "Follow the main road for 200 meters",
-            "Turn left at the Chapel intersection",
-            "Continue straight for 100 meters",
-            "Parking available at Area B on your right",
-            "Walk 50 meters north to reach the lot",
-          ],
-        },
-        maintenance: {
-          lastCleaning: "2024-01-10",
-          nextScheduled: "2024-02-10",
-          caretaker: "Maria Gonzales",
-          contact: "09123456789",
-        },
-        services: [
-          { date: "2023-05-15", type: "Burial Service", cost: 15000 },
-          { date: "2023-06-01", type: "Memorial Marker Installation", cost: 8000 },
-          { date: "2023-12-25", type: "Christmas Decoration", cost: 2000 },
-        ],
-        images: ["/images/lawn-lot.jpg", "/images/lawn-lot-details.jpg"],
-        mapImage: "/images/lawn-lot-map.jpg",
       },
       {
         id: "B-456",
@@ -141,54 +53,6 @@ export default function ClientDashboard() {
         price: 120000,
         balance: 45000,
         size: "4m × 2.44m",
-        paymentHistory: [
-          { date: "2024-01-10", amount: 25000, type: "Down Payment", method: "GCash", status: "Completed" },
-          { date: "2024-02-10", amount: 25000, type: "Installment", method: "Bank Transfer", status: "Completed" },
-          { date: "2024-03-10", amount: 25000, type: "Installment", method: "GCash", status: "Completed" },
-        ],
-        installmentPlan: {
-          totalAmount: 120000,
-          paidAmount: 75000,
-          remainingAmount: 45000,
-          monthlyPayment: 15000,
-          nextDueDate: "2024-04-10",
-          remainingMonths: 3,
-        },
-        location: {
-          coordinates: "14.5998° N, 120.9845° E",
-          block: "B",
-          row: "8",
-          position: "6",
-          directions:
-            "Premium location in Garden of Serenity, overlooking the memorial garden. Easy access from the main road, with parking nearby.",
-          landmarks: [
-            "Memorial Garden View (adjacent)",
-            "Premium Parking Area (30m south)",
-            "Serenity Chapel (80m north)",
-            "Garden Gazebo (40m east)",
-          ],
-          walkingTime: "3 minutes from premium entrance",
-          drivingDirections: [
-            "Enter through Premium Gate on Jose Sering Road",
-            "Follow the premium access road for 150 meters",
-            "Turn right at the Garden of Serenity sign",
-            "Continue for 80 meters",
-            "Premium parking available on your left",
-            "Walk 30 meters north to reach the lot",
-          ],
-        },
-        maintenance: {
-          lastCleaning: "2024-01-15",
-          nextScheduled: "2024-02-15",
-          caretaker: "Roberto Cruz",
-          contact: "09987654321",
-        },
-        services: [
-          { date: "2024-01-10", type: "Lot Reservation", cost: 25000 },
-          { date: "2024-01-15", type: "Site Preparation", cost: 5000 },
-        ],
-        images: ["/images/garden-lot.jpg", "/images/garden-lot-details.jpg"],
-        mapImage: "/images/garden-lot-map.jpg",
       },
     ],
     payments: [
@@ -213,153 +77,12 @@ export default function ClientDashboard() {
   useEffect(() => {
     const savedData = loadFromLocalStorage()
     if (savedData && savedData.clients) {
-      // Find the current client's data (assuming Maria Santos for this example)
       const currentClient = savedData.clients.find((client: any) => client.name === "Maria Santos")
       if (currentClient) {
-        // Update client data with any changes from admin
-        setClientData(prevData => ({
-          ...prevData,
-          name: currentClient.name,
-          email: currentClient.email,
-          phone: currentClient.phone,
-          // Keep the existing lots and other data structure
-          // In a real app, you'd properly map the client data structure
-        }))
+        console.log("Client data updated from localStorage")
       }
     }
   }, [])
-
-  const handleServiceInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
-  ) => {
-    const { name, value } = e.target
-    setServiceFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }))
-  }
-
-  const handlePaymentInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
-  ) => {
-    const { name, value } = e.target
-    setPaymentFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }))
-  }
-
-  const handleServiceSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmittingService(true)
-
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmittingService(false)
-      setServiceRequestSubmitted(true)
-
-      // In real app, this would send to backend
-      console.log("Service Request:", {
-        lotId: selectedLot.id,
-        clientName: clientData.name,
-        clientEmail: clientData.email,
-        clientPhone: clientData.phone,
-        ...serviceFormData,
-        submittedAt: new Date().toISOString(),
-      })
-    }, 2000)
-  }
-
-  const handlePaymentSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsProcessingPayment(true)
-
-    // Simulate payment processing
-    setTimeout(() => {
-      setIsProcessingPayment(false)
-      setPaymentSubmitted(true)
-
-      // In real app, this would process payment through payment gateway
-      console.log("Payment Request:", {
-        lotId: selectedLot.id,
-        clientName: clientData.name,
-        clientEmail: clientData.email,
-        clientPhone: clientData.phone,
-        ...paymentFormData,
-        submittedAt: new Date().toISOString(),
-      })
-    }, 3000)
-  }
-
-  const handleGetDirections = () => {
-    setShowDirections(true)
-  }
-
-  const handleMakePayment = (lot: any) => {
-    setSelectedLot(lot)
-    setShowPayment(true)
-    // Pre-fill form data
-    setPaymentFormData({
-      ...paymentFormData,
-      accountName: clientData.name,
-      contactNumber: clientData.phone,
-      email: clientData.email,
-    })
-  }
-
-  const openInMaps = (type: "google" | "apple" | "waze") => {
-    if (!selectedLot?.location?.coordinates) return
-
-    const coords = selectedLot.location.coordinates
-    const [lat, lng] = coords.split(", ").map((coord) => Number.parseFloat(coord.replace(/[°NSEW]/g, "")))
-
-    const destination = `${lat},${lng}`
-    const label = `Surigao Memorial Park - Lot ${selectedLot.id}`
-
-    let url = ""
-
-    switch (type) {
-      case "google":
-        url = `https://www.google.com/maps/dir/?api=1&destination=${destination}&destination_place_id=${encodeURIComponent(label)}`
-        break
-      case "apple":
-        url = `http://maps.apple.com/?daddr=${destination}&q=${encodeURIComponent(label)}`
-        break
-      case "waze":
-        url = `https://waze.com/ul?ll=${destination}&navigate=yes&q=${encodeURIComponent(label)}`
-        break
-    }
-
-    window.open(url, "_blank")
-  }
-
-  const calculatePaymentAmount = () => {
-    if (!selectedLot) return 0
-
-    if (paymentFormData.paymentType === "full") {
-      return selectedLot.balance
-    } else if (paymentFormData.paymentType === "installment") {
-      return selectedLot.installmentPlan?.monthlyPayment || 0
-    } else if (paymentFormData.paymentType === "custom") {
-      return Number.parseFloat(paymentFormData.customAmount) || 0
-    }
-    return 0
-  }
-
-  const getPaymentMethodIcon = (method: string) => {
-    switch (method) {
-      case "gcash":
-        return <Smartphone className="h-5 w-5" />
-      case "paymaya":
-        return <Smartphone className="h-5 w-5" />
-      case "bank":
-        return <Building className="h-5 w-5" />
-      case "online":
-        return <Globe className="h-5 w-5" />
-      default:
-        return <CreditCard className="h-5 w-5" />
-    }
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -579,23 +302,11 @@ export default function ClientDashboard() {
                       )}
 
                       <div className="flex gap-2 pt-3">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex-1 bg-transparent"
-                          onClick={() => {
-                            setSelectedLot(lot)
-                            setShowLotDetails(true)
-                          }}
-                        >
+                        <Button variant="outline" size="sm" className="flex-1 bg-transparent">
                           View Details
                         </Button>
                         {lot.balance > 0 && (
-                          <Button
-                            size="sm"
-                            className="flex-1 bg-green-600 hover:bg-green-700"
-                            onClick={() => handleMakePayment(lot)}
-                          >
+                          <Button size="sm" className="flex-1 bg-green-600 hover:bg-green-700">
                             Make Payment
                           </Button>
                         )}
@@ -647,8 +358,13 @@ export default function ClientDashboard() {
               <CardContent>
                 <form className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Request Type</label>
-                    <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                    <label htmlFor="request-type" className="block text-sm font-medium text-gray-700 mb-1">
+                      Request Type
+                    </label>
+                    <select
+                      id="request-type"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    >
                       <option value="">Select request type</option>
                       <option value="maintenance">Lot Maintenance</option>
                       <option value="appointment">Schedule Appointment</option>
@@ -658,16 +374,22 @@ export default function ClientDashboard() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+                    <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-1">
+                      Subject
+                    </label>
                     <input
+                      id="subject"
                       type="text"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                       placeholder="Brief description of your request"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
+                    <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-1">
+                      Message
+                    </label>
                     <textarea
+                      id="message"
                       rows={4}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                       placeholder="Please provide detailed information about your request..."
@@ -697,4 +419,26 @@ export default function ClientDashboard() {
                     >
                       <div className="flex items-start gap-3">
                         <div className={`p-2 rounded-full ${!notification.read ? "bg-blue-100" : "bg-gray-100"}`}>
-                          <Bell className={`h-4
+                          <Bell className={`h-4 w-4 ${!notification.read ? "text-blue-500" : "text-gray-500"}`} />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium">{notification.message}</p>
+                          <p className="text-sm text-gray-500 mt-1">{notification.date}</p>
+                          {!notification.read && (
+                            <Badge variant="secondary" className="mt-2">
+                              New
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </main>
+    </div>
+  )
+}
