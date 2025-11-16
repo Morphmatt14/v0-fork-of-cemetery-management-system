@@ -319,7 +319,7 @@ const loadFromLocalStorage = (): any => {
     const saved = localStorage.getItem("globalData")
     if (saved) {
       try {
-        return JSON.parse(saved)
+        return JSON.JSON.parse(saved)
       } catch (e) {
         console.error("Failed to parse stored data:", e)
         return null
@@ -824,6 +824,8 @@ const defaultDashboardData = {
 
 
 export default function AdminDashboard() {
+  const router = useRouter()
+  
   const [activeTab, setActiveTab] = useState("overview")
   const [searchTerm, setSearchTerm] = useState("")
   const [clientSearchTerm, setClientSearchTerm] = useState("")
@@ -856,39 +858,6 @@ export default function AdminDashboard() {
   const [dashboardData, setDashboardData] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isMounted, setIsMounted] = useState(false)
-
-  // Initialize dashboard data from localStorage only on client side
-  useEffect(() => {
-    setIsMounted(true)
-    
-    // Load initial data from localStorage
-    const loadedData = loadFromLocalStorage()
-    if (loadedData) {
-      setDashboardData(loadedData)
-    } else {
-      // Use default data if nothing is found in localStorage
-      setDashboardData(defaultDashboardData)
-      saveToLocalStorage(defaultDashboardData) // Save default data for future use
-    }
-    
-    setInquiries(dashboardData?.pendingInquiries || defaultDashboardData.pendingInquiries) // Initialize inquiries
-    loadMessages()
-    
-    // Auto-reload messages every 10 seconds
-    const interval = setInterval(loadMessages, 10000)
-    return () => clearInterval(interval)
-  }, [dashboardData]) // Dependency on dashboardData to ensure it's loaded before setting inquiries
-
-  if (!isMounted || isLoading || !dashboardData) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading dashboard...</p>
-        </div>
-      </div>
-    )
-  }
 
   // Form states
   const [lotFormData, setLotFormData] = useState({
@@ -933,15 +902,54 @@ export default function AdminDashboard() {
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null)
   const [replyText, setReplyText] = useState('')
 
-
-  // Load data on component mount
-  // useEffect moved to the top and handled initialization
-
+  // Load messages from localStorage and set up interval for auto-refresh
   const loadMessages = () => {
     const adminUser = localStorage.getItem('adminUser')
     if (adminUser) {
       setMessages(getMessagesForUser(adminUser))
     }
+  }
+
+  // Initialize dashboard data from localStorage only on client side
+  useEffect(() => {
+    setIsMounted(true)
+    
+    // Load initial data from localStorage
+    const loadedData = loadFromLocalStorage()
+    if (loadedData) {
+      setDashboardData(loadedData)
+    } else {
+      // Use default data if nothing is found in localStorage
+      setDashboardData(defaultDashboardData)
+      saveToLocalStorage(defaultDashboardData) // Save default data for future use
+    }
+    
+    setIsLoading(false)
+  }, []) // Empty dependency array - runs only once on mount
+
+  useEffect(() => {
+    if (dashboardData) {
+      setInquiries(dashboardData?.pendingInquiries || defaultDashboardData.pendingInquiries)
+    }
+  }, [dashboardData])
+
+  useEffect(() => {
+    loadMessages()
+    
+    // Auto-reload messages every 10 seconds
+    const interval = setInterval(loadMessages, 10000)
+    return () => clearInterval(interval)
+  }, []) // Empty dependency array - runs only once and sets up interval
+
+  if (!isMounted || isLoading || !dashboardData) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    )
   }
 
   const handleViewMessage = (msg: Message) => {
