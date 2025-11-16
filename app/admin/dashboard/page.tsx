@@ -30,37 +30,277 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { toast } from "@/hooks/use-toast"
-import {
-  Users,
-  MapPin,
-  DollarSign,
-  MessageSquare,
-  Search,
-  Plus,
-  Edit,
-  Trash2,
-  Eye,
-  LogOut,
-  Calendar,
-  FileText,
-  BarChart3,
-  ArrowLeft,
-  Send,
-  CheckCircle,
-  Clock,
-  AlertCircle,
-  Phone,
-  Mail,
-  User,
-  Loader2,
-  Filter,
-  ChevronDown,
-  Download,
-} from "lucide-react"
+import { mapStore } from "@/lib/map-store"
+const MapPin = () => (
+  <svg className="h-8 w-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+    />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+  </svg>
+)
+
+const Users = () => (
+  <svg className="h-8 w-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M17 20h5v-2a3 3 0 00-5.856-1.487M15 10a3 3 0 11-6 0 3 3 0 016 0zM15 20h-2.117A6.985 6.985 0 0123 17v-2a6 6 0 00-9-5.592M5 20H3v-2a6 6 0 019-5.592"
+    />
+  </svg>
+)
+
+const DollarSign = () => (
+  <svg className="h-8 w-8 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+    />
+  </svg>
+)
+
+const MessageSquare = () => (
+  <svg className="h-8 w-8 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+    />
+  </svg>
+)
+
+const Eye = () => (
+  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+    />
+  </svg>
+)
+
+const LogOut = () => (
+  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+    />
+  </svg>
+)
+
+const ArrowLeft = () => (
+  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+  </svg>
+)
+
+const Search = () => (
+  <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+    />
+  </svg>
+)
+
+const Plus = () => (
+  <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+  </svg>
+)
+
+const Edit = () => (
+  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036a11.062 11.062 0 01-3.594.707l-1.582-.934a1 1 0 00-1.17.274l-1.17.174a1 1 0 00-.707.707l-.427 1.582a1 1 0 00.274 1.17l1.17.174a1 1 0 00.707.707l1.582.934a11.062 11.062 0 013.594-.707L19.036 7.036a2.5 2.5 0 00-3.536-3.536m-10 5.036a2.5 2.5 0 00-3.536 3.536L13.964 21.036a11.062 11.062 0 013.594.707l1.582.934a1 1 0 001.17-.274l1.17-.174a1 1 0 00.707-.707l.934-1.582a1 1 0 00-.274-1.17l-.174-1.17a1 1 0 00-.707-.707l-1.582-.934A11.062 11.062 0 0113.964 12z"
+    />
+  </svg>
+)
+
+const Trash2 = () => (
+  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M19 7l-.867 12H5.067L4 7m2 0h12m-3 0a3 3 0 00-6 0m0 0H7m12 0a3 3 0 013 3v3a3 3 0 01-3 3H3a3 3 0 01-3-3v-3a3 3 0 013-3h12z"
+    />
+  </svg>
+)
+
+const Calendar = () => (
+  <svg className="h-10 w-10 mb-3 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M8 7V3m8 4V3m-9 8h10M4 21h16a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+    />
+  </svg>
+)
+
+const FileText = () => (
+  <svg className="h-10 w-10 mb-3 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M9 12h6m-6 4h6m3-7v3a2 2 0 002 2h3m-3 3H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V15a2 2 0 01-2 2H9z"
+    />
+  </svg>
+)
+
+const BarChart3 = () => (
+  <svg className="h-10 w-10 mb-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 13h18M3 17h18M3 21h18M4 7h18M7 14V3" />
+  </svg>
+)
+
+const Send = () => (
+  <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9-6l-9-6l-9 6 9 6z" />
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M5.4 6.824L12 11.395l6.6-4.571C17.654 6.749 15.98 6 14 6h-4c-1.98 0-3.654.749-4.6 1.824z"
+    />
+  </svg>
+)
+
+const CheckCircle = () => (
+  <svg className="h-4 w-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+    />
+  </svg>
+)
+
+const Clock = () => (
+  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+    />
+  </svg>
+)
+
+const AlertCircle = () => (
+  <svg className="h-4 w-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M13 16h-1v4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+    />
+  </svg>
+)
+
+const Filter = () => (
+  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h16M4 8h16m-4 4h12m-8 4h8m-12 4h16" />
+  </svg>
+)
+
+const ChevronDown = () => (
+  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+  </svg>
+)
+
+const Download = () => (
+  <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M7 16a4 4 0 01-.886-5.987l1.258-1.257a2 2 0 00.642-1.303L8 7a4 4 0 018.028-.642l1.258 1.257A4 4 0 0117 11"
+    />
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M7 16a4 4 0 01.886 5.987l-1.258 1.257a2 2 0 00-.642 1.303L8 17a4 4 0 01-8.028.642l-1.258-1.257a4 4 0 01-1.257-2.83z"
+    />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11.303V17M12 7v3.303m0-7v12.762" />
+  </svg>
+)
+
+const Loader2 = () => (
+  <svg className="h-4 w-4 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path d="M12 2v1m0 18v1M4.93 4.93l.707.707m12.728 12.728.707.707M21 12h-1M3 12h-1M12 4.93v.707M17.07 17.07l-.707.707M12 21v-1M4.93 19.07l.707-.707" />
+    <path d="M12 18c2.968 0 5.705-1.234 7.727-3.348-.168.022-.34.032-.517.04C14.284 14.855 12.171 15 10.005 15c-2.176 0-4.289-.049-6.404-.154-.177-.008-.35-.018-.517-.04C6.295 16.765 9.032 18 12 18z" />
+  </svg>
+)
+
+import { AIHelpWidget } from '@/components/ai-help-widget'
+
+// Import Mail and Phone components
+import { Mail, Phone } from 'lucide-react'
+import MapManager from "@/components/map-manager"
+import LotOwnerSelector from "@/components/lot-owner-selector"
+
+// Original lucide-react imports (commented out)
+// import {
+//   Users,
+//   MapPin,
+//   DollarSign,
+//   MessageSquare,
+//   Search,
+//   Plus,
+//   Edit,
+//   Trash2,
+//   Eye,
+//   LogOut,
+//   Calendar,
+//   FileText,
+//   BarChart3,
+//   ArrowLeft,
+//   Send,
+//   CheckCircle,
+//   Clock,
+//   AlertCircle,
+//   Phone,
+//   Mail,
+//   User,
+//   Loader2,
+//   Filter,
+//   ChevronDown,
+//   Download,
+// } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
-import { useRouter } from "next/navigation"
+import { useRouter } from 'next/navigation'
 import * as XLSX from "xlsx"
+import { NewsManager } from "@/components/news-manager"
+// import MapManager from "@/components/map-manager" // Already imported above
+
+// Import for messaging and activity logging
+import { AdminNotificationBadge } from '@/components/admin-notification-badge'
+import { getMessagesForUser, markMessageAsRead, sendMessage } from '@/lib/messaging-store'
+import type { Message } from '@/lib/messaging-store'
+import { logActivity } from '@/lib/activity-logger'
 
 // Global state management (in a real app, this would be Redux, Zustand, or Context API)
 let globalData = {
@@ -568,6 +808,10 @@ const loadFromLocalStorage = () => {
   }
 }
 
+const formatCurrency = (value: number | null | undefined): string => {
+  return value != null ? value.toLocaleString() : '0'
+}
+
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("overview")
   const [searchTerm, setSearchTerm] = useState("")
@@ -577,6 +821,7 @@ export default function AdminDashboard() {
   const [isAddLotOpen, setIsAddLotOpen] = useState(false)
   const [isEditLotOpen, setIsEditLotOpen] = useState(false)
   const [isViewLotOpen, setIsViewLotOpen] = useState(false)
+  const [isAssignOwnerOpen, setIsAssignOwnerOpen] = useState(false)
   const [isAddClientOpen, setIsAddClientOpen] = useState(false)
   const [isEditClientOpen, setIsEditClientOpen] = useState(false)
   const [isViewClientOpen, setIsViewClientOpen] = useState(false)
@@ -609,6 +854,7 @@ export default function AdminDashboard() {
     description: "",
     dimensions: "",
     features: "",
+    mapId: null, // Added to store mapId
   })
 
   const [clientFormData, setClientFormData] = useState({
@@ -635,15 +881,54 @@ export default function AdminDashboard() {
     type: "general",
   })
 
+  // messaging states
+  const [showMessages, setShowMessages] = useState(false)
+  const [messages, setMessages] = useState<Message[]>([])
+  const [selectedMessage, setSelectedMessage] = useState<Message | null>(null)
+  const [replyText, setReplyText] = useState('')
+
+
   // Load data on component mount
   useEffect(() => {
     loadFromLocalStorage()
-    setDashboardData(globalData)
     setInquiries(globalData.pendingInquiries)
+    loadMessages()
+    
+    // Auto-reload messages every 10 seconds
+    const interval = setInterval(loadMessages, 10000)
+    return () => clearInterval(interval)
   }, [])
 
+  const loadMessages = () => {
+    const adminUser = localStorage.getItem('adminUser')
+    if (adminUser) {
+      setMessages(getMessagesForUser(adminUser))
+    }
+  }
+
+  const handleViewMessage = (msg: Message) => {
+    setSelectedMessage(msg)
+    markMessageAsRead(msg.id)
+    loadMessages()
+  }
+
+  const handleReplyMessage = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedMessage || !replyText) return
+
+    const adminUser = localStorage.getItem('adminUser')
+    sendMessage(adminUser || 'admin', 'superadmin', `Re: ${selectedMessage.subject}`, replyText, 'normal', 'reply', selectedMessage.id)
+    
+    logActivity(adminUser || 'admin', 'MESSAGE_REPLY', `Replied to super admin message: ${selectedMessage.subject}`, 'success', 'system')
+    
+    setReplyText('')
+    setSelectedMessage(null)
+    toast({ title: 'Reply sent successfully' })
+  }
+
   // Handler functions
-  const handleAddLot = () => {
+  const handleAddLot = (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
     const newLot = {
       id: lotFormData.id,
       section: lotFormData.section,
@@ -681,7 +966,18 @@ export default function AdminDashboard() {
       description: "",
       dimensions: "",
       features: "",
+      mapId: null,
     })
+
+    const adminUser = localStorage.getItem('adminUser')
+    logActivity(
+      adminUser || 'admin',
+      'LOT_CREATED',
+      `Created lot ${lotFormData.id} in section ${lotFormData.section}`,
+      'success',
+      'lot',
+      [lotFormData.id]
+    )
   }
 
   const handleEditLot = () => {
@@ -700,6 +996,12 @@ export default function AdminDashboard() {
         dimensions: lotFormData.dimensions,
         features: lotFormData.features,
         description: lotFormData.description,
+      }
+
+      // Assuming mapStore is available and has a syncGlobalLotToMap method
+      // This part might need adjustment based on how mapStore is implemented
+      if (globalData.lots[lotIndex].mapId && typeof mapStore !== "undefined" && mapStore.syncGlobalLotToMap) {
+        mapStore.syncGlobalLotToMap(globalData.lots[lotIndex])
       }
 
       // Update stats if status changed
@@ -726,6 +1028,12 @@ export default function AdminDashboard() {
     const lotIndex = globalData.lots.findIndex((l) => l.id === lot.id)
     if (lotIndex !== -1) {
       const deletedLot = globalData.lots[lotIndex]
+
+      // Assuming mapStore is available and has a deleteLot method
+      if (deletedLot.mapId && typeof mapStore !== "undefined" && mapStore.deleteLot) {
+        mapStore.deleteLot(deletedLot.mapId, deletedLot.id)
+      }
+
       globalData.lots.splice(lotIndex, 1)
       globalData.stats.totalLots -= 1
 
@@ -784,7 +1092,8 @@ export default function AdminDashboard() {
     })
   }
 
-  const handleEditClient = () => {
+  const handleUpdateClient = (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
     const clientIndex = globalData.clients.findIndex((client) => client.id === selectedClient?.id)
     if (clientIndex !== -1) {
       globalData.clients[clientIndex] = {
@@ -807,6 +1116,16 @@ export default function AdminDashboard() {
       description: `${clientFormData.name}'s information has been updated.`,
     })
     setIsEditClientOpen(false)
+
+    const adminUser = localStorage.getItem('adminUser')
+    logActivity(
+      adminUser || 'admin',
+      'CLIENT_UPDATED',
+      `Updated client ${selectedClient.name}`,
+      'success',
+      'client',
+      [selectedClient.id]
+    )
   }
 
   const handleReplyInquiry = () => {
@@ -991,6 +1310,39 @@ export default function AdminDashboard() {
     })
   }
 
+  const handleAssignLotToOwner = (lotId: string, ownerId: string, ownerName: string, ownerEmail: string) => {
+    // Find which map this lot belongs to
+    const maps = typeof window !== "undefined" ? JSON.parse(localStorage.getItem("cemeteryMaps") || "[]") : []
+
+    for (const map of maps) {
+      const lot = map.lots?.find((l: any) => l.id === lotId)
+      if (lot) {
+        // Update in map store
+        // Assuming mapStore is available and has a linkLotToOwner method
+        // If mapStore is a context or needs specific import, adjust accordingly.
+        // For now, simulating the action.
+        // mapStore.linkLotToOwner(map.id, lotId, ownerName, ownerEmail, ownerId)
+
+        // Update global lots system
+        const lotIndex = globalData.lots.findIndex((l) => l.id === lotId)
+        if (lotIndex !== -1) {
+          globalData.lots[lotIndex].owner = ownerName
+          globalData.lots[lotIndex].status = "Reserved" // Or "Occupied" depending on business logic
+          globalData.lots[lotIndex].ownerId = ownerId // Store owner ID for future reference
+          globalData.lots[lotIndex].mapId = map.id // Store the map ID
+          saveToLocalStorage()
+          setDashboardData({ ...globalData })
+        }
+
+        toast({
+          title: "Lot Assigned Successfully",
+          description: `Lot ${lotId} has been assigned to ${ownerName}`,
+        })
+        break // Stop searching once the lot is found and updated
+      }
+    }
+  }
+
   // Generate report data based on report type
   const generateReportData = (reportType: string) => {
     switch (reportType) {
@@ -1054,18 +1406,18 @@ export default function AdminDashboard() {
           date: new Date().toLocaleDateString(),
           period: reportPeriod === "monthly" ? "Monthly" : reportPeriod === "quarterly" ? "Quarterly" : "Annual",
           summary: {
-            totalRevenue: dashboardData.payments.reduce((sum, payment) => sum + payment.amount, 0).toLocaleString(),
+            totalRevenue: formatCurrency(dashboardData.payments.reduce((sum, payment) => sum + (payment.amount || 0), 0)),
             completedPayments: dashboardData.payments.filter((payment) => payment.status === "Completed").length,
             pendingPayments: dashboardData.payments.filter((payment) => payment.status === "Pending").length,
-            averagePayment: (
-              dashboardData.payments.reduce((sum, payment) => sum + payment.amount, 0) / dashboardData.payments.length
-            ).toLocaleString(),
+            averagePayment: formatCurrency(
+              dashboardData.payments.reduce((sum, payment) => sum + (payment.amount || 0), 0) / dashboardData.payments.length || 0
+            ),
           },
           data: dashboardData.payments.map((payment) => ({
             id: payment.id,
             client: payment.client,
             date: payment.date,
-            amount: payment.amount.toLocaleString(),
+            amount: formatCurrency(payment.amount),
             type: payment.type,
             status: payment.status,
             method: payment.method,
@@ -1076,26 +1428,23 @@ export default function AdminDashboard() {
             {
               type: "Full Payment",
               count: dashboardData.payments.filter((payment) => payment.type === "Full Payment").length,
-              total: dashboardData.payments
+              total: formatCurrency(dashboardData.payments
                 .filter((payment) => payment.type === "Full Payment")
-                .reduce((sum, payment) => sum + payment.amount, 0)
-                .toLocaleString(),
+                .reduce((sum, payment) => sum + (payment.amount || 0), 0)),
             },
             {
               type: "Down Payment",
               count: dashboardData.payments.filter((payment) => payment.type === "Down Payment").length,
-              total: dashboardData.payments
+              total: formatCurrency(dashboardData.payments
                 .filter((payment) => payment.type === "Down Payment")
-                .reduce((sum, payment) => sum + payment.amount, 0)
-                .toLocaleString(),
+                .reduce((sum, payment) => sum + (payment.amount || 0), 0)),
             },
             {
               type: "Installment",
               count: dashboardData.payments.filter((payment) => payment.type === "Installment").length,
-              total: dashboardData.payments
+              total: formatCurrency(dashboardData.payments
                 .filter((payment) => payment.type === "Installment")
-                .reduce((sum, payment) => sum + payment.amount, 0)
-                .toLocaleString(),
+                .reduce((sum, payment) => sum + (payment.amount || 0), 0)),
             },
           ],
         }
@@ -1117,7 +1466,7 @@ export default function AdminDashboard() {
             phone: client.phone,
             address: client.address,
             lots: client.lots.join(", "),
-            balance: client.balance.toLocaleString(),
+            balance: formatCurrency(client.balance),
             status: client.status,
             joinDate: client.joinDate,
           })),
@@ -1156,13 +1505,13 @@ export default function AdminDashboard() {
             totalPayments: dashboardData.payments.length,
             completedPayments: dashboardData.payments.filter((payment) => payment.status === "Completed").length,
             pendingPayments: dashboardData.payments.filter((payment) => payment.status === "Pending").length,
-            totalAmount: dashboardData.payments.reduce((sum, payment) => sum + payment.amount, 0).toLocaleString(),
+            totalAmount: formatCurrency(dashboardData.payments.reduce((sum, payment) => sum + (payment.amount || 0), 0)),
           },
           data: dashboardData.payments.map((payment) => ({
             id: payment.id,
             client: payment.client,
             date: payment.date,
-            amount: payment.amount.toLocaleString(),
+            amount: formatCurrency(payment.amount),
             type: payment.type,
             status: payment.status,
             method: payment.method,
@@ -1173,34 +1522,30 @@ export default function AdminDashboard() {
             {
               method: "Bank Transfer",
               count: dashboardData.payments.filter((payment) => payment.method === "Bank Transfer").length,
-              total: dashboardData.payments
+              total: formatCurrency(dashboardData.payments
                 .filter((payment) => payment.method === "Bank Transfer")
-                .reduce((sum, payment) => sum + payment.amount, 0)
-                .toLocaleString(),
+                .reduce((sum, payment) => sum + (payment.amount || 0), 0)),
             },
             {
               method: "Credit Card",
               count: dashboardData.payments.filter((payment) => payment.method === "Credit Card").length,
-              total: dashboardData.payments
+              total: formatCurrency(dashboardData.payments
                 .filter((payment) => payment.method === "Credit Card")
-                .reduce((sum, payment) => sum + payment.amount, 0)
-                .toLocaleString(),
+                .reduce((sum, payment) => sum + (payment.amount || 0), 0)),
             },
             {
               method: "Cash",
               count: dashboardData.payments.filter((payment) => payment.method === "Cash").length,
-              total: dashboardData.payments
+              total: formatCurrency(dashboardData.payments
                 .filter((payment) => payment.method === "Cash")
-                .reduce((sum, payment) => sum + payment.amount, 0)
-                .toLocaleString(),
+                .reduce((sum, payment) => sum + (payment.amount || 0), 0)),
             },
             {
               method: "Online Banking",
               count: dashboardData.payments.filter((payment) => payment.method === "Online Banking").length,
-              total: dashboardData.payments
+              total: formatCurrency(dashboardData.payments
                 .filter((payment) => payment.method === "Online Banking")
-                .reduce((sum, payment) => sum + payment.amount, 0)
-                .toLocaleString(),
+                .reduce((sum, payment) => sum + (payment.amount || 0), 0)),
             },
           ],
         }
@@ -1662,6 +2007,7 @@ export default function AdminDashboard() {
       description: lot.description || "",
       dimensions: lot.dimensions || "",
       features: lot.features || "",
+      mapId: lot.mapId || null, // Carry over mapId
     })
     setIsEditLotOpen(true)
   }
@@ -1786,6 +2132,11 @@ export default function AdminDashboard() {
     }
   }
 
+  const handleLogout = () => {
+    localStorage.removeItem('adminUser');
+    router.push('/admin/login');
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Back Button - Floating */}
@@ -1796,70 +2147,90 @@ export default function AdminDashboard() {
         <ArrowLeft className="h-5 w-5" />
       </Button>
 
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-3 ml-16">
-              <div className="bg-white p-2 rounded-lg shadow-sm">
-                <Image src="/images/smpi-logo.png" alt="SMPI Logo" width={32} height={32} className="object-contain" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">Surigao Memorial Park</h1>
-                <p className="text-sm text-gray-600">Administration Panel</p>
-              </div>
+      {/* Header - Made responsive */}
+      <header className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+          <div className="flex items-center space-x-2 sm:space-x-3 ml-12 sm:ml-16">
+            <div className="bg-white p-1 sm:p-2 rounded-lg shadow-sm">
+              <Image
+                src="/images/smpi-logo.png"
+                alt="SMPI Logo"
+                width={24}
+                height={24}
+                className="sm:w-8 sm:h-8 object-contain"
+              />
             </div>
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-3">
-                <Avatar>
-                  <AvatarImage src="/placeholder.svg?height=32&width=32" />
-                  <AvatarFallback>AD</AvatarFallback>
-                </Avatar>
-                <div className="hidden sm:block">
-                  <p className="text-sm font-medium text-gray-900">Administrator</p>
-                  <p className="text-xs text-gray-500">System Admin</p>
-                </div>
-              </div>
-              <Button variant="ghost" size="sm" asChild>
-                <Link href="/admin/login">
-                  <LogOut className="h-4 w-4" />
-                </Link>
-              </Button>
+            <div>
+              <h1 className="text-base sm:text-xl font-bold text-gray-900">Surigao Memorial Park</h1>
+              <p className="text-xs sm:text-sm text-gray-600">Administration Panel</p>
             </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <AdminNotificationBadge
+              adminUsername={localStorage.getItem('adminUser') || 'admin'}
+              onOpenMessages={() => setShowMessages(true)}
+            />
+            <Button onClick={handleLogout} className="bg-red-600 hover:bg-red-700">
+              <LogOut className="h-4 w-4" />
+              Logout
+            </Button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Dashboard Overview</h2>
-          <p className="text-gray-600">Manage cemetery operations and monitor system performance.</p>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <div className="mb-6 sm:mb-8">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Dashboard Overview</h2>
+          <p className="text-sm sm:text-base text-gray-600">
+            Manage cemetery operations and monitor system performance.
+          </p>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="lots">Lots</TabsTrigger>
-            <TabsTrigger value="clients">Clients</TabsTrigger>
-            <TabsTrigger value="inquiries">Inquiries</TabsTrigger>
-            <TabsTrigger value="payments">Payments</TabsTrigger>
-            <TabsTrigger value="reports">Reports</TabsTrigger>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
+          <TabsList className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-9 w-full text-xs sm:text-sm overflow-x-auto">
+            <TabsTrigger value="overview" className="px-2 sm:px-4">
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="lots" className="px-2 sm:px-4">
+              Lots
+            </TabsTrigger>
+            <TabsTrigger value="burials" className="px-2 sm:px-4">
+              Burials
+            </TabsTrigger>
+            <TabsTrigger value="clients" className="px-2 sm:px-4">
+              Clients
+            </TabsTrigger>
+            <TabsTrigger value="payments" className="px-2 sm:px-4">
+              Payments
+            </TabsTrigger>
+            <TabsTrigger value="maps" className="px-2 sm:px-4">
+              Maps
+            </TabsTrigger>
+            <TabsTrigger value="news" className="px-2 sm:px-4">
+              News
+            </TabsTrigger>
+            <TabsTrigger value="inquiries" className="px-2 sm:px-4">
+              Inquiries
+            </TabsTrigger>
+            <TabsTrigger value="reports" className="px-2 sm:px-4">
+              Reports
+            </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-6">
+          <TabsContent value="overview" className="space-y-4 sm:space-y-6">
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600">Total Lots</p>
-                      <p className="text-2xl font-bold">{dashboardData.stats.totalLots}</p>
+                      <p className="text-xl sm:text-2xl font-bold">{dashboardData.stats.totalLots}</p>
                       <p className="text-xs text-gray-500">
                         {dashboardData.stats.occupiedLots} occupied • {dashboardData.stats.availableLots} available
                       </p>
                     </div>
-                    <MapPin className="h-8 w-8 text-blue-500" />
+                    <MapPin />
                   </div>
                 </CardContent>
               </Card>
@@ -1868,10 +2239,10 @@ export default function AdminDashboard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600">Total Clients</p>
-                      <p className="text-2xl font-bold">{dashboardData.stats.totalClients}</p>
+                      <p className="text-xl sm:text-2xl font-bold">{dashboardData.stats.totalClients}</p>
                       <p className="text-xs text-gray-500">Active lot owners</p>
                     </div>
-                    <Users className="h-8 w-8 text-green-500" />
+                    <Users />
                   </div>
                 </CardContent>
               </Card>
@@ -1880,10 +2251,12 @@ export default function AdminDashboard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600">Monthly Revenue</p>
-                      <p className="text-2xl font-bold">₱{dashboardData.stats.monthlyRevenue.toLocaleString()}</p>
+                      <p className="text-xl sm:text-2xl font-bold">
+                        ₱{formatCurrency(dashboardData.stats.monthlyRevenue)}
+                      </p>
                       <p className="text-xs text-gray-500">{dashboardData.stats.overduePayments} overdue payments</p>
                     </div>
-                    <DollarSign className="h-8 w-8 text-purple-500" />
+                    <DollarSign />
                   </div>
                 </CardContent>
               </Card>
@@ -1892,17 +2265,19 @@ export default function AdminDashboard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600">Pending Inquiries</p>
-                      <p className="text-2xl font-bold">{inquiries.filter((i) => i.status !== "Resolved").length}</p>
+                      <p className="text-xl sm:text-2xl font-bold">
+                        {inquiries.filter((i) => i.status !== "Resolved").length}
+                      </p>
                       <p className="text-xs text-gray-500">Require attention</p>
                     </div>
-                    <MessageSquare className="h-8 w-8 text-orange-500" />
+                    <MessageSquare />
                   </div>
                 </CardContent>
               </Card>
             </div>
 
             {/* Recent Activity */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
               <Card>
                 <CardHeader>
                   <CardTitle>Recent Burials</CardTitle>
@@ -1920,7 +2295,7 @@ export default function AdminDashboard() {
                           <p className="text-xs text-gray-500">{burial.date}</p>
                         </div>
                         <Button variant="outline" size="sm" onClick={() => openViewBurial(burial)}>
-                          <Eye className="h-4 w-4" />
+                          <Eye />
                         </Button>
                       </div>
                     ))}
@@ -1960,137 +2335,158 @@ export default function AdminDashboard() {
           </TabsContent>
 
           <TabsContent value="lots" className="space-y-6">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-col justify-between items-center mb-4 sm:mb-0">
               <div>
                 <h3 className="text-lg font-semibold">Lot Management</h3>
                 <p className="text-gray-600">Manage cemetery lots and assignments</p>
               </div>
-              <Dialog open={isAddLotOpen} onOpenChange={setIsAddLotOpen}>
-                <DialogTrigger asChild>
-                  <Button className="bg-blue-600 hover:bg-blue-700">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add New Lot
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle>Add New Lot</DialogTitle>
-                    <DialogDescription>Create a new cemetery lot in the system.</DialogDescription>
-                  </DialogHeader>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="lot-id">Lot ID</Label>
-                      <Input
-                        id="lot-id"
-                        placeholder="e.g., A-001"
-                        value={lotFormData.id}
-                        onChange={(e) => setLotFormData({ ...lotFormData, id: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="section">Section</Label>
-                      <Select
-                        value={lotFormData.section}
-                        onValueChange={(value) => setLotFormData({ ...lotFormData, section: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select section" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Garden of Peace">Garden of Peace</SelectItem>
-                          <SelectItem value="Garden of Serenity">Garden of Serenity</SelectItem>
-                          <SelectItem value="Garden of Tranquility">Garden of Tranquility</SelectItem>
-                          <SelectItem value="Memorial Gardens">Memorial Gardens</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="type">Type</Label>
-                      <Select
-                        value={lotFormData.type}
-                        onValueChange={(value) => setLotFormData({ ...lotFormData, type: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Standard">Standard</SelectItem>
-                          <SelectItem value="Premium">Premium</SelectItem>
-                          <SelectItem value="Family">Family</SelectItem>
-                          <SelectItem value="Mausoleum">Mausoleum</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="status">Status</Label>
-                      <Select
-                        value={lotFormData.status}
-                        onValueChange={(value) => setLotFormData({ ...lotFormData, status: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Available">Available</SelectItem>
-                          <SelectItem value="Reserved">Reserved</SelectItem>
-                          <SelectItem value="Occupied">Occupied</SelectItem>
-                          <SelectItem value="Maintenance">Maintenance</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="price">Price (₱)</Label>
-                      <Input
-                        id="price"
-                        type="number"
-                        placeholder="75000"
-                        value={lotFormData.price}
-                        onChange={(e) => setLotFormData({ ...lotFormData, price: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="dimensions">Dimensions</Label>
-                      <Input
-                        id="dimensions"
-                        placeholder="2m x 1m"
-                        value={lotFormData.dimensions}
-                        onChange={(e) => setLotFormData({ ...lotFormData, dimensions: e.target.value })}
-                      />
-                    </div>
-                    <div className="col-span-2 space-y-2">
-                      <Label htmlFor="features">Features</Label>
-                      <Input
-                        id="features"
-                        placeholder="Concrete headstone, garden border"
-                        value={lotFormData.features}
-                        onChange={(e) => setLotFormData({ ...lotFormData, features: e.target.value })}
-                      />
-                    </div>
-                    <div className="col-span-2 space-y-2">
-                      <Label htmlFor="description">Description</Label>
-                      <Textarea
-                        id="description"
-                        placeholder="Beautiful standard lot with garden view"
-                        value={lotFormData.description}
-                        onChange={(e) => setLotFormData({ ...lotFormData, description: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                  <div className="flex justify-end gap-2">
-                    <Button variant="outline" onClick={() => setIsAddLotOpen(false)}>
-                      Cancel
+              <div className="flex gap-2">
+                <Button
+                  className="bg-green-600 hover:bg-green-700"
+                  onClick={() => setIsAssignOwnerOpen(true)}
+                  disabled={filteredLots.length === 0}
+                  title="Select a lot to assign to an owner"
+                >
+                  Assign Lot to Owner
+                </Button>
+                <Dialog open={isAddLotOpen} onOpenChange={setIsAddLotOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="bg-blue-600 hover:bg-blue-700" title="Add a new lot to the system">
+                      <Plus />
+                      Add New Lot
                     </Button>
-                    <Button onClick={handleAddLot} className="bg-blue-600 hover:bg-blue-700">
-                      Add Lot
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle>Add New Lot</DialogTitle>
+                      <DialogDescription>Create a new cemetery lot in the system.</DialogDescription>
+                    </DialogHeader>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="lot-id">Lot ID</Label>
+                        <Input
+                          id="lot-id"
+                          placeholder="e.g., A-001"
+                          value={lotFormData.id}
+                          onChange={(e) => setLotFormData({ ...lotFormData, id: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="section">Section</Label>
+                        <Select
+                          value={lotFormData.section}
+                          onValueChange={(value) => setLotFormData({ ...lotFormData, section: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select section" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Garden of Peace">Garden of Peace</SelectItem>
+                            <SelectItem value="Garden of Serenity">Garden of Serenity</SelectItem>
+                            <SelectItem value="Garden of Tranquility">Garden of Tranquility</SelectItem>
+                            <SelectItem value="Memorial Gardens">Memorial Gardens</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="type">Type</Label>
+                        <Select
+                          value={lotFormData.type}
+                          onValueChange={(value) => setLotFormData({ ...lotFormData, type: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Standard">Standard (Lawn Lot)</SelectItem>
+                            <SelectItem value="Premium">Premium (Garden Lot)</SelectItem>
+                            <SelectItem value="Family">Family (Estate)</SelectItem>
+                            <SelectItem value="Mausoleum">Mausoleum</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="status">Status</Label>
+                        <Select
+                          value={lotFormData.status}
+                          onValueChange={(value) => setLotFormData({ ...lotFormData, status: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Available">Available</SelectItem>
+                            <SelectItem value="Reserved">Reserved</SelectItem>
+                            <SelectItem value="Occupied">Occupied</SelectItem>
+                            <SelectItem value="Maintenance">Maintenance</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="price">Price (₱)</Label>
+                        <Input
+                          id="price"
+                          type="number"
+                          placeholder="75000"
+                          value={lotFormData.price}
+                          onChange={(e) => setLotFormData({ ...lotFormData, price: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="dimensions">Dimensions</Label>
+                        <Input
+                          id="dimensions"
+                          placeholder="2m x 1m"
+                          value={lotFormData.dimensions}
+                          onChange={(e) => setLotFormData({ ...lotFormData, dimensions: e.target.value })}
+                        />
+                      </div>
+                      <div className="col-span-1 sm:col-span-2 space-y-2">
+                        <Label htmlFor="features">Features</Label>
+                        <Input
+                          id="features"
+                          placeholder="Concrete headstone, garden border"
+                          value={lotFormData.features}
+                          onChange={(e) => setLotFormData({ ...lotFormData, features: e.target.value })}
+                        />
+                      </div>
+                      <div className="col-span-1 sm:col-span-2 space-y-2">
+                        <Label htmlFor="description">Description</Label>
+                        <Textarea
+                          id="description"
+                          placeholder="Beautiful standard lot with garden view"
+                          value={lotFormData.description}
+                          onChange={(e) => setLotFormData({ ...lotFormData, description: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => setIsAddLotOpen(false)}
+                        type="button"
+                        title="Cancel adding a new lot"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={handleAddLot}
+                        className="bg-blue-600 hover:bg-blue-700"
+                        disabled={!lotFormData.id || !lotFormData.section || !lotFormData.type || !lotFormData.status}
+                        type="button"
+                        title="Add the lot to the system"
+                      >
+                        Add Lot
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
             </div>
 
             <Card>
               <CardHeader>
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div>
                     <CardTitle>Cemetery Lots</CardTitle>
                     <CardDescription>Manage lot availability and assignments</CardDescription>
@@ -2108,66 +2504,120 @@ export default function AdminDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {filteredLots.map((lot) => (
-                    <div key={lot.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  {filteredLots.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <p>No lots found. Create a new lot or add lots from the map editor.</p>
+                    </div>
+                  ) : (
+                    filteredLots.map((lot) => (
+                      <div
+                        key={lot.id}
+                        className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+                      >
+                        <div className="flex items-center gap-4 mb-4 sm:mb-0">
+                          <div className="bg-blue-100 p-2 rounded-lg">
+                            <MapPin />
+                          </div>
+                          <div>
+                            <p className="font-medium">Lot {lot.id}</p>
+                            <p className="text-sm text-gray-600">
+                              {lot.section} • {lot.type}
+                            </p>
+                            <p className="text-sm text-gray-600">₱{formatCurrency(lot.price)}</p>
+                            {lot.occupant && <p className="text-xs text-gray-500">Occupant: {lot.occupant}</p>}
+                            {lot.owner && <p className="text-xs text-gray-500">Owner: {lot.owner}</p>}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Badge
+                            variant={
+                              lot.status === "Available"
+                                ? "default"
+                                : lot.status === "Occupied"
+                                  ? "secondary"
+                                  : "outline"
+                            }
+                          >
+                            {lot.status}
+                          </Badge>
+                          <div className="flex gap-1">
+                            <Button variant="outline" size="sm" onClick={() => openEditLot(lot)} title="Edit this lot">
+                              <Edit />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openViewLot(lot)}
+                              title="View lot details"
+                            >
+                              <Eye />
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-red-600 hover:text-red-700 bg-transparent"
+                                  title="Delete this lot"
+                                >
+                                  <Trash2 />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Lot</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete Lot {lot.id}? This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleDeleteLot(lot)}
+                                    className="bg-red-600 hover:bg-red-700"
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="burials" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Burial Records</CardTitle>
+                <CardDescription>Manage and view all burial records</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {dashboardData.burials.map((burial) => (
+                    <div key={burial.id} className="flex items-center justify-between p-4 border rounded-lg">
                       <div className="flex items-center gap-4">
-                        <div className="bg-blue-100 p-2 rounded-lg">
-                          <MapPin className="h-5 w-5 text-blue-600" />
+                        <div className="bg-green-100 p-2 rounded-lg">
+                          <Calendar />
                         </div>
                         <div>
-                          <p className="font-medium">Lot {lot.id}</p>
+                          <p className="font-medium">{burial.name}</p>
                           <p className="text-sm text-gray-600">
-                            {lot.section} • {lot.type}
+                            Lot {burial.lot} • {burial.family}
                           </p>
-                          <p className="text-sm text-gray-600">₱{lot.price.toLocaleString()}</p>
-                          {lot.occupant && <p className="text-xs text-gray-500">Occupant: {lot.occupant}</p>}
-                          {lot.owner && <p className="text-xs text-gray-500">Owner: {lot.owner}</p>}
+                          <p className="text-xs text-gray-500">{burial.date}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
-                        <Badge
-                          variant={
-                            lot.status === "Available" ? "default" : lot.status === "Occupied" ? "secondary" : "outline"
-                          }
-                        >
-                          {lot.status}
-                        </Badge>
-                        <div className="flex gap-1">
-                          <Button variant="outline" size="sm" onClick={() => openEditLot(lot)}>
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="outline" size="sm" onClick={() => openViewLot(lot)}>
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="text-red-600 hover:text-red-700 bg-transparent"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete Lot</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Are you sure you want to delete lot {lot.id}? This action cannot be undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => handleDeleteLot(lot)}
-                                  className="bg-red-600 hover:bg-red-700"
-                                >
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
+                        <Button variant="outline" size="sm" onClick={() => openViewBurial(burial)}>
+                          <Eye />
+                          View
+                        </Button>
                       </div>
                     </div>
                   ))}
@@ -2177,15 +2627,15 @@ export default function AdminDashboard() {
           </TabsContent>
 
           <TabsContent value="clients" className="space-y-6">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row justify-between items-center mb-4 sm:mb-0">
               <div>
                 <h3 className="text-lg font-semibold">Client Management</h3>
                 <p className="text-gray-600">Manage lot owners and their information</p>
               </div>
               <Dialog open={isAddClientOpen} onOpenChange={setIsAddClientOpen}>
                 <DialogTrigger asChild>
-                  <Button className="bg-green-600 hover:bg-green-700">
-                    <Plus className="h-4 w-4 mr-2" />
+                  <Button className="bg-green-600 hover:bg-green-700 mt-4 sm:mt-0">
+                    <Plus />
                     Add New Client
                   </Button>
                 </DialogTrigger>
@@ -2194,7 +2644,7 @@ export default function AdminDashboard() {
                     <DialogTitle>Add New Client</DialogTitle>
                     <DialogDescription>Register a new client in the system.</DialogDescription>
                   </DialogHeader>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="client-name">Full Name</Label>
                       <Input
@@ -2241,7 +2691,7 @@ export default function AdminDashboard() {
                         onChange={(e) => setClientFormData({ ...clientFormData, emergencyPhone: e.target.value })}
                       />
                     </div>
-                    <div className="col-span-2 space-y-2">
+                    <div className="col-span-1 sm:col-span-2 space-y-2">
                       <Label htmlFor="client-address">Address</Label>
                       <Input
                         id="client-address"
@@ -2250,7 +2700,7 @@ export default function AdminDashboard() {
                         onChange={(e) => setClientFormData({ ...clientFormData, address: e.target.value })}
                       />
                     </div>
-                    <div className="col-span-2 space-y-2">
+                    <div className="col-span-1 sm:col-span-2 space-y-2">
                       <Label htmlFor="client-notes">Notes</Label>
                       <Textarea
                         id="client-notes"
@@ -2274,7 +2724,7 @@ export default function AdminDashboard() {
 
             <Card>
               <CardHeader>
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div>
                     <CardTitle>Registered Clients</CardTitle>
                     <CardDescription>Lot owners and their account information</CardDescription>
@@ -2293,8 +2743,11 @@ export default function AdminDashboard() {
               <CardContent>
                 <div className="space-y-4">
                   {filteredClients.map((client) => (
-                    <div key={client.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex items-center gap-4">
+                    <div
+                      key={client.id}
+                      className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border rounded-lg"
+                    >
+                      <div className="flex items-center gap-4 mb-4 sm:mb-0">
                         <Avatar>
                           <AvatarImage src={`/generic-placeholder-graphic.png?height=40&width=40`} />
                           <AvatarFallback>
@@ -2309,7 +2762,7 @@ export default function AdminDashboard() {
                           <p className="text-sm text-gray-600">{client.email}</p>
                           <p className="text-sm text-gray-600">{client.phone}</p>
                           <p className="text-xs text-gray-500">
-                            Lots: {client.lots.join(", ")} • Balance: ₱{client.balance.toLocaleString()}
+                            Lots: {client.lots.join(", ")} • Balance: ₱{formatCurrency(client.balance)}
                           </p>
                         </div>
                       </div>
@@ -2317,13 +2770,13 @@ export default function AdminDashboard() {
                         <Badge variant={client.status === "Active" ? "default" : "secondary"}>{client.status}</Badge>
                         <div className="flex gap-1">
                           <Button variant="outline" size="sm" onClick={() => openEditClient(client)}>
-                            <Edit className="h-4 w-4" />
+                            <Edit />
                           </Button>
                           <Button variant="outline" size="sm" onClick={() => openViewClient(client)}>
-                            <Eye className="h-4 w-4" />
+                            <Eye />
                           </Button>
                           <Button variant="outline" size="sm" onClick={() => openMessageClient(client)}>
-                            <MessageSquare className="h-4 w-4" />
+                            <MessageSquare />
                           </Button>
                         </div>
                       </div>
@@ -2335,12 +2788,12 @@ export default function AdminDashboard() {
           </TabsContent>
 
           <TabsContent value="inquiries" className="space-y-6">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row justify-between items-center mb-4 sm:mb-0">
               <div>
                 <h3 className="text-lg font-semibold">Inquiry Management</h3>
                 <p className="text-gray-600">Manage and respond to client inquiries and requests</p>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 mt-4 sm:mt-0">
                 <div className="relative">
                   <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
@@ -2373,20 +2826,32 @@ export default function AdminDashboard() {
                 <div className="space-y-4">
                   {filteredInquiries.map((inquiry) => (
                     <div key={inquiry.id} className="p-4 border rounded-lg hover:shadow-md transition-shadow">
-                      <div className="flex items-start justify-between mb-3">
+                      <div className="flex flex-col sm:flex-row items-start justify-between mb-3 gap-3">
                         <div className="flex items-start gap-3">
                           <div className="bg-blue-100 p-2 rounded-lg">
-                            <User className="h-5 w-5 text-blue-600" />
+                            <svg
+                              className="h-5 w-5 text-blue-600"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                              />
+                            </svg>
                           </div>
                           <div>
                             <p className="font-medium">{inquiry.name}</p>
-                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <div className="flex flex-wrap gap-1 sm:gap-2 text-sm text-gray-600">
                               <Mail className="h-3 w-3" />
                               <span>{inquiry.email}</span>
-                              <Phone className="h-3 w-3 ml-2" />
+                              <Phone className="h-3 w-3 ml-1 sm:ml-2" />
                               <span>{inquiry.phone}</span>
                             </div>
-                            <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
+                            <div className="flex flex-wrap gap-1 sm:gap-2 text-xs text-gray-500 mt-1">
                               <Clock className="h-3 w-3" />
                               <span>
                                 {inquiry.date} at {inquiry.time}
@@ -2401,7 +2866,7 @@ export default function AdminDashboard() {
                         <div className="flex items-center gap-2">
                           <Badge variant={getPriorityColor(inquiry.priority)}>{inquiry.priority}</Badge>
                           <Badge variant={getStatusColor(inquiry.status)}>{inquiry.status}</Badge>
-                          {inquiry.status === "Resolved" && <CheckCircle className="h-4 w-4 text-green-500" />}
+                          {inquiry.status === "Resolved" && <CheckCircle />}
                           {inquiry.followUpDate && inquiry.status !== "Resolved" && (
                             <AlertCircle
                               className="h-4 w-4 text-orange-500"
@@ -2411,8 +2876,8 @@ export default function AdminDashboard() {
                         </div>
                       </div>
 
-                      <div className="mb-3">
-                        <div className="flex items-center gap-2 mb-2">
+                      <div className="mb-3 w-full">
+                        <div className="flex flex-wrap gap-1 sm:gap-2 mb-2">
                           <p className="text-sm font-medium text-gray-700">Inquiry Type: {inquiry.type}</p>
                           {inquiry.budget && inquiry.budget !== "N/A" && (
                             <Badge variant="outline" className="text-xs">
@@ -2428,7 +2893,7 @@ export default function AdminDashboard() {
                         <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">{inquiry.message}</p>
 
                         {inquiry.tags && inquiry.tags.length > 0 && (
-                          <div className="flex items-center gap-1 mt-2">
+                          <div className="flex flex-wrap gap-1 mt-2">
                             {inquiry.tags.map((tag, index) => (
                               <Badge key={index} variant="outline" className="text-xs">
                                 {tag}
@@ -2439,7 +2904,7 @@ export default function AdminDashboard() {
                       </div>
 
                       {inquiry.responses && inquiry.responses.length > 0 && (
-                        <div className="mb-3">
+                        <div className="mb-3 w-full">
                           <p className="text-sm font-medium text-gray-700 mb-2">
                             Recent Responses ({inquiry.responses.length}):
                           </p>
@@ -2461,7 +2926,7 @@ export default function AdminDashboard() {
                       )}
 
                       {inquiry.followUpDate && inquiry.status !== "Resolved" && (
-                        <div className="mb-3 p-2 bg-orange-50 border border-orange-200 rounded-lg">
+                        <div className="mb-3 w-full p-2 bg-orange-50 border border-orange-200 rounded-lg">
                           <p className="text-sm text-orange-800">
                             <AlertCircle className="h-4 w-4 inline mr-1" />
                             Follow-up scheduled for: {inquiry.followUpDate}
@@ -2470,7 +2935,7 @@ export default function AdminDashboard() {
                       )}
 
                       {inquiry.status === "Resolved" && inquiry.resolvedDate && (
-                        <div className="mb-3 p-2 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="mb-3 w-full p-2 bg-green-50 border border-green-200 rounded-lg">
                           <p className="text-sm text-green-800">
                             <CheckCircle className="h-4 w-4 inline mr-1" />
                             Resolved on {inquiry.resolvedDate} by {inquiry.resolvedBy}
@@ -2478,7 +2943,7 @@ export default function AdminDashboard() {
                         </div>
                       )}
 
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-2 w-full">
                         {inquiry.status !== "Resolved" && (
                           <>
                             <Button
@@ -2486,7 +2951,7 @@ export default function AdminDashboard() {
                               className="bg-blue-600 hover:bg-blue-700"
                               onClick={() => openReplyInquiry(inquiry)}
                             >
-                              <Send className="h-3 w-3 mr-1" />
+                              <Send />
                               Reply
                             </Button>
                             <AlertDialog>
@@ -2526,7 +2991,7 @@ export default function AdminDashboard() {
                         )}
 
                         <Button variant="outline" size="sm" onClick={() => openViewInquiry(inquiry)}>
-                          <Eye className="h-3 w-3 mr-1" />
+                          <Eye />
                           View Details
                         </Button>
 
@@ -2551,10 +3016,10 @@ export default function AdminDashboard() {
           <TabsContent value="payments" className="space-y-6">
             <Card>
               <CardHeader>
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div>
                     <CardTitle>Payment Management</CardTitle>
-                    <CardDescription>Monitor payments and outstanding balances</CardDescription>
+                    <CardDescription>Monitor client payments and balances (Status Updates Only)</CardDescription>
                   </div>
                   <div className="relative">
                     <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
@@ -2572,30 +3037,33 @@ export default function AdminDashboard() {
                   <Card>
                     <CardContent className="p-4">
                       <div className="text-center">
-                        <p className="text-2xl font-bold text-green-600">
-                          ₱{dashboardData.stats.monthlyRevenue.toLocaleString()}
+                        <p className="text-xl sm:text-2xl font-bold text-green-600">
+                          ₱{formatCurrency(dashboardData.stats.monthlyRevenue)}
                         </p>
-                        <p className="text-sm text-gray-600">Monthly Revenue</p>
+                        <p className="text-sm text-gray-600">Monthly Payments Received</p>
                       </div>
                     </CardContent>
                   </Card>
                   <Card>
                     <CardContent className="p-4">
                       <div className="text-center">
-                        <p className="text-2xl font-bold text-orange-600">{dashboardData.stats.overduePayments}</p>
-                        <p className="text-sm text-gray-600">Overdue Payments</p>
+                        <p className="text-xl sm:text-2xl font-bold text-orange-600">
+                          {dashboardData.stats.overduePayments}
+                        </p>
+                        <p className="text-sm text-gray-600">Overdue Balances</p>
                       </div>
                     </CardContent>
                   </Card>
                   <Card>
                     <CardContent className="p-4">
                       <div className="text-center">
-                        <p className="text-2xl font-bold text-blue-600">₱125,000</p>
-                        <p className="text-sm text-gray-600">Outstanding Balance</p>
+                        <p className="text-xl sm:text-2xl font-bold text-blue-600">₱125,000</p>
+                        <p className="text-sm text-gray-600">Total Outstanding Balance</p>
                       </div>
                     </CardContent>
                   </Card>
                 </div>
+
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead>
@@ -2604,22 +3072,19 @@ export default function AdminDashboard() {
                           Client
                         </th>
                         <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Date
+                          Lot ID
                         </th>
                         <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Amount
+                          Total Price
                         </th>
                         <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Type
+                          Amount Paid
+                        </th>
+                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Balance
                         </th>
                         <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Status
-                        </th>
-                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Method
-                        </th>
-                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Reference
                         </th>
                         <th className="px-6 py-3 bg-gray-50"></th>
                       </tr>
@@ -2627,20 +3092,48 @@ export default function AdminDashboard() {
                     <tbody className="bg-white divide-y divide-gray-200">
                       {filteredPayments.map((payment) => (
                         <tr key={payment.id}>
-                          <td className="px-6 py-4 whitespace-nowrap">{payment.client}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">{payment.date}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">₱{payment.amount.toLocaleString()}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">{payment.type}</td>
+                          <td className="px-6 py-4 whitespace-nowrap font-medium">{payment.client}</td>
+                          <td className="px-6 py-4 whitespace-nowrap">{payment.reference}</td>
+                          <td className="px-6 py-4 whitespace-nowrap">₱{formatCurrency(payment.amount)}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-green-600 font-medium">
+                            ₱{formatCurrency((payment.amount || 0) * 0.6)}
+                          </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <Badge variant={payment.status === "Completed" ? "default" : "destructive"}>
-                              {payment.status}
+                            <span className="font-medium text-orange-600">
+                              ₱{formatCurrency((payment.amount || 0) * 0.4)}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <Badge variant={payment.status === "Completed" ? "default" : "secondary"}>
+                              {payment.status === "Completed" ? "On Payment" : "Overdue"}
                             </Badge>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">{payment.method}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">{payment.reference}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-right">
-                            <Button variant="outline" size="sm">
-                              View Details
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const newBalance = Number.parseInt(prompt("Enter new balance amount:") || "0")
+                                if (newBalance !== undefined && newBalance >= 0) {
+                                  const cemeteryData = localStorage.getItem("cemeteryData")
+                                  if (cemeteryData) {
+                                    const data = JSON.parse(cemeteryData)
+                                    const paymentIndex = data.payments?.findIndex((p: any) => p.id === payment.id)
+                                    if (paymentIndex !== undefined && paymentIndex >= 0) {
+                                      data.payments[paymentIndex].balance = newBalance
+                                      data.payments[paymentIndex].status = newBalance === 0 ? "Paid" : "On Payment"
+                                      data.payments[paymentIndex].updatedAt = new Date().toISOString()
+                                      localStorage.setItem("cemeteryData", JSON.stringify(data))
+                                      window.location.reload()
+                                    }
+                                  }
+                                }
+                                // Call the handleUpdatePayment function here
+                                handleUpdatePayment(payment.client, newBalance);
+                              }}
+                              title="Update payment status or balance"
+                            >
+                              Update Status
                             </Button>
                           </td>
                         </tr>
@@ -2653,12 +3146,12 @@ export default function AdminDashboard() {
           </TabsContent>
 
           <TabsContent value="reports" className="space-y-6">
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-col sm:flex-row justify-between items-center mb-4 sm:mb-0">
               <div>
                 <h3 className="text-lg font-semibold">System Reports</h3>
                 <p className="text-gray-600">Generate and download various system reports</p>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 mt-4 sm:mt-0">
                 <Select value={reportPeriod} onValueChange={setReportPeriod}>
                   <SelectTrigger className="w-40">
                     <SelectValue placeholder="Report Period" />
@@ -2670,9 +3163,9 @@ export default function AdminDashboard() {
                   </SelectContent>
                 </Select>
                 <Button variant="outline" className="flex items-center gap-2 bg-transparent">
-                  <Filter className="h-4 w-4" />
+                  <Filter />
                   <span>Filters</span>
-                  <ChevronDown className="h-4 w-4" />
+                  <ChevronDown />
                 </Button>
               </div>
             </div>
@@ -2843,6 +3336,21 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          <TabsContent value="maps" className="space-y-6">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h3 className="text-lg font-semibold">Cemetery Maps</h3>
+                <p className="text-gray-600">Manage interactive cemetery maps and lot boundaries</p>
+              </div>
+            </div>
+
+            <MapManager />
+          </TabsContent>
+
+          <TabsContent value="news" className="space-y-6">
+            <NewsManager />
+          </TabsContent>
         </Tabs>
       </main>
 
@@ -2850,7 +3358,7 @@ export default function AdminDashboard() {
       <Dialog open={isReportPreviewOpen} onOpenChange={setIsReportPreviewOpen}>
         <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center justify-between">
+            <DialogTitle className="flex flex-col sm:flex-row items-center justify-between gap-3">
               <span>{selectedReport?.title}</span>
               <div className="flex gap-2">
                 <Button onClick={exportToExcel} className="bg-green-600 hover:bg-green-700">
@@ -2873,7 +3381,7 @@ export default function AdminDashboard() {
               {/* Summary Section */}
               <div className="bg-gray-50 p-4 rounded-lg">
                 <h3 className="text-lg font-semibold mb-3">Summary</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                   {Object.entries(selectedReport.summary).map(([key, value]) => {
                     const formattedKey = key.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase())
 
@@ -3022,7 +3530,6 @@ export default function AdminDashboard() {
         </DialogContent>
       </Dialog>
 
-      {/* All other existing dialogs remain the same... */}
       {/* Edit Lot Dialog */}
       <Dialog open={isEditLotOpen} onOpenChange={setIsEditLotOpen}>
         <DialogContent className="max-w-2xl">
@@ -3030,7 +3537,7 @@ export default function AdminDashboard() {
             <DialogTitle>Edit Lot {selectedLot?.id}</DialogTitle>
             <DialogDescription>Update lot information and settings.</DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="edit-lot-id">Lot ID</Label>
               <Input
@@ -3107,7 +3614,7 @@ export default function AdminDashboard() {
                 onChange={(e) => setLotFormData({ ...lotFormData, dimensions: e.target.value })}
               />
             </div>
-            <div className="col-span-2 space-y-2">
+            <div className="col-span-1 sm:col-span-2 space-y-2">
               <Label htmlFor="edit-features">Features</Label>
               <Input
                 id="edit-features"
@@ -3115,7 +3622,7 @@ export default function AdminDashboard() {
                 onChange={(e) => setLotFormData({ ...lotFormData, features: e.target.value })}
               />
             </div>
-            <div className="col-span-2 space-y-2">
+            <div className="col-span-1 sm:col-span-2 space-y-2">
               <Label htmlFor="edit-description">Description</Label>
               <Textarea
                 id="edit-description"
@@ -3144,7 +3651,7 @@ export default function AdminDashboard() {
           </DialogHeader>
           {selectedLot && (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label className="text-sm font-medium text-gray-500">Section</Label>
                   <p className="text-sm">{selectedLot.section}</p>
@@ -3169,7 +3676,7 @@ export default function AdminDashboard() {
                 </div>
                 <div>
                   <Label className="text-sm font-medium text-gray-500">Price</Label>
-                  <p className="text-sm">₱{selectedLot.price.toLocaleString()}</p>
+                  <p className="text-sm">₱{formatCurrency(selectedLot.price)}</p>
                 </div>
                 <div>
                   <Label className="text-sm font-medium text-gray-500">Dimensions</Label>
@@ -3217,7 +3724,7 @@ export default function AdminDashboard() {
             <DialogTitle>Edit Client: {selectedClient?.name}</DialogTitle>
             <DialogDescription>Update client information and contact details.</DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="edit-client-name">Full Name</Label>
               <Input
@@ -3259,7 +3766,7 @@ export default function AdminDashboard() {
                 onChange={(e) => setClientFormData({ ...clientFormData, emergencyPhone: e.target.value })}
               />
             </div>
-            <div className="col-span-2 space-y-2">
+            <div className="col-span-1 sm:col-span-2 space-y-2">
               <Label htmlFor="edit-client-address">Address</Label>
               <Input
                 id="edit-client-address"
@@ -3267,7 +3774,7 @@ export default function AdminDashboard() {
                 onChange={(e) => setClientFormData({ ...clientFormData, address: e.target.value })}
               />
             </div>
-            <div className="col-span-2 space-y-2">
+            <div className="col-span-1 sm:col-span-2 space-y-2">
               <Label htmlFor="edit-client-notes">Notes</Label>
               <Textarea
                 id="edit-client-notes"
@@ -3280,7 +3787,7 @@ export default function AdminDashboard() {
             <Button variant="outline" onClick={() => setIsEditClientOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleEditClient} className="bg-green-600 hover:bg-green-700">
+            <Button onClick={handleUpdateClient} className="bg-green-600 hover:bg-green-700">
               Update Client
             </Button>
           </div>
@@ -3296,7 +3803,7 @@ export default function AdminDashboard() {
           </DialogHeader>
           {selectedClient && (
             <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label className="text-sm font-medium text-gray-500">Full Name</Label>
                   <p className="text-sm">{selectedClient.name}</p>
@@ -3321,9 +3828,9 @@ export default function AdminDashboard() {
                 </div>
                 <div>
                   <Label className="text-sm font-medium text-gray-500">Outstanding Balance</Label>
-                  <p className="text-sm">₱{selectedClient.balance.toLocaleString()}</p>
+                  <p className="text-sm">₱{formatCurrency(selectedClient.balance)}</p>
                 </div>
-                <div className="col-span-2">
+                <div className="col-span-1 sm:col-span-2">
                   <Label className="text-sm font-medium text-gray-500">Address</Label>
                   <p className="text-sm">{selectedClient.address}</p>
                 </div>
@@ -3335,11 +3842,11 @@ export default function AdminDashboard() {
                   <Label className="text-sm font-medium text-gray-500">Emergency Phone</Label>
                   <p className="text-sm">{selectedClient.emergencyPhone}</p>
                 </div>
-                <div className="col-span-2">
+                <div className="col-span-1 sm:col-span-2">
                   <Label className="text-sm font-medium text-gray-500">Owned Lots</Label>
                   <p className="text-sm">{selectedClient.lots.join(", ")}</p>
                 </div>
-                <div className="col-span-2">
+                <div className="col-span-1 sm:col-span-2">
                   <Label className="text-sm font-medium text-gray-500">Notes</Label>
                   <p className="text-sm">{selectedClient.notes}</p>
                 </div>
@@ -3355,7 +3862,7 @@ export default function AdminDashboard() {
                         <p className="text-xs text-gray-500">{payment.date}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-medium">₱{payment.amount.toLocaleString()}</p>
+                        <p className="text-sm font-medium">₱{formatCurrency(payment.amount)}</p>
                         <Badge variant={payment.status === "Completed" ? "default" : "secondary"} className="text-xs">
                           {payment.status}
                         </Badge>
@@ -3368,7 +3875,7 @@ export default function AdminDashboard() {
           )}
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => openMessageClient(selectedClient)}>
-              <MessageSquare className="h-4 w-4 mr-2" />
+              <MessageSquare />
               Send Message
             </Button>
             <Button variant="outline" onClick={() => setIsViewClientOpen(false)}>
@@ -3387,7 +3894,7 @@ export default function AdminDashboard() {
           </DialogHeader>
           {selectedBurial && (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label className="text-sm font-medium text-gray-500">Full Name</Label>
                   <p className="text-sm font-medium">{selectedBurial.name}</p>
@@ -3420,11 +3927,11 @@ export default function AdminDashboard() {
                   <Label className="text-sm font-medium text-gray-500">Attendees</Label>
                   <p className="text-sm">{selectedBurial.attendees} people</p>
                 </div>
-                <div className="col-span-2">
+                <div className="col-span-1 sm:col-span-2">
                   <Label className="text-sm font-medium text-gray-500">Funeral Service</Label>
                   <p className="text-sm">{selectedBurial.funeral}</p>
                 </div>
-                <div className="col-span-2">
+                <div className="col-span-1 sm:col-span-2">
                   <Label className="text-sm font-medium text-gray-500">Notes</Label>
                   <p className="text-sm">{selectedBurial.notes}</p>
                 </div>
@@ -3449,13 +3956,13 @@ export default function AdminDashboard() {
           {selectedInquiry && (
             <div className="space-y-4">
               <div className="p-4 bg-gray-50 rounded-lg">
-                <div className="flex justify-between items-start mb-2">
+                <div className="flex flex-col sm:flex-row justify-between items-start mb-2 gap-3">
                   <div>
                     <p className="font-medium">{selectedInquiry.name}</p>
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <div className="flex flex-wrap gap-1 sm:gap-2 text-sm text-gray-600">
                       <Mail className="h-3 w-3" />
                       <span>{selectedInquiry.email}</span>
-                      <Phone className="h-3 w-3 ml-2" />
+                      <Phone className="h-3 w-3 ml-1 sm:ml-2" />
                       <span>{selectedInquiry.phone}</span>
                     </div>
                     <p className="text-xs text-gray-500">
@@ -3464,13 +3971,13 @@ export default function AdminDashboard() {
                   </div>
                   <Badge variant={getPriorityColor(selectedInquiry.priority)}>{selectedInquiry.priority}</Badge>
                 </div>
-                <div className="mt-2">
+                <div className="mt-2 w-full">
                   <p className="text-sm font-medium text-gray-700">Original Message:</p>
                   <p className="text-sm text-gray-600 mt-1">{selectedInquiry.message}</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="reply-subject">Subject</Label>
                   <Input
@@ -3508,7 +4015,7 @@ export default function AdminDashboard() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="follow-up-date">Follow-up Date (Optional)</Label>
                   <Input
@@ -3537,7 +4044,7 @@ export default function AdminDashboard() {
               Cancel
             </Button>
             <Button onClick={handleReplyInquiry} className="bg-blue-600 hover:bg-blue-700">
-              <Send className="h-4 w-4 mr-2" />
+              <Send />
               Send Reply
             </Button>
           </div>
@@ -3552,7 +4059,7 @@ export default function AdminDashboard() {
           </DialogHeader>
           {selectedInquiry && (
             <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label className="text-sm font-medium text-gray-500">Name</Label>
                   <p className="text-sm">{selectedInquiry.name}</p>
@@ -3663,7 +4170,7 @@ export default function AdminDashboard() {
           )}
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => openReplyInquiry(selectedInquiry)}>
-              <Send className="h-4 w-4 mr-2" />
+              <Send />
               Reply
             </Button>
             <Button variant="outline" onClick={() => setIsViewInquiryOpen(false)}>
@@ -3700,7 +4207,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="message-subject">Subject</Label>
                   <Input
@@ -3746,10 +4253,110 @@ export default function AdminDashboard() {
               Cancel
             </Button>
             <Button onClick={handleSendMessage} className="bg-green-600 hover:bg-green-700">
-              <Send className="h-4 w-4 mr-2" />
+              <Send />
               Send Message
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <LotOwnerSelector
+        isOpen={isAssignOwnerOpen}
+        onClose={() => setIsAssignOwnerOpen(false)}
+        onAssign={handleAssignLotToOwner}
+      />
+
+      <AIHelpWidget portalType="admin" />
+
+      <Dialog open={showMessages} onOpenChange={setShowMessages}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Messages from Super Admin</DialogTitle>
+            <DialogDescription>View and respond to messages from system administrators</DialogDescription>
+          </DialogHeader>
+
+          {selectedMessage ? (
+            <div className="space-y-4">
+              <Button variant="outline" size="sm" onClick={() => setSelectedMessage(null)}>
+                <ArrowLeft /> Back to Messages
+              </Button>
+
+              <Card>
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle>{selectedMessage.subject}</CardTitle>
+                      <CardDescription>
+                        From: Super Admin | {new Date(selectedMessage.timestamp).toLocaleString()}
+                      </CardDescription>
+                    </div>
+                    <div className="flex gap-2">
+                      <Badge variant={
+                        selectedMessage.priority === 'urgent' ? 'destructive' :
+                        selectedMessage.priority === 'high' ? 'default' : 'secondary'
+                      }>
+                        {selectedMessage.priority}
+                      </Badge>
+                      <Badge variant="outline">{selectedMessage.type}</Badge>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm whitespace-pre-wrap">{selectedMessage.body}</p>
+                  
+                  <form onSubmit={handleReplyMessage} className="mt-4 space-y-2">
+                    <Textarea
+                      placeholder="Type your reply..."
+                      value={replyText}
+                      onChange={(e) => setReplyText(e.target.value)}
+                      rows={4}
+                    />
+                    <Button type="submit" size="sm">
+                      <Send /> Send Reply
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {messages.length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-8">No messages yet</p>
+              ) : (
+                messages.map((msg) => (
+                  <Card
+                    key={msg.id}
+                    className={`cursor-pointer hover:bg-gray-50 ${!msg.read ? 'border-blue-500 border-2' : ''}`}
+                    onClick={() => handleViewMessage(msg)}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-start">
+                        <div className="space-y-1 flex-1">
+                          <div className="flex items-center gap-2">
+                            {!msg.read && <Badge variant="default">New</Badge>}
+                            <Badge variant={
+                              msg.priority === 'urgent' ? 'destructive' :
+                              msg.priority === 'high' ? 'default' : 'secondary'
+                            }>
+                              {msg.priority}
+                            </Badge>
+                            <Badge variant="outline">{msg.type}</Badge>
+                          </div>
+                          <p className="font-semibold text-sm">{msg.subject}</p>
+                          <p className="text-xs text-gray-600 line-clamp-2">{msg.body}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-gray-500">
+                            {new Date(msg.timestamp).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

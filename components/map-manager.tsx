@@ -1,0 +1,231 @@
+"use client"
+
+import type React from "react"
+
+import { useState } from "react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { mapStore, type CemeteryMap } from "@/lib/map-store"
+import { Plus, Trash2, Edit, MapPin, Upload } from "lucide-react"
+import Image from "next/image"
+import AdvancedMapEditor from "./advanced-map-editor"
+
+export default function MapManager() {
+  const [maps, setMaps] = useState<CemeteryMap[]>(mapStore.getMaps())
+  const [isAddOpen, setIsAddOpen] = useState(false)
+  const [selectedMapForEdit, setSelectedMapForEdit] = useState<CemeteryMap | null>(null)
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    imageUrl: "",
+  })
+  const [imagePreview, setImagePreview] = useState<string>("")
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        const imageUrl = event.target?.result as string
+        setImagePreview(imageUrl)
+        setFormData({ ...formData, imageUrl })
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleAddMap = () => {
+    if (!formData.name || !formData.imageUrl) {
+      alert("Please fill in all required fields and upload an image")
+      return
+    }
+
+    const newMap = mapStore.addMap({
+      name: formData.name,
+      description: formData.description,
+      imageUrl: formData.imageUrl,
+      sections: [],
+      lots: [],
+    })
+
+    setMaps(mapStore.getMaps())
+    setFormData({ name: "", description: "", imageUrl: "" })
+    setImagePreview("")
+    setIsAddOpen(false)
+  }
+
+  const handleDeleteMap = (mapId: string) => {
+    if (confirm("Are you sure you want to delete this map?")) {
+      mapStore.deleteMap(mapId)
+      setMaps(mapStore.getMaps())
+    }
+  }
+
+  if (selectedMapForEdit) {
+    return (
+      <div>
+        <Button variant="outline" onClick={() => setSelectedMapForEdit(null)} className="mb-4">
+          ← Back to Maps
+        </Button>
+        <AdvancedMapEditor mapId={selectedMapForEdit.id} />
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h3 className="text-lg font-semibold">Cemetery Maps</h3>
+          <p className="text-gray-600">Manage cemetery maps and lot locations</p>
+        </div>
+        <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+          <DialogTrigger asChild>
+            <Button className="bg-blue-600 hover:bg-blue-700">
+              <Plus className="h-4 w-4 mr-2" />
+              Add New Map
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add Cemetery Map</DialogTitle>
+              <DialogDescription>Upload a cemetery aerial image to add lot boundaries</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="map-name" className="block text-sm font-medium text-gray-700 mb-1">
+                  Map Name
+                </label>
+                <Input
+                  id="map-name"
+                  placeholder="e.g., Garden of Peace Map"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                />
+              </div>
+              <div>
+                <label htmlFor="map-description" className="block text-sm font-medium text-gray-700 mb-1">
+                  Description
+                </label>
+                <Input
+                  id="map-description"
+                  placeholder="Describe the cemetery section..."
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                />
+              </div>
+              <div>
+                <label htmlFor="map-image" className="block text-sm font-medium text-gray-700 mb-1">
+                  Upload Cemetery Map Image
+                </label>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <label
+                      htmlFor="map-image-upload"
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors"
+                    >
+                      <Upload className="h-5 w-5 text-gray-500" />
+                      <span className="text-sm text-gray-600">
+                        {imagePreview ? "Change Image" : "Click to upload aerial photo"}
+                      </span>
+                    </label>
+                    <input
+                      id="map-image-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                  </div>
+                  {imagePreview && (
+                    <div className="relative w-full h-48 border border-gray-300 rounded-lg overflow-hidden">
+                      <Image src={imagePreview || "/placeholder.svg"} alt="Preview" fill className="object-cover" />
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsAddOpen(false)
+                    setImagePreview("")
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button onClick={handleAddMap} className="bg-blue-600 hover:bg-blue-700">
+                  Add Map
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {maps.length === 0 ? (
+        <Card>
+          <CardContent className="p-8 text-center">
+            <MapPin className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+            <p className="text-gray-600">No maps added yet. Create your first cemetery map.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {maps.map((map) => (
+            <Card key={map.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+              <div className="aspect-video relative overflow-hidden bg-gray-100">
+                {map.imageUrl ? (
+                  <Image src={map.imageUrl || "/placeholder.svg"} alt={map.name} fill className="object-cover" />
+                ) : (
+                  <div className="flex items-center justify-center h-full bg-gray-200">
+                    <MapPin className="h-12 w-12 text-gray-400" />
+                  </div>
+                )}
+              </div>
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle className="text-lg">{map.name}</CardTitle>
+                    <CardDescription className="mt-2">{map.description}</CardDescription>
+                  </div>
+                  <Badge variant="secondary">{map.lots?.length || 0} lots</Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1 bg-transparent"
+                    onClick={() => setSelectedMapForEdit(map)}
+                  >
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit Lots
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1 text-red-600 hover:text-red-700 bg-transparent"
+                    onClick={() => handleDeleteMap(map.id)}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}

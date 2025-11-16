@@ -1,16 +1,63 @@
 "use client"
 
 import type React from "react"
-
+import { verifyAdminCredentials } from "@/lib/auth-store"
 import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Shield, Lock, ArrowLeft, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter } from 'next/navigation'
 import Image from "next/image"
+
+// Inline SVG Icons
+const Shield = () => (
+  <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+    />
+  </svg>
+)
+const Lock = () => (
+  <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a3 3 0 00-6 0v4"
+    />
+  </svg>
+)
+const ArrowLeft = () => (
+  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+  </svg>
+)
+const Eye = () => (
+  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+    />
+  </svg>
+)
+const EyeOff = () => (
+  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-4.803m5.596-3.856a3.375 3.375 0 11-4.753 4.753m4.753-4.753L3.596 3.039m10.318 10.318L21 21"
+    />
+  </svg>
+)
 
 export default function AdminLoginPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -20,6 +67,8 @@ export default function AdminLoginPage() {
   })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const [logoClicks, setLogoClicks] = useState(0)
+  const [showSuperAdminLink, setShowSuperAdminLink] = useState(false)
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -27,16 +76,26 @@ export default function AdminLoginPage() {
     setIsLoading(true)
     setError("")
 
-    // Simulate login process
     setTimeout(() => {
-      if (formData.username && formData.password) {
-        // Simulate successful login
+      if (verifyAdminCredentials(formData.username, formData.password)) {
+        // Store admin session
+        localStorage.setItem("adminUser", formData.username)
+        localStorage.setItem("adminSession", JSON.stringify({ username: formData.username, timestamp: Date.now() }))
         router.push("/admin/dashboard")
       } else {
-        setError("Please enter both username and password")
+        setError("Invalid username or password. Try admin/admin123")
       }
       setIsLoading(false)
     }, 1000)
+  }
+
+  const handleLogoClick = () => {
+    const newClickCount = logoClicks + 1
+    setLogoClicks(newClickCount)
+    if (newClickCount === 3) {
+      setShowSuperAdminLink(true)
+      setLogoClicks(0)
+    }
   }
 
   return (
@@ -46,19 +105,30 @@ export default function AdminLoginPage() {
         onClick={() => router.back()}
         className="fixed top-6 left-6 z-50 bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm rounded-full w-12 h-12 p-0"
       >
-        <ArrowLeft className="h-5 w-5" />
+        <ArrowLeft />
       </Button>
 
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <div className="bg-white p-3 rounded-full shadow-lg">
+            <button
+              type="button"
+              onClick={handleLogoClick}
+              className="bg-white p-3 rounded-full shadow-lg hover:shadow-xl transition-all cursor-pointer"
+              title={showSuperAdminLink ? "🔓 Super Admin Access Unlocked!" : `Click ${3 - logoClicks} more times...`}
+            >
               <Image src="/images/smpi-logo.png" alt="SMPI Logo" width={48} height={48} className="object-contain" />
-            </div>
+            </button>
           </div>
           <h1 className="text-2xl font-bold text-white">Administrator Portal</h1>
           <p className="text-slate-300">Surigao Memorial Park Management</p>
+          
+          {showSuperAdminLink && (
+            <Button asChild className="mt-4 bg-purple-600 hover:bg-purple-700 animate-pulse">
+              <Link href="/super-admin/login">🔓 Super Admin Access</Link>
+            </Button>
+          )}
         </div>
 
         <Card className="shadow-2xl border-slate-200">
@@ -81,7 +151,7 @@ export default function AdminLoginPage() {
                   Username
                 </label>
                 <div className="relative">
-                  <Shield className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Shield />
                   <Input
                     id="username"
                     type="text"
@@ -99,7 +169,7 @@ export default function AdminLoginPage() {
                   Password
                 </label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Lock />
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
@@ -112,9 +182,9 @@ export default function AdminLoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 flex items-center justify-center"
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showPassword ? <EyeOff /> : <Eye />}
                   </button>
                 </div>
               </div>

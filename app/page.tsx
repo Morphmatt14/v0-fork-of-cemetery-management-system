@@ -3,40 +3,119 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { ArrowRight, Shield, User, TreePine, MapPin, Headphones, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
+import { PaymentModal } from "@/components/payment-modal"
+import { AIAssistant } from "@/components/ai-assistant"
+
+const ArrowRight = () => (
+  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+  </svg>
+)
+
+const ArrowLeft = () => (
+  <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+  </svg>
+)
+
+const Shield = () => (
+  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+    />
+  </svg>
+)
+
+const User = () => (
+  <svg className="h-16 w-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+    />
+  </svg>
+)
+
+const TreePine = () => (
+  <svg className="h-16 w-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+    />
+  </svg>
+)
+
+const MapPin = () => (
+  <svg className="h-16 w-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+    />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+  </svg>
+)
+
+const Headphones = () => (
+  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+    />
+  </svg>
+)
 
 export default function HomePage() {
   const [showLoginOptions, setShowLoginOptions] = useState(false)
   const [showServices, setShowServices] = useState(false)
   const [showLotDetails, setShowLotDetails] = useState<string | null>(null)
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [selectedLot, setSelectedLot] = useState<{
+    id: string
+    name: string
+    price: number
+    type: string
+  } | null>(null)
 
   if (showLotDetails) {
     const lotDetails = {
       lawn: {
+        id: "lawn",
         title: "LAWN LOT",
         mapImage: "/images/lawn-lot-map.jpg",
         lotImage: "/images/lawn-lot.jpg",
         description:
           "The Lawn Lot is a standard single burial plot measuring 1 meter by 2.44 meters, offering a peaceful and well-maintained resting space. Positioned within the serene landscaped areas of the memorial park, this lot is ideal for families seeking a dignified and simple ground burial option. The area allows for a flat marker installation and provides ease of access for visitors, ensuring a meaningful experience when honoring their loved ones.",
-        price: "₱75,000",
+        price: 75000,
       },
       garden: {
+        id: "garden",
         title: "GARDEN LOT",
         mapImage: "/images/garden-lot-map.jpg",
         lotImage: "/images/garden-lot.jpg",
         description:
           "The Garden Lot is a premium burial space measuring 4 meters by 2.44 meters, offering ample room for multiple interments or family use. Located in a beautifully landscaped section of the memorial park, this lot allows for upright monuments or customized memorial structures. It provides families with a spacious, elegant, and serene environment to honor and preserve the memory of their loved ones with dignity and grace.",
-        price: "₱120,000",
+        price: 120000,
       },
       family: {
+        id: "family",
         title: "FAMILY STATE",
         mapImage: "/images/family-state-map.jpg",
         lotImage: "/images/family-state.avif",
         description:
           "The Family Estate is a prestigious 30-square-meter lot designed for legacy and lasting remembrance. This spacious area allows families to construct a private structure or mausoleum, accommodating multiple interments in a single, elegant space. Ideal for those who wish to create a permanent family sanctuary, the Family Estate offers privacy, architectural freedom, and a meaningful place for future generations to gather and honor their loved ones.",
-        price: "₱500,000",
+        price: 500000,
       },
     }
 
@@ -50,7 +129,7 @@ export default function HomePage() {
             onClick={() => setShowLotDetails(null)}
             className="bg-teal-600 hover:bg-teal-700 text-white rounded-full w-12 h-12 p-0"
           >
-            <ArrowLeft className="h-6 w-6" />
+            <ArrowLeft />
           </Button>
         </div>
 
@@ -98,13 +177,34 @@ export default function HomePage() {
                 <p className="text-gray-800 text-lg leading-relaxed">{currentLot.description}</p>
 
                 <div className="flex items-center justify-between">
-                  <div className="text-2xl font-semibold text-teal-600">Starting at {currentLot.price}</div>
+                  <div className="text-2xl font-semibold text-teal-600">
+                    Starting at ₱{currentLot.price.toLocaleString()}
+                  </div>
                 </div>
 
-                {/* Make Appointment Button */}
-                <Button asChild className="w-full bg-teal-500 hover:bg-teal-600 text-white text-lg py-6 rounded-full">
-                  <Link href={`/appointment?type=${showLotDetails}`}>MAKE APPOINTMENT →</Link>
-                </Button>
+                <div className="flex gap-3 flex-col sm:flex-row">
+                  <Button
+                    onClick={() => {
+                      setSelectedLot({
+                        id: currentLot.id,
+                        name: currentLot.title,
+                        price: currentLot.price,
+                        type: showLotDetails,
+                      })
+                      setShowPaymentModal(true)
+                    }}
+                    className="flex-1 bg-teal-500 hover:bg-teal-600 text-white text-lg py-6 rounded-full"
+                  >
+                    PURCHASE NOW →
+                  </Button>
+                  <Button
+                    asChild
+                    variant="outline"
+                    className="flex-1 text-lg py-6 rounded-full border-2 border-teal-600 text-teal-600 hover:bg-teal-50 bg-transparent"
+                  >
+                    <Link href={`/appointment?type=${showLotDetails}`}>MAKE APPOINTMENT</Link>
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
@@ -136,6 +236,19 @@ export default function HomePage() {
             </div>
           </div>
         </div>
+
+        {showPaymentModal && selectedLot && (
+          <PaymentModal
+            lotName={selectedLot.name}
+            lotPrice={selectedLot.price}
+            lotType={selectedLot.type}
+            onClose={() => {
+              setShowPaymentModal(false)
+              setSelectedLot(null)
+            }}
+          />
+        )}
+        <AIAssistant />
       </div>
     )
   }
@@ -149,7 +262,7 @@ export default function HomePage() {
             onClick={() => setShowServices(false)}
             className="bg-teal-600 hover:bg-teal-700 text-white rounded-full w-12 h-12 p-0"
           >
-            <ArrowLeft className="h-6 w-6" />
+            <ArrowLeft />
           </Button>
         </div>
 
@@ -266,7 +379,10 @@ export default function HomePage() {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button asChild className="bg-teal-600 hover:bg-teal-700">
-                  <Link href="/guest/info">Contact Us</Link>
+                  <Link href="/guest/info">
+                    <Headphones />
+                    <span className="text-sm">Customer Service</span>
+                  </Link>
                 </Button>
                 <Button variant="outline" onClick={() => setShowServices(false)}>
                   Back to Home
@@ -275,6 +391,7 @@ export default function HomePage() {
             </div>
           </div>
         </div>
+        <AIAssistant />
       </div>
     )
   }
@@ -319,7 +436,7 @@ export default function HomePage() {
                   className="flex items-center gap-3 text-white/80 hover:text-white hover:bg-white/10 rounded-lg p-3 transition-all duration-200"
                 >
                   <Link href="/guest/info">
-                    <Headphones className="h-5 w-5" />
+                    <Headphones />
                     <span className="text-sm">Customer Service</span>
                   </Link>
                 </Button>
@@ -331,7 +448,7 @@ export default function HomePage() {
                 <Card className="bg-white/95 backdrop-blur-sm hover:bg-white transition-all duration-300 overflow-hidden group">
                   <div className="aspect-[4/3] bg-gradient-to-br from-teal-100 to-blue-100 relative overflow-hidden">
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <MapPin className="h-16 w-16 text-teal-600 opacity-60" />
+                      <MapPin />
                     </div>
                     <div className="absolute inset-0 bg-black/20"></div>
                   </div>
@@ -351,7 +468,7 @@ export default function HomePage() {
                 <Card className="bg-white/95 backdrop-blur-sm hover:bg-white transition-all duration-300 overflow-hidden group">
                   <div className="aspect-[4/3] bg-gradient-to-br from-green-100 to-teal-100 relative overflow-hidden">
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <TreePine className="h-16 w-16 text-green-600 opacity-60" />
+                      <TreePine />
                     </div>
                     <div className="absolute inset-0 bg-black/20"></div>
                   </div>
@@ -374,7 +491,7 @@ export default function HomePage() {
                 <Card className="bg-white/95 backdrop-blur-sm hover:bg-white transition-all duration-300 overflow-hidden group">
                   <div className="aspect-[4/3] bg-gradient-to-br from-blue-100 to-purple-100 relative overflow-hidden">
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <User className="h-16 w-16 text-blue-600 opacity-60" />
+                      <User />
                     </div>
                     <div className="absolute inset-0 bg-black/20"></div>
                   </div>
@@ -394,7 +511,7 @@ export default function HomePage() {
             {/* Bottom Section - Admin Access */}
             <div className="mt-12 text-center">
               <div className="inline-flex items-center gap-4 bg-white/10 backdrop-blur-sm rounded-full px-6 py-3">
-                <Shield className="h-5 w-5 text-white/80" />
+                <Shield />
                 <span className="text-white/80 text-sm">Administrator Access:</span>
                 <Button
                   asChild
@@ -419,6 +536,7 @@ export default function HomePage() {
             </div>
           </div>
         </div>
+        <AIAssistant />
       </div>
     )
   }
@@ -443,14 +561,20 @@ export default function HomePage() {
       {/* Content */}
       <div className="relative z-10 min-h-screen flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8">
         {/* Logo */}
-        <div className="absolute top-8 left-8">
-          <div className="flex items-center space-x-3">
-            <div className="p-2">
-              <Image src="/images/smpi-logo.png" alt="SMPI Logo" width={60} height={60} className="object-contain" />
+        <div className="absolute top-4 sm:top-8 left-4 sm:left-8">
+          <div className="flex items-center space-x-2 sm:space-x-3">
+            <div className="p-1 sm:p-2">
+              <Image
+                src="/images/smpi-logo.png"
+                alt="SMPI Logo"
+                width={40}
+                height={40}
+                className="sm:w-[60px] sm:h-[60px] object-contain"
+              />
             </div>
             <div className="text-white">
-              <h1 className="text-xl font-bold">SMPI</h1>
-              <p className="text-sm opacity-90">Memorial Park</p>
+              <h1 className="text-base sm:text-xl font-bold">SMPI</h1>
+              <p className="text-xs sm:text-sm opacity-90">Memorial Park</p>
             </div>
           </div>
         </div>
@@ -458,13 +582,13 @@ export default function HomePage() {
         {/* Main Content */}
         <div className="text-center max-w-4xl mx-auto">
           {/* Welcome Message */}
-          <div className="mb-8">
-            <div className="inline-block bg-teal-600/95 backdrop-blur-sm rounded-full px-8 py-4 shadow-lg mb-6">
-              <h2 className="text-3xl sm:text-4xl font-bold text-white italic">Welcome to</h2>
+          <div className="mb-6 sm:mb-8">
+            <div className="inline-block bg-teal-600/95 backdrop-blur-sm rounded-full px-4 sm:px-8 py-2 sm:py-4 shadow-lg mb-4 sm:mb-6">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white italic">Welcome to</h2>
             </div>
 
-            <div className="bg-teal-600/95 backdrop-blur-sm rounded-3xl px-8 py-6 shadow-2xl mb-8">
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight">
+            <div className="bg-teal-600/95 backdrop-blur-sm rounded-2xl sm:rounded-3xl px-4 sm:px-8 py-4 sm:py-6 shadow-2xl mb-6 sm:mb-8">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight">
                 SURIGAO MEMORIAL
                 <br />
                 PARK INC.
@@ -473,24 +597,26 @@ export default function HomePage() {
           </div>
 
           {/* Description */}
-          <div className="mb-12">
-            <p className="text-xl sm:text-2xl lg:text-3xl text-white font-medium leading-relaxed max-w-3xl mx-auto drop-shadow-lg">
+          <div className="mb-8 sm:mb-12 px-4">
+            <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-white font-medium leading-relaxed max-w-3xl mx-auto drop-shadow-lg">
               A respectful and modern way to locate graves, explore memorial services, and honor your loved ones.
             </p>
           </div>
         </div>
 
         {/* Continue Button */}
-        <div className="absolute bottom-8 right-8">
+        <div className="absolute bottom-4 sm:bottom-8 right-4 sm:right-8">
           <Button
             onClick={() => setShowLoginOptions(true)}
-            className="bg-teal-500 hover:bg-teal-600 text-white px-8 py-4 text-lg font-semibold rounded-full shadow-2xl transition-all duration-300 hover:scale-105"
+            className="bg-teal-500 hover:bg-teal-600 text-white px-4 sm:px-8 py-3 sm:py-4 text-sm sm:text-lg font-semibold rounded-full shadow-2xl transition-all duration-300 hover:scale-105 flex items-center gap-2"
             size="lg"
           >
-            CLICK HERE TO
-            <br />
-            CONTINUE
-            <ArrowRight className="h-5 w-5 ml-2" />
+            <div className="flex flex-col items-center">
+              <span className="hidden sm:inline">CLICK HERE TO</span>
+              <span className="sm:hidden">TAP TO</span>
+              <span>CONTINUE</span>
+            </div>
+            <ArrowRight />
           </Button>
         </div>
       </div>
@@ -509,6 +635,7 @@ export default function HomePage() {
           }
         }
       `}</style>
+      <AIAssistant />
     </div>
   )
 }
