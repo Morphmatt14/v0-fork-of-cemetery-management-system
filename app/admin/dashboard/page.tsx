@@ -2137,6 +2137,26 @@ export default function AdminDashboard() {
     router.push('/admin/login');
   };
 
+  const handleUpdatePayment = (clientName: string, newBalance: number) => {
+    // Find the client and update their balance
+    const clientIndex = globalData.clients.findIndex((client) => client.name === clientName);
+    if (clientIndex !== -1) {
+      globalData.clients[clientIndex].balance = newBalance;
+      // You might also want to update payment history or status here if applicable
+      // For example, if the balance becomes 0, you could mark the related payments as fully paid.
+    }
+
+    // Update the global state and save to local storage
+    setDashboardData({ ...globalData });
+    saveToLocalStorage();
+
+    toast({
+      title: "Payment Status Updated",
+      description: `The balance for ${clientName} has been updated to ₱${formatCurrency(newBalance)}.`,
+    });
+  };
+
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Back Button - Floating */}
