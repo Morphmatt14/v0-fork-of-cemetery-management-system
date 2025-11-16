@@ -235,7 +235,7 @@ const Download = () => (
       strokeLinecap="round"
       strokeLinejoin="round"
       strokeWidth={2}
-      d="M7 16a4 4 0 01-.886-5.987l1.258-1.257a2 2 0 00.642-1.303L8 7a4 4 0 018.028-.642l1.258 1.257A4 4 0 0117 11"
+      d="M7 16a4 4 0 01-.886-5.987l1.258-1.257a2 2 0 00.642-1.303L8 7a4 4 0 018.028-.642l1.258 1.257a4 4 0 011.172 4.657"
     />
     <path
       strokeLinecap="round"
@@ -303,7 +303,38 @@ import type { Message } from '@/lib/messaging-store'
 import { logActivity } from '@/lib/activity-logger'
 
 // Global state management (in a real app, this would be Redux, Zustand, or Context API)
-let globalData = {
+// Moved to useEffect to ensure client-side execution
+// let globalData = { ... }
+
+// Helper function to save data to localStorage
+const saveToLocalStorage = (data: any) => {
+  if (typeof window !== "undefined") {
+    localStorage.setItem("globalData", JSON.stringify(data))
+  }
+}
+
+// Helper function to load data from localStorage (used in useEffect)
+const loadFromLocalStorage = (): any => {
+  if (typeof window !== "undefined") {
+    const saved = localStorage.getItem("globalData")
+    if (saved) {
+      try {
+        return JSON.parse(saved)
+      } catch (e) {
+        console.error("Failed to parse stored data:", e)
+        return null
+      }
+    }
+  }
+  return null
+}
+
+const formatCurrency = (value: number | null | undefined): string => {
+  return value != null ? value.toLocaleString() : '0'
+}
+
+// Default data for initial state
+const defaultDashboardData = {
   stats: {
     totalLots: 2500,
     occupiedLots: 1847,
@@ -791,26 +822,6 @@ let globalData = {
   ],
 }
 
-// Helper function to save data to localStorage
-const saveToLocalStorage = () => {
-  if (typeof window !== "undefined") {
-    localStorage.setItem("cemeteryData", JSON.stringify(globalData))
-  }
-}
-
-// Helper function to load data from localStorage
-const loadFromLocalStorage = () => {
-  if (typeof window !== "undefined") {
-    const saved = localStorage.getItem("cemeteryData")
-    if (saved) {
-      globalData = JSON.parse(saved)
-    }
-  }
-}
-
-const formatCurrency = (value: number | null | undefined): string => {
-  return value != null ? value.toLocaleString() : '0'
-}
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("overview")
@@ -841,8 +852,43 @@ export default function AdminDashboard() {
   const [reportType, setReportType] = useState("")
   const [reportFormat, setReportFormat] = useState<"excel" | "word" | null>(null)
   const [reportPeriod, setReportPeriod] = useState("monthly")
-  const [dashboardData, setDashboardData] = useState(globalData)
-  const router = useRouter()
+
+  const [dashboardData, setDashboardData] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isMounted, setIsMounted] = useState(false)
+
+  // Initialize dashboard data from localStorage only on client side
+  useEffect(() => {
+    setIsMounted(true)
+    
+    // Load initial data from localStorage
+    const loadedData = loadFromLocalStorage()
+    if (loadedData) {
+      setDashboardData(loadedData)
+    } else {
+      // Use default data if nothing is found in localStorage
+      setDashboardData(defaultDashboardData)
+      saveToLocalStorage(defaultDashboardData) // Save default data for future use
+    }
+    
+    setInquiries(dashboardData?.pendingInquiries || defaultDashboardData.pendingInquiries) // Initialize inquiries
+    loadMessages()
+    
+    // Auto-reload messages every 10 seconds
+    const interval = setInterval(loadMessages, 10000)
+    return () => clearInterval(interval)
+  }, [dashboardData]) // Dependency on dashboardData to ensure it's loaded before setting inquiries
+
+  if (!isMounted || isLoading || !dashboardData) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    )
+  }
 
   // Form states
   const [lotFormData, setLotFormData] = useState({
@@ -889,15 +935,7 @@ export default function AdminDashboard() {
 
 
   // Load data on component mount
-  useEffect(() => {
-    loadFromLocalStorage()
-    setInquiries(globalData.pendingInquiries)
-    loadMessages()
-    
-    // Auto-reload messages every 10 seconds
-    const interval = setInterval(loadMessages, 10000)
-    return () => clearInterval(interval)
-  }, [])
+  // useEffect moved to the top and handled initialization
 
   const loadMessages = () => {
     const adminUser = localStorage.getItem('adminUser')
@@ -941,16 +979,17 @@ export default function AdminDashboard() {
       dateAdded: new Date().toISOString().split("T")[0],
     }
 
-    globalData.lots.push(newLot)
-    globalData.stats.totalLots += 1
+    const updatedData = { ...dashboardData }
+    updatedData.lots.push(newLot)
+    updatedData.stats.totalLots += 1
     if (newLot.status === "Available") {
-      globalData.stats.availableLots += 1
+      updatedData.stats.availableLots += 1
     } else if (newLot.status === "Occupied") {
-      globalData.stats.occupiedLots += 1
+      updatedData.stats.occupiedLots += 1
     }
 
-    setDashboardData({ ...globalData })
-    saveToLocalStorage()
+    setDashboardData(updatedData)
+    saveToLocalStorage(updatedData)
 
     toast({
       title: "Lot Added Successfully",
@@ -981,13 +1020,14 @@ export default function AdminDashboard() {
   }
 
   const handleEditLot = () => {
-    const lotIndex = globalData.lots.findIndex((lot) => lot.id === selectedLot?.id)
+    const lotIndex = dashboardData.lots.findIndex((lot) => lot.id === selectedLot?.id)
     if (lotIndex !== -1) {
-      const oldStatus = globalData.lots[lotIndex].status
+      const oldStatus = dashboardData.lots[lotIndex].status
       const newStatus = lotFormData.status
 
-      globalData.lots[lotIndex] = {
-        ...globalData.lots[lotIndex],
+      const updatedData = { ...dashboardData }
+      updatedData.lots[lotIndex] = {
+        ...updatedData.lots[lotIndex],
         id: lotFormData.id,
         section: lotFormData.section,
         type: lotFormData.type,
@@ -1000,21 +1040,21 @@ export default function AdminDashboard() {
 
       // Assuming mapStore is available and has a syncGlobalLotToMap method
       // This part might need adjustment based on how mapStore is implemented
-      if (globalData.lots[lotIndex].mapId && typeof mapStore !== "undefined" && mapStore.syncGlobalLotToMap) {
-        mapStore.syncGlobalLotToMap(globalData.lots[lotIndex])
+      if (updatedData.lots[lotIndex].mapId && typeof mapStore !== "undefined" && mapStore.syncGlobalLotToMap) {
+        mapStore.syncGlobalLotToMap(updatedData.lots[lotIndex])
       }
 
       // Update stats if status changed
       if (oldStatus !== newStatus) {
-        if (oldStatus === "Available") globalData.stats.availableLots -= 1
-        else if (oldStatus === "Occupied") globalData.stats.occupiedLots -= 1
+        if (oldStatus === "Available") updatedData.stats.availableLots -= 1
+        else if (oldStatus === "Occupied") updatedData.stats.occupiedLots -= 1
 
-        if (newStatus === "Available") globalData.stats.availableLots += 1
-        else if (newStatus === "Occupied") globalData.stats.occupiedLots += 1
+        if (newStatus === "Available") updatedData.stats.availableLots += 1
+        else if (newStatus === "Occupied") updatedData.stats.occupiedLots += 1
       }
 
-      setDashboardData({ ...globalData })
-      saveToLocalStorage()
+      setDashboardData(updatedData)
+      saveToLocalStorage(updatedData)
     }
 
     toast({
@@ -1025,26 +1065,27 @@ export default function AdminDashboard() {
   }
 
   const handleDeleteLot = (lot: any) => {
-    const lotIndex = globalData.lots.findIndex((l) => l.id === lot.id)
+    const lotIndex = dashboardData.lots.findIndex((l) => l.id === lot.id)
     if (lotIndex !== -1) {
-      const deletedLot = globalData.lots[lotIndex]
+      const deletedLot = dashboardData.lots[lotIndex]
+      const updatedData = { ...dashboardData }
 
       // Assuming mapStore is available and has a deleteLot method
       if (deletedLot.mapId && typeof mapStore !== "undefined" && mapStore.deleteLot) {
         mapStore.deleteLot(deletedLot.mapId, deletedLot.id)
       }
 
-      globalData.lots.splice(lotIndex, 1)
-      globalData.stats.totalLots -= 1
+      updatedData.lots.splice(lotIndex, 1)
+      updatedData.stats.totalLots -= 1
 
       if (deletedLot.status === "Available") {
-        globalData.stats.availableLots -= 1
+        updatedData.stats.availableLots -= 1
       } else if (deletedLot.status === "Occupied") {
-        globalData.stats.occupiedLots -= 1
+        updatedData.stats.occupiedLots -= 1
       }
 
-      setDashboardData({ ...globalData })
-      saveToLocalStorage()
+      setDashboardData(updatedData)
+      saveToLocalStorage(updatedData)
     }
 
     toast({
@@ -1056,7 +1097,7 @@ export default function AdminDashboard() {
 
   const handleAddClient = () => {
     const newClient = {
-      id: globalData.clients.length + 1,
+      id: dashboardData.clients.length + 1,
       name: clientFormData.name,
       email: clientFormData.email,
       phone: clientFormData.phone,
@@ -1071,10 +1112,11 @@ export default function AdminDashboard() {
       paymentHistory: [],
     }
 
-    globalData.clients.push(newClient)
-    globalData.stats.totalClients += 1
-    setDashboardData({ ...globalData })
-    saveToLocalStorage()
+    const updatedData = { ...dashboardData }
+    updatedData.clients.push(newClient)
+    updatedData.stats.totalClients += 1
+    setDashboardData(updatedData)
+    saveToLocalStorage(updatedData)
 
     toast({
       title: "Client Added Successfully",
@@ -1094,10 +1136,11 @@ export default function AdminDashboard() {
 
   const handleUpdateClient = (e?: React.FormEvent) => {
     if (e) e.preventDefault()
-    const clientIndex = globalData.clients.findIndex((client) => client.id === selectedClient?.id)
+    const clientIndex = dashboardData.clients.findIndex((client) => client.id === selectedClient?.id)
     if (clientIndex !== -1) {
-      globalData.clients[clientIndex] = {
-        ...globalData.clients[clientIndex],
+      const updatedData = { ...dashboardData }
+      updatedData.clients[clientIndex] = {
+        ...updatedData.clients[clientIndex],
         name: clientFormData.name,
         email: clientFormData.email,
         phone: clientFormData.phone,
@@ -1107,8 +1150,8 @@ export default function AdminDashboard() {
         notes: clientFormData.notes,
       }
 
-      setDashboardData({ ...globalData })
-      saveToLocalStorage()
+      setDashboardData(updatedData)
+      saveToLocalStorage(updatedData)
     }
 
     toast({
@@ -1155,14 +1198,15 @@ export default function AdminDashboard() {
       updatedInquiries[inquiryIndex] = updatedInquiry
 
       // Update global data
-      const globalInquiryIndex = globalData.pendingInquiries.findIndex((inq) => inq.id === selectedInquiry?.id)
+      const globalInquiryIndex = dashboardData.pendingInquiries.findIndex((inq) => inq.id === selectedInquiry?.id)
+      const updatedGlobalData = { ...dashboardData }
       if (globalInquiryIndex !== -1) {
-        globalData.pendingInquiries[globalInquiryIndex] = updatedInquiry
+        updatedGlobalData.pendingInquiries[globalInquiryIndex] = updatedInquiry
       }
 
       setInquiries(updatedInquiries)
-      setDashboardData({ ...globalData })
-      saveToLocalStorage()
+      setDashboardData(updatedGlobalData)
+      saveToLocalStorage(updatedGlobalData)
     }
 
     toast({
@@ -1194,14 +1238,15 @@ export default function AdminDashboard() {
       updatedInquiries[inquiryIndex] = updatedInquiry
 
       // Update global data
-      const globalInquiryIndex = globalData.pendingInquiries.findIndex((inq) => inq.id === inquiry.id)
+      const globalInquiryIndex = dashboardData.pendingInquiries.findIndex((inq) => inq.id === inquiry.id)
+      const updatedGlobalData = { ...dashboardData }
       if (globalInquiryIndex !== -1) {
-        globalData.pendingInquiries[globalInquiryIndex] = updatedInquiry
+        updatedGlobalData.pendingInquiries[globalInquiryIndex] = updatedInquiry
       }
 
       setInquiries(updatedInquiries)
-      setDashboardData({ ...globalData })
-      saveToLocalStorage()
+      setDashboardData(updatedGlobalData)
+      saveToLocalStorage(updatedGlobalData)
     }
 
     toast({
@@ -1225,14 +1270,15 @@ export default function AdminDashboard() {
       updatedInquiries[inquiryIndex] = updatedInquiry
 
       // Update global data
-      const globalInquiryIndex = globalData.pendingInquiries.findIndex((inq) => inq.id === inquiry.id)
+      const globalInquiryIndex = dashboardData.pendingInquiries.findIndex((inq) => inq.id === inquiry.id)
+      const updatedGlobalData = { ...dashboardData }
       if (globalInquiryIndex !== -1) {
-        globalData.pendingInquiries[globalInquiryIndex] = updatedInquiry
+        updatedGlobalData.pendingInquiries[globalInquiryIndex] = updatedInquiry
       }
 
       setInquiries(updatedInquiries)
-      setDashboardData({ ...globalData })
-      saveToLocalStorage()
+      setDashboardData(updatedGlobalData)
+      saveToLocalStorage(updatedGlobalData)
     }
 
     toast({
@@ -1253,14 +1299,15 @@ export default function AdminDashboard() {
       updatedInquiries[inquiryIndex] = updatedInquiry
 
       // Update global data
-      const globalInquiryIndex = globalData.pendingInquiries.findIndex((inq) => inq.id === inquiry.id)
+      const globalInquiryIndex = dashboardData.pendingInquiries.findIndex((inq) => inq.id === inquiry.id)
+      const updatedGlobalData = { ...dashboardData }
       if (globalInquiryIndex !== -1) {
-        globalData.pendingInquiries[globalInquiryIndex] = updatedInquiry
+        updatedGlobalData.pendingInquiries[globalInquiryIndex] = updatedInquiry
       }
 
       setInquiries(updatedInquiries)
-      setDashboardData({ ...globalData })
-      saveToLocalStorage()
+      setDashboardData(updatedGlobalData)
+      saveToLocalStorage(updatedGlobalData)
     }
 
     toast({
@@ -1281,14 +1328,15 @@ export default function AdminDashboard() {
       updatedInquiries[inquiryIndex] = updatedInquiry
 
       // Update global data
-      const globalInquiryIndex = globalData.pendingInquiries.findIndex((inq) => inq.id === inquiry.id)
+      const globalInquiryIndex = dashboardData.pendingInquiries.findIndex((inq) => inq.id === inquiry.id)
+      const updatedGlobalData = { ...dashboardData }
       if (globalInquiryIndex !== -1) {
-        globalData.pendingInquiries[globalInquiryIndex] = updatedInquiry
+        updatedGlobalData.pendingInquiries[globalInquiryIndex] = updatedInquiry
       }
 
       setInquiries(updatedInquiries)
-      setDashboardData({ ...globalData })
-      saveToLocalStorage()
+      setDashboardData(updatedGlobalData)
+      saveToLocalStorage(updatedGlobalData)
     }
 
     toast({
@@ -1314,6 +1362,9 @@ export default function AdminDashboard() {
     // Find which map this lot belongs to
     const maps = typeof window !== "undefined" ? JSON.parse(localStorage.getItem("cemeteryMaps") || "[]") : []
 
+    let lotFound = false;
+    const updatedData = { ...dashboardData };
+
     for (const map of maps) {
       const lot = map.lots?.find((l: any) => l.id === lotId)
       if (lot) {
@@ -1324,22 +1375,32 @@ export default function AdminDashboard() {
         // mapStore.linkLotToOwner(map.id, lotId, ownerName, ownerEmail, ownerId)
 
         // Update global lots system
-        const lotIndex = globalData.lots.findIndex((l) => l.id === lotId)
+        const lotIndex = updatedData.lots.findIndex((l) => l.id === lotId)
         if (lotIndex !== -1) {
-          globalData.lots[lotIndex].owner = ownerName
-          globalData.lots[lotIndex].status = "Reserved" // Or "Occupied" depending on business logic
-          globalData.lots[lotIndex].ownerId = ownerId // Store owner ID for future reference
-          globalData.lots[lotIndex].mapId = map.id // Store the map ID
-          saveToLocalStorage()
-          setDashboardData({ ...globalData })
+          updatedData.lots[lotIndex].owner = ownerName
+          updatedData.lots[lotIndex].status = "Reserved" // Or "Occupied" depending on business logic
+          updatedData.lots[lotIndex].ownerId = ownerId // Store owner ID for future reference
+          updatedData.lots[lotIndex].mapId = map.id // Store the map ID
+          lotFound = true
+          break // Stop searching once the lot is found and updated
         }
-
-        toast({
-          title: "Lot Assigned Successfully",
-          description: `Lot ${lotId} has been assigned to ${ownerName}`,
-        })
-        break // Stop searching once the lot is found and updated
       }
+    }
+
+    if (lotFound) {
+      setDashboardData(updatedData)
+      saveToLocalStorage(updatedData)
+
+      toast({
+        title: "Lot Assigned Successfully",
+        description: `Lot ${lotId} has been assigned to ${ownerName}`,
+      })
+    } else {
+      toast({
+        title: "Assignment Failed",
+        description: `Could not find lot ${lotId} or map data is unavailable.`,
+        variant: "destructive",
+      })
     }
   }
 
@@ -2139,16 +2200,17 @@ export default function AdminDashboard() {
 
   const handleUpdatePayment = (clientName: string, newBalance: number) => {
     // Find the client and update their balance
-    const clientIndex = globalData.clients.findIndex((client) => client.name === clientName);
+    const clientIndex = dashboardData.clients.findIndex((client) => client.name === clientName);
+    const updatedData = { ...dashboardData };
     if (clientIndex !== -1) {
-      globalData.clients[clientIndex].balance = newBalance;
+      updatedData.clients[clientIndex].balance = newBalance;
       // You might also want to update payment history or status here if applicable
       // For example, if the balance becomes 0, you could mark the related payments as fully paid.
     }
 
     // Update the global state and save to local storage
-    setDashboardData({ ...globalData });
-    saveToLocalStorage();
+    setDashboardData(updatedData);
+    saveToLocalStorage(updatedData);
 
     toast({
       title: "Payment Status Updated",
@@ -3133,23 +3195,19 @@ export default function AdminDashboard() {
                               variant="outline"
                               size="sm"
                               onClick={() => {
-                                const newBalance = Number.parseInt(prompt("Enter new balance amount:") || "0")
-                                if (newBalance !== undefined && newBalance >= 0) {
-                                  const cemeteryData = localStorage.getItem("cemeteryData")
-                                  if (cemeteryData) {
-                                    const data = JSON.parse(cemeteryData)
-                                    const paymentIndex = data.payments?.findIndex((p: any) => p.id === payment.id)
-                                    if (paymentIndex !== undefined && paymentIndex >= 0) {
-                                      data.payments[paymentIndex].balance = newBalance
-                                      data.payments[paymentIndex].status = newBalance === 0 ? "Paid" : "On Payment"
-                                      data.payments[paymentIndex].updatedAt = new Date().toISOString()
-                                      localStorage.setItem("cemeteryData", JSON.stringify(data))
-                                      window.location.reload()
-                                    }
+                                const newBalanceInput = prompt("Enter new balance amount:")
+                                if (newBalanceInput !== null) {
+                                  const newBalance = Number.parseFloat(newBalanceInput)
+                                  if (!isNaN(newBalance) && newBalance >= 0) {
+                                    handleUpdatePayment(payment.client, newBalance)
+                                  } else {
+                                    toast({
+                                      title: "Invalid Input",
+                                      description: "Please enter a valid non-negative number for the balance.",
+                                      variant: "destructive"
+                                    })
                                   }
                                 }
-                                // Call the handleUpdatePayment function here
-                                handleUpdatePayment(payment.client, newBalance);
                               }}
                               title="Update payment status or balance"
                             >
