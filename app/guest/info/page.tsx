@@ -54,7 +54,7 @@ export default function GuestInfoPage() {
             <div className="flex flex-wrap justify-center gap-4">
               <Badge variant="secondary" className="px-4 py-2 text-sm">
                 <Clock className="h-4 w-4 mr-2" />
-                Open Daily 6:00 AM - 6:00 PM
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock h-4 w-4 mr-2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>Open Daily 8:00 AM - 5:00 PM
               </Badge>
               <Badge variant="secondary" className="px-4 py-2 text-sm">
                 <MapPin className="h-4 w-4 mr-2" />
@@ -76,7 +76,8 @@ export default function GuestInfoPage() {
             </CardHeader>
             <CardContent>
               <ul className="space-y-2 text-sm text-gray-600">
-                <li>• Standard, Premium, and Family plots available</li>
+                <li>• Standard, Garden Lot, and Family plots    
+   available</li>
                 <li>• Flexible installment payment plans</li>
                 <li>• Professional lot planning services</li>
                 <li>• Legal documentation and certificates</li>
@@ -97,7 +98,7 @@ export default function GuestInfoPage() {
                 <li>• Regular landscaping and upkeep</li>
                 <li>• Tomb cleaning and maintenance</li>
                 <li>• Pathway and facility maintenance</li>
-                <li>• Beautification services</li>
+                
               </ul>
             </CardContent>
           </Card>
@@ -233,7 +234,7 @@ export default function GuestInfoPage() {
                   </div>
                   <div>
                     <p className="font-medium">Operating Hours</p>
-                    <p className="text-sm text-gray-600">Daily: 6:00 AM - 6:00 PM</p>
+                    <p className="text-sm text-gray-600">Daily: 8:00 AM - 5:00 PM</p>
                   </div>
                 </div>
               </CardContent>
@@ -329,26 +330,14 @@ export default function GuestInfoPage() {
                 Providing dignified memorial services to the Surigao community with compassion and professionalism.
               </p>
             </div>
-            <div>
-              <h4 className="font-semibold mb-4">Quick Links</h4>
-              <ul className="space-y-2 text-sm text-gray-400">
-                <li>
-                  <Link href="/" className="hover:text-white transition-colors">
-                    Back to Home
-                  </Link>
-                </li>
-                <li>Our Services</li>
-                <li>Pricing Information</li>
-                <li>Contact Us</li>
-              </ul>
-            </div>
+            
             <div>
               <h4 className="font-semibold mb-4">Contact Info</h4>
               <div className="space-y-2 text-sm text-gray-400">
                 <p>Jose Sering Rd, Surigao City</p>
                 <p>Surigao Del Norte, Philippines</p>
                 <p>Phone: (086) 826-1234</p>
-                <p>Email: info@surigaomemorialpark.com</p>
+                <p>Email: smpi87@yahoo.com</p>
               </div>
             </div>
           </div>

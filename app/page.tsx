@@ -219,7 +219,7 @@ export default function HomePage() {
                   <ul className="text-gray-600 space-y-1">
                     <li>• Full payment with discount</li>
                     <li>• Flexible installment plans</li>
-                    <li>• Bank financing available</li>
+                    
                     <li>• Online payment options</li>
                   </ul>
                 </div>
