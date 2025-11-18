@@ -58,11 +58,36 @@ export default function SuperAdminDashboard() {
   const router = useRouter()
 
   useEffect(() => {
-    const superAdminUser = localStorage.getItem('superAdminUser')
-    if (!superAdminUser) {
+    const adminSession = localStorage.getItem('adminSession')
+    const adminUser = localStorage.getItem('adminUser')
+    const currentUser = localStorage.getItem('currentUser')
+    
+    console.log("[v0] Checking admin authentication...")
+    console.log("[v0] adminSession:", adminSession)
+    console.log("[v0] adminUser:", adminUser)
+    console.log("[v0] currentUser:", currentUser)
+    
+    if (!adminSession && !adminUser && !currentUser) {
+      console.log("[v0] No admin session found, redirecting to login")
       router.push('/super-admin/login')
       return
     }
+    
+    // Verify it's actually an admin role
+    if (currentUser) {
+      try {
+        const user = JSON.parse(currentUser)
+        if (user.role !== 'admin') {
+          console.log("[v0] User is not admin role, redirecting")
+          router.push('/super-admin/login')
+          return
+        }
+      } catch (e) {
+        console.error("[v0] Error parsing currentUser:", e)
+      }
+    }
+    
+    console.log("[v0] Admin authenticated, loading dashboard data")
     loadData()
   }, [])
 

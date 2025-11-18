@@ -1,7 +1,12 @@
 export interface AuthStore {
-  adminUsers: Array<{ username: string; password: string; name?: string; createdAt?: number }>
+  admins: Array<{ username: string; password: string; name?: string; createdAt?: number }>
+  employees: Array<{ username: string; password: string; name?: string; createdAt?: number }>
   clientUsers: Array<{ email: string; password: string; id: string; name?: string; phone?: string }>
-  superAdmin?: { username: string; password: string }
+}
+
+const EMPLOYEE_CREDENTIALS = {
+  username: "employee",
+  password: "emp123",
 }
 
 const ADMIN_CREDENTIALS = {
@@ -17,52 +22,65 @@ const DEMO_CLIENT = {
   phone: "09123456789",
 }
 
-const SUPER_ADMIN_CREDENTIALS = {
-  username: "superadmin",
-  password: "superadmin123",
-}
-
 export function initializeAuth() {
   if (typeof window === 'undefined') return
   
   const existing = localStorage.getItem("auth_store")
   if (!existing) {
     const authData = {
-      adminUsers: [{ ...ADMIN_CREDENTIALS, name: 'Default Admin', createdAt: Date.now() }],
+      admins: [{ ...ADMIN_CREDENTIALS, name: 'Master Admin', createdAt: Date.now() }],
+      employees: [{ ...EMPLOYEE_CREDENTIALS, name: 'Default Employee', createdAt: Date.now() }],
       clientUsers: [DEMO_CLIENT],
-      superAdmin: SUPER_ADMIN_CREDENTIALS,
     }
     localStorage.setItem("auth_store", JSON.stringify(authData))
-    console.log("[v0] Auth store initialized with default credentials")
+    console.log("[v0] Auth store initialized with default credentials - Admin & Employee roles")
   }
 }
 
 export function verifyAdminCredentials(username: string, password: string): boolean {
   if (typeof window === 'undefined') return false
-  initializeAuth()
-  const store = JSON.parse(localStorage.getItem("auth_store") || "{}")
-  return store.adminUsers?.some((user: any) => user.username === username && user.password === password) || false
-}
-
-export function verifySuperAdminCredentials(username: string, password: string): boolean {
-  if (typeof window === 'undefined') return false
   
-  // Initialize if needed
   initializeAuth()
   
-  // Get from localStorage
   const store = JSON.parse(localStorage.getItem("auth_store") || "{}")
-  const superAdmin = store.superAdmin
   
-  console.log("[v0] Verifying super admin:", { username, superAdmin })
+  console.log("[v0] Verifying Admin (Master) credentials:", { username })
   
-  // Check against stored credentials
-  if (superAdmin && superAdmin.username === username && superAdmin.password === password) {
+  const admin = store.admins?.find((u: any) => u.username === username && u.password === password)
+  
+  if (admin) {
     return true
   }
   
   // Fallback to hardcoded credentials
-  return username === "superadmin" && password === "superadmin123"
+  return username === "admin" && password === "admin123"
+}
+
+export function verifyEmployeeCredentials(username: string, password: string): boolean {
+  if (typeof window === 'undefined') return false
+  
+  initializeAuth()
+  
+  const store = JSON.parse(localStorage.getItem("auth_store") || "{}")
+  
+  console.log("[v0] Verifying Employee credentials:", { username })
+  console.log("[v0] Available employees:", store.employees)
+  
+  const employee = store.employees?.find((u: any) => u.username === username && u.password === password)
+  
+  if (employee) {
+    console.log("[v0] Employee verification successful")
+    return true
+  }
+  
+  const isValid = username === "employee" && password === "emp123"
+  console.log("[v0] Employee fallback check result:", isValid)
+  return isValid
+}
+
+export function verifySuperAdminCredentials(username: string, password: string): boolean {
+  // This now points to Admin role
+  return verifyAdminCredentials(username, password)
 }
 
 export function verifyClientCredentials(
@@ -83,18 +101,17 @@ export function getClientUser(id: string) {
   return store.clientUsers?.find((user: any) => user.id === id)
 }
 
-export function createAdmin(username: string, password: string, name: string): boolean {
+export function createEmployee(username: string, password: string, name: string): boolean {
   if (typeof window === 'undefined') return false
   initializeAuth()
   const store = JSON.parse(localStorage.getItem("auth_store") || "{}")
   
-  // Check if admin already exists
-  if (store.adminUsers?.some((u: any) => u.username === username)) {
+  if (store.employees?.some((u: any) => u.username === username)) {
     return false
   }
   
-  store.adminUsers = store.adminUsers || []
-  store.adminUsers.push({
+  store.employees = store.employees || []
+  store.employees.push({
     username,
     password,
     name,
@@ -105,20 +122,27 @@ export function createAdmin(username: string, password: string, name: string): b
   return true
 }
 
-export function deleteAdmin(username: string): boolean {
+export function deleteEmployee(username: string): boolean {
   if (typeof window === 'undefined') return false
   const store = JSON.parse(localStorage.getItem("auth_store") || "{}")
   
-  store.adminUsers = store.adminUsers?.filter((u: any) => u.username !== username) || []
+  store.employees = store.employees?.filter((u: any) => u.username !== username) || []
   localStorage.setItem("auth_store", JSON.stringify(store))
   return true
+}
+
+export function getAllEmployees() {
+  if (typeof window === 'undefined') return []
+  initializeAuth()
+  const store = JSON.parse(localStorage.getItem("auth_store") || "{}")
+  return store.employees || []
 }
 
 export function getAllAdmins() {
   if (typeof window === 'undefined') return []
   initializeAuth()
   const store = JSON.parse(localStorage.getItem("auth_store") || "{}")
-  return store.adminUsers || []
+  return store.admins || []
 }
 
 // Initialize on module load

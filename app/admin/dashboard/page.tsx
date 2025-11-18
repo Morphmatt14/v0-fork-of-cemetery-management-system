@@ -825,7 +825,16 @@ const defaultDashboardData = {
 
 export default function AdminDashboard() {
   const router = useRouter()
-  
+  const [isMounted, setIsMounted] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [dashboardData, setDashboardData] = useState<any>(null)
+  const [inquiries, setInquiries] = useState<any[]>([])
+  const [lots, setLots] = useState<any[]>([])
+  const [clients, setClients] = useState<any[]>([])
+  const [payments, setPayments] = useState<any[]>([])
+  const [burials, setBurials] = useState<any[]>([])
+
+  // UI States
   const [activeTab, setActiveTab] = useState("overview")
   const [searchTerm, setSearchTerm] = useState("")
   const [clientSearchTerm, setClientSearchTerm] = useState("")
@@ -834,7 +843,6 @@ export default function AdminDashboard() {
   const [isAddLotOpen, setIsAddLotOpen] = useState(false)
   const [isEditLotOpen, setIsEditLotOpen] = useState(false)
   const [isViewLotOpen, setIsViewLotOpen] = useState(false)
-  const [isAssignOwnerOpen, setIsAssignOwnerOpen] = useState(false)
   const [isAddClientOpen, setIsAddClientOpen] = useState(false)
   const [isEditClientOpen, setIsEditClientOpen] = useState(false)
   const [isViewClientOpen, setIsViewClientOpen] = useState(false)
@@ -842,24 +850,19 @@ export default function AdminDashboard() {
   const [isReplyInquiryOpen, setIsReplyInquiryOpen] = useState(false)
   const [isViewInquiryOpen, setIsViewInquiryOpen] = useState(false)
   const [isMessageClientOpen, setIsMessageClientOpen] = useState(false)
+  const [isAssignOwnerOpen, setIsAssignOwnerOpen] = useState(false)
   const [isReportPreviewOpen, setIsReportPreviewOpen] = useState(false)
-  const [selectedLot, setSelectedLot] = useState<any>(null)
-  const [selectedClient, setSelectedClient] = useState<any>(null)
-  const [selectedBurial, setSelectedBurial] = useState<any>(null)
-  const [selectedInquiry, setSelectedInquiry] = useState<any>(null)
-  const [selectedReport, setSelectedReport] = useState<any>(null)
   const [isGeneratingReport, setIsGeneratingReport] = useState(false)
-  const [inquiries, setInquiries] = useState<any[]>([])
-  const [reportData, setReportData] = useState<any[]>([])
-  const [reportType, setReportType] = useState("")
-  const [reportFormat, setReportFormat] = useState<"excel" | "word" | null>(null)
-  const [reportPeriod, setReportPeriod] = useState("monthly")
+  const [reportType, setReportType] = useState<string>("")
+  const [reportPeriod, setReportPeriod] = useState<string>("monthly")
+  const [reportData, setReportData] = useState<any>(null)
+  const [selectedReport, setSelectedReport] = useState<any>(null)
+  const [showMessages, setShowMessages] = useState(false)
+  const [messages, setMessages] = useState<Message[]>([])
+  const [selectedMessage, setSelectedMessage] = useState<Message | null>(null)
+  const [replyText, setReplyText] = useState("")
 
-  const [dashboardData, setDashboardData] = useState<any>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [isMounted, setIsMounted] = useState(false)
-
-  // Form states
+  // Form Data States
   const [lotFormData, setLotFormData] = useState({
     id: "",
     section: "",
@@ -869,9 +872,8 @@ export default function AdminDashboard() {
     description: "",
     dimensions: "",
     features: "",
-    mapId: null, // Added to store mapId
+    mapId: null, // To store the associated map ID if available
   })
-
   const [clientFormData, setClientFormData] = useState({
     name: "",
     email: "",
@@ -881,7 +883,6 @@ export default function AdminDashboard() {
     emergencyPhone: "",
     notes: "",
   })
-
   const [replyFormData, setReplyFormData] = useState({
     subject: "",
     message: "",
@@ -889,26 +890,59 @@ export default function AdminDashboard() {
     sendCopy: false,
     followUpDate: "",
   })
-
   const [messageFormData, setMessageFormData] = useState({
     subject: "",
     message: "",
     type: "general",
   })
 
-  // messaging states
-  const [showMessages, setShowMessages] = useState(false)
-  const [messages, setMessages] = useState<Message[]>([])
-  const [selectedMessage, setSelectedMessage] = useState<Message | null>(null)
-  const [replyText, setReplyText] = useState('')
+  // Selected Item States
+  const [selectedLot, setSelectedLot] = useState<any>(null)
+  const [selectedClient, setSelectedClient] = useState<any>(null)
+  const [selectedInquiry, setSelectedInquiry] = useState<any>(null)
+  const [selectedBurial, setSelectedBurial] = useState<any>(null)
 
-  // Load messages from localStorage and set up interval for auto-refresh
-  const loadMessages = () => {
-    const adminUser = localStorage.getItem('adminUser')
-    if (adminUser) {
-      setMessages(getMessagesForUser(adminUser))
-    }
+  // Load messages from store
+  const loadMessages = async () => {
+    const adminUsername = localStorage.getItem('adminUser') || 'admin'
+    const fetchedMessages = await getMessagesForUser(adminUsername);
+    setMessages(fetchedMessages)
   }
+
+
+  // CHANGE Add authentication check at the top of the component
+  useEffect(() => {
+    const employeeSession = localStorage.getItem('employeeSession')
+    const employeeUser = localStorage.getItem('employeeUser')
+    const currentUser = localStorage.getItem('currentUser')
+    
+    console.log("[v0] Checking employee authentication...")
+    console.log("[v0] employeeSession:", employeeSession)
+    console.log("[v0] employeeUser:", employeeUser)
+    console.log("[v0] currentUser:", currentUser)
+    
+    if (!employeeSession && !employeeUser && !currentUser) {
+      console.log("[v0] No employee session found, redirecting to login")
+      router.push('/admin/login')
+      return
+    }
+    
+    // Verify it's actually an employee role
+    if (currentUser) {
+      try {
+        const user = JSON.parse(currentUser)
+        if (user.role !== 'employee') {
+          console.log("[v0] User is not employee role, redirecting")
+          router.push('/admin/login')
+          return
+        }
+      } catch (e) {
+        console.error("[v0] Error parsing currentUser:", e)
+      }
+    }
+    
+    console.log("[v0] Employee authenticated, continuing to dashboard")
+  }, [router])
 
   // Initialize dashboard data from localStorage only on client side
   useEffect(() => {
@@ -918,9 +952,19 @@ export default function AdminDashboard() {
     const loadedData = loadFromLocalStorage()
     if (loadedData) {
       setDashboardData(loadedData)
+      setInquiries(loadedData?.pendingInquiries || [])
+      setLots(loadedData?.lots || [])
+      setClients(loadedData?.clients || [])
+      setPayments(loadedData?.payments || [])
+      setBurials(loadedData?.burials || [])
     } else {
       // Use default data if nothing is found in localStorage
       setDashboardData(defaultDashboardData)
+      setInquiries(defaultDashboardData.pendingInquiries || [])
+      setLots(defaultDashboardData.lots || [])
+      setClients(defaultDashboardData.clients || [])
+      setPayments(defaultDashboardData.payments || [])
+      setBurials(defaultDashboardData.burials || [])
       saveToLocalStorage(defaultDashboardData) // Save default data for future use
     }
     
@@ -929,7 +973,11 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (dashboardData) {
-      setInquiries(dashboardData?.pendingInquiries || defaultDashboardData.pendingInquiries)
+      setInquiries(dashboardData?.pendingInquiries || [])
+      setLots(dashboardData?.lots || [])
+      setClients(dashboardData?.clients || [])
+      setPayments(dashboardData?.payments || [])
+      setBurials(dashboardData?.burials || [])
     }
   }, [dashboardData])
 
@@ -2202,7 +2250,9 @@ export default function AdminDashboard() {
   }
 
   const handleLogout = () => {
-    localStorage.removeItem('adminUser');
+    localStorage.removeItem('employeeSession'); // Updated based on the new auth check
+    localStorage.removeItem('employeeUser'); // Updated
+    localStorage.removeItem('currentUser'); // Updated
     router.push('/admin/login');
   };
 
