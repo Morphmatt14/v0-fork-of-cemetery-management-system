@@ -9,13 +9,14 @@ import { Input } from "@/components/ui/input"
 import { X, Loader2 } from "lucide-react"
 
 interface PaymentModalProps {
-  isOpen: boolean
-  lot: { id: string; type: string; price: number; section: string } | null
+  lotName: string
+  lotPrice: number
+  lotType: string
   onClose: () => void
   onPaymentSuccess?: () => void
 }
 
-export function PaymentModal({ isOpen, lot, onClose, onPaymentSuccess }: PaymentModalProps) {
+export function PaymentModal({ lotName, lotPrice, lotType, onClose, onPaymentSuccess }: PaymentModalProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
     email: "",
@@ -34,8 +35,8 @@ export function PaymentModal({ isOpen, lot, onClose, onPaymentSuccess }: Payment
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          lotId: lot?.id, // Using lot id as ID for demo
-          lotType: lot?.type,
+          lotId: lotType,
+          lotType: lotType,
           email: formData.email,
           fullName: formData.fullName,
           phone: formData.phone,
@@ -61,10 +62,6 @@ export function PaymentModal({ isOpen, lot, onClose, onPaymentSuccess }: Payment
     }
   }
 
-  if (!isOpen || !lot) return null
-
-  const price = lot?.price ?? 0
-
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <Card className="w-full max-w-md">
@@ -78,10 +75,10 @@ export function PaymentModal({ isOpen, lot, onClose, onPaymentSuccess }: Payment
           <div className="space-y-6">
             {/* Lot Summary */}
             <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="font-semibold text-gray-900 mb-2">Lot {lot.id}</h3>
+              <h3 className="font-semibold text-gray-900 mb-2">{lotName}</h3>
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">Price:</span>
-                <span className="text-xl font-bold text-teal-600">₱{price.toLocaleString()}</span>
+                <span className="text-xl font-bold text-teal-600">₱{lotPrice.toLocaleString()}</span>
               </div>
             </div>
 

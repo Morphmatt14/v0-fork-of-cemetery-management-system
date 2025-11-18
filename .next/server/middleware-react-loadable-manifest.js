@@ -1,0 +1,1 @@
+self.__REACT_LOADABLE_MANIFEST="{\"components\\\\payment-modal.tsx -> @stripe/stripe-js\":{\"id\":\"components\\\\payment-modal.tsx -> @stripe/stripe-js\",\"files\":[\"static/chunks/_app-pages-browser_node_modules_stripe_stripe-js_lib_index_mjs.js\"]}}"

@@ -15,7 +15,7 @@ export default function GuestInfoPage() {
         asChild
         className="fixed top-6 left-6 z-50 bg-white/90 hover:bg-white text-gray-700 hover:text-gray-900 shadow-lg backdrop-blur-sm border border-gray-200 rounded-full w-12 h-12 p-0"
       >
-        <Link href="/">
+        <Link href="/guest">
           <ArrowLeft className="h-5 w-5" />
         </Link>
       </Button>
@@ -54,7 +54,7 @@ export default function GuestInfoPage() {
             <div className="flex flex-wrap justify-center gap-4">
               <Badge variant="secondary" className="px-4 py-2 text-sm">
                 <Clock className="h-4 w-4 mr-2" />
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock h-4 w-4 mr-2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>Open Daily 8:00 AM - 5:00 PM
+                Open Daily 8:00 AM - 5:00 PM
               </Badge>
               <Badge variant="secondary" className="px-4 py-2 text-sm">
                 <MapPin className="h-4 w-4 mr-2" />

@@ -13,8 +13,8 @@ import Image from "next/image"
 import { verifyClientCredentials } from "@/lib/auth-store"
 
 // Inline SVG Icons
-const User = () => (
-  <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+const User = ({ className }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -23,8 +23,8 @@ const User = () => (
     />
   </svg>
 )
-const Lock = () => (
-  <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+const Lock = ({ className }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -38,8 +38,8 @@ const ArrowLeft = () => (
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
   </svg>
 )
-const Eye = () => (
-  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+const Eye = ({ className }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
     <path
       strokeLinecap="round"
@@ -49,8 +49,8 @@ const Eye = () => (
     />
   </svg>
 )
-const EyeOff = () => (
-  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+const EyeOff = ({ className }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -93,10 +93,12 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
       {/* Back Button - Floating */}
       <Button
-        onClick={() => router.back()}
+        asChild
         className="fixed top-6 left-6 z-50 bg-white/90 hover:bg-white text-gray-700 hover:text-gray-900 shadow-lg backdrop-blur-sm border border-gray-200 rounded-full w-12 h-12 p-0"
       >
-        <ArrowLeft />
+        <Link href="/guest">
+          <ArrowLeft />
+        </Link>
       </Button>
 
       <div className="w-full max-w-md">
