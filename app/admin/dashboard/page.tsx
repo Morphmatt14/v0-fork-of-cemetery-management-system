@@ -823,7 +823,8 @@ const defaultDashboardData = {
 }
 
 
-export default function AdminDashboard() {
+// CHANGE Renamed function from AdminDashboard to EmployeeDashboard
+export default function EmployeeDashboard() {
   const router = useRouter()
   const [isMounted, setIsMounted] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -904,7 +905,7 @@ export default function AdminDashboard() {
 
   // Load messages from store
   const loadMessages = async () => {
-    const adminUsername = localStorage.getItem('adminUser') || 'admin'
+    const adminUsername = localStorage.getItem('employeeUser') || 'employee' // Use employeeUser
     const fetchedMessages = await getMessagesForUser(adminUsername);
     setMessages(fetchedMessages)
   }
@@ -1010,10 +1011,10 @@ export default function AdminDashboard() {
     e.preventDefault()
     if (!selectedMessage || !replyText) return
 
-    const adminUser = localStorage.getItem('adminUser')
-    sendMessage(adminUser || 'admin', 'superadmin', `Re: ${selectedMessage.subject}`, replyText, 'normal', 'reply', selectedMessage.id)
+    const adminUser = localStorage.getItem('employeeUser') || 'employee' // Use employeeUser
+    sendMessage(adminUser, 'superadmin', `Re: ${selectedMessage.subject}`, replyText, 'normal', 'reply', selectedMessage.id)
     
-    logActivity(adminUser || 'admin', 'MESSAGE_REPLY', `Replied to super admin message: ${selectedMessage.subject}`, 'success', 'system')
+    logActivity(adminUser, 'MESSAGE_REPLY', `Replied to super admin message: ${selectedMessage.subject}`, 'success', 'system')
     
     setReplyText('')
     setSelectedMessage(null)
@@ -1064,9 +1065,9 @@ export default function AdminDashboard() {
       mapId: null,
     })
 
-    const adminUser = localStorage.getItem('adminUser')
+    const adminUser = localStorage.getItem('employeeUser') || 'employee' // Use employeeUser
     logActivity(
-      adminUser || 'admin',
+      adminUser,
       'LOT_CREATED',
       `Created lot ${lotFormData.id} in section ${lotFormData.section}`,
       'success',
@@ -1216,9 +1217,9 @@ export default function AdminDashboard() {
     })
     setIsEditClientOpen(false)
 
-    const adminUser = localStorage.getItem('adminUser')
+    const adminUser = localStorage.getItem('employeeUser') || 'employee' // Use employeeUser
     logActivity(
-      adminUser || 'admin',
+      adminUser,
       'CLIENT_UPDATED',
       `Updated client ${selectedClient.name}`,
       'success',
@@ -2302,12 +2303,12 @@ export default function AdminDashboard() {
             </div>
             <div>
               <h1 className="text-base sm:text-xl font-bold text-gray-900">Surigao Memorial Park</h1>
-              <p className="text-xs sm:text-sm text-gray-600">Administration Panel</p>
+              <p className="text-xs sm:text-sm text-gray-600">Employee Panel</p>
             </div>
           </div>
           <div className="flex items-center gap-4">
             <AdminNotificationBadge
-              adminUsername={localStorage.getItem('adminUser') || 'admin'}
+              adminUsername={localStorage.getItem('employeeUser') || 'employee'}
               onOpenMessages={() => setShowMessages(true)}
             />
             <Button onClick={handleLogout} className="bg-red-600 hover:bg-red-700">
