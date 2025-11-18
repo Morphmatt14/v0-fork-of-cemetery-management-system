@@ -488,15 +488,7 @@ export default function ClientDashboard() {
                           <Eye className="h-4 w-4 mr-2" />
                           View Details
                         </Button>
-                        <Button
-                          size="sm"
-                          className="flex-1 bg-green-600 hover:bg-green-700"
-                          onClick={() => setSelectedLotForAppointment(lot)}
-                          title="Schedule an appointment to visit this lot"
-                        >
-                          <Calendar className="h-4 w-4 mr-2" />
-                          Book Appointment
-                        </Button>
+                        
                       </div>
                     </div>
                   </CardContent>
@@ -589,10 +581,7 @@ export default function ClientDashboard() {
                     >
                       <option value="">Select request type</option>
                       <option value="maintenance">Lot Maintenance</option>
-                      <option value="appointment">Schedule Appointment</option>
-                      <option value="payment">Payment Inquiry</option>
                       <option value="documentation">Documentation Request</option>
-                      <option value="general">General Inquiry</option>
                     </select>
                   </div>
                   <div>

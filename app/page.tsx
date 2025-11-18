@@ -430,16 +430,7 @@ export default function HomePage() {
                   your account."
                 </p>
 
-                <Button
-                  asChild
-                  variant="ghost"
-                  className="flex items-center gap-3 text-white/80 hover:text-white hover:bg-white/10 rounded-lg p-3 transition-all duration-200"
-                >
-                  <Link href="/guest/info">
-                    <Headphones />
-                    <span className="text-sm">Customer Service</span>
-                  </Link>
-                </Button>
+                
               </div>
 
               {/* Right Section - Cards */}

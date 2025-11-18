@@ -2486,17 +2486,12 @@ export default function EmployeeDashboard() {
                   className="bg-green-600 hover:bg-green-700"
                   onClick={() => setIsAssignOwnerOpen(true)}
                   disabled={filteredLots.length === 0}
-                  title="Select a lot to assign to an owner"
+                  title="Select a lot to assign to an client"
                 >
                   Assign Lot to Owner
                 </Button>
                 <Dialog open={isAddLotOpen} onOpenChange={setIsAddLotOpen}>
-                  <DialogTrigger asChild>
-                    <Button className="bg-blue-600 hover:bg-blue-700" title="Add a new lot to the system">
-                      <Plus />
-                      Add New Lot
-                    </Button>
-                  </DialogTrigger>
+                  
                   <DialogContent className="max-w-2xl">
                     <DialogHeader>
                       <DialogTitle>Add New Lot</DialogTitle>
