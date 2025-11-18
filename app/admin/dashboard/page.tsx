@@ -3472,8 +3472,8 @@ export default function EmployeeDashboard() {
           <TabsContent value="maps" className="space-y-6">
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h3 className="text-lg font-semibold">Cemetery Maps</h3>
-                <p className="text-gray-600">Manage interactive cemetery maps and lot boundaries</p>
+                
+                
               </div>
             </div>
 
