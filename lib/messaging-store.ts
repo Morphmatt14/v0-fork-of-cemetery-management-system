@@ -72,3 +72,15 @@ export function deleteMessage(messageId: string): void {
   const filtered = messages.filter((m: Message) => m.id !== messageId)
   localStorage.setItem(MESSAGES_KEY, JSON.stringify(filtered))
 }
+
+export function getSentMessages(username: string): Message[] {
+  const messages = JSON.parse(localStorage.getItem(MESSAGES_KEY) || '[]')
+  return messages
+    .filter((m: Message) => m.from === username)
+    .sort((a: Message, b: Message) => b.timestamp - a.timestamp)
+}
+
+export function getAllMessages(): Message[] {
+  const messages = JSON.parse(localStorage.getItem(MESSAGES_KEY) || '[]')
+  return messages.sort((a: Message, b: Message) => b.timestamp - a.timestamp)
+}

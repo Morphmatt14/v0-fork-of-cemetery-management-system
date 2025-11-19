@@ -160,7 +160,7 @@ export default function GuestModePage() {
                 size="sm"
                 className="text-white hover:text-white hover:bg-white/20 rounded-full"
               >
-                <Link href="/admin/login">Admin Login</Link>
+                <Link href="/admin/employee/login">Employee Login</Link>
               </Button>
             </div>
           </div>

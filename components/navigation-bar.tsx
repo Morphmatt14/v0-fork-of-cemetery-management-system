@@ -48,8 +48,8 @@ export function NavigationBar({ links = [], hideHome = false }: NavigationBarPro
     { label: "Browse", href: "/guest/info", requiresAuth: false },
     { label: "Services", href: "/#services", requiresAuth: false },
     { label: "Login", href: "/login", requiresAuth: false },
+    { label: "Employee", href: "/admin/employee/login", requiresAuth: false },
     { label: "Admin", href: "/admin/login", requiresAuth: false },
-    { label: "Super Admin", href: "/super-admin/login", requiresAuth: false },
   ]
 
   const navLinks = links.length > 0 ? links : defaultLinks

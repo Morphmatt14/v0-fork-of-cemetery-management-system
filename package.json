@@ -19,6 +19,7 @@
     "@stripe/stripe-js": "latest",
     "@supabase/ssr": "latest",
     "@supabase/supabase-js": "latest",
+    "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.454.0",
@@ -31,6 +32,7 @@
     "xlsx": "latest"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22",
     "@types/react": "^18",
     "@types/react-dom": "^18",
