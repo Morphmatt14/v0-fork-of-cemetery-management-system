@@ -9,7 +9,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { mapStore, type CemeteryMap, type LotBox } from "@/lib/map-store"
+import { mapStoreApi, type CemeteryMap, type LotBox } from "@/lib/map-store-api"
+import { useToast } from "@/hooks/use-toast"
+import { Loader2 } from "lucide-react"
 
 const ZoomIn = () => (
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -56,11 +58,14 @@ interface DrawingLot extends LotBox {
 }
 
 export default function AdvancedMapEditor({ mapId }: { mapId: string }) {
-  const [map, setMap] = useState<CemeteryMap | null>(mapStore.getMapById(mapId))
-  const [mapImage, setMapImage] = useState<string>(map?.imageUrl || "")
+  const { toast } = useToast()
+  const [map, setMap] = useState<CemeteryMap | null>(null)
+  const [isLoadingMap, setIsLoadingMap] = useState(true)
+  const [mapImage, setMapImage] = useState<string>("")
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [editForm, setEditForm] = useState<Partial<DrawingLot>>({})
   const [editingLotId, setEditingLotId] = useState<string | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
   const [bulkCreateForm, setBulkCreateForm] = useState({
     count: 10,
     lotType: "Lawn" as const,
@@ -73,6 +78,31 @@ export default function AdvancedMapEditor({ mapId }: { mapId: string }) {
   const [fabricLoaded, setFabricLoaded] = useState(false)
   const [zoom, setZoom] = useState(1)
 
+  // Load map data
+  useEffect(() => {
+    loadMap()
+  }, [mapId])
+
+  const loadMap = async () => {
+    setIsLoadingMap(true)
+    try {
+      const fetchedMap = await mapStoreApi.getMapById(mapId)
+      if (fetchedMap) {
+        setMap(fetchedMap)
+        setMapImage(fetchedMap.imageUrl)
+      }
+    } catch (error) {
+      console.error('Failed to load map:', error)
+      toast({
+        title: "Error",
+        description: "Failed to load map data",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoadingMap(false)
+    }
+  }
+
   const handleEditLot = (lot: DrawingLot) => {
     setEditForm(lot)
     setEditingLotId(lot.id)
@@ -80,20 +110,54 @@ export default function AdvancedMapEditor({ mapId }: { mapId: string }) {
   }
 
   useEffect(() => {
-    if (typeof window !== "undefined" && !window.fabric) {
+    if (typeof window === "undefined") return
+
+    // Check if script already exists
+    const existingScript = document.querySelector('script[src*="fabric.min.js"]')
+    if (existingScript) {
+      if (window.fabric) {
+        setFabricLoaded(true)
+      }
+      return
+    }
+
+    if (!window.fabric) {
       const script = document.createElement("script")
       script.src = "https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"
-      script.onload = () => setFabricLoaded(true)
+      script.async = true
+      script.onload = () => {
+        console.log('Fabric.js loaded successfully')
+        setFabricLoaded(true)
+      }
+      script.onerror = () => {
+        console.error('Failed to load Fabric.js')
+        toast({
+          title: "Error",
+          description: "Failed to load map editor library",
+          variant: "destructive",
+        })
+      }
       document.head.appendChild(script)
-    } else if (window.fabric) {
+    } else {
       setFabricLoaded(true)
     }
   }, [])
 
   useEffect(() => {
-    if (!fabricLoaded || !canvasRef.current || fabricCanvasRef.current) return
+    if (!fabricLoaded || !canvasRef.current || !map || isLoadingMap) return
+    
+    // Clear existing canvas if it exists
+    if (fabricCanvasRef.current) {
+      fabricCanvasRef.current.dispose()
+      fabricCanvasRef.current = null
+    }
 
     const fabric = window.fabric
+    if (!fabric) {
+      console.error('Fabric.js not available')
+      return
+    }
+
     const canvas = new fabric.Canvas(canvasRef.current, {
       width: 1200,
       height: 800,
@@ -106,7 +170,7 @@ export default function AdvancedMapEditor({ mapId }: { mapId: string }) {
       loadBackgroundImage(mapImage)
     }
 
-    if (map?.lots && map.lots.length > 0) {
+    if (map.lots && map.lots.length > 0) {
       map.lots.forEach((lot) => {
         addLotToCanvas(lot)
       })
@@ -122,26 +186,43 @@ export default function AdvancedMapEditor({ mapId }: { mapId: string }) {
         fabricCanvasRef.current = null
       }
     }
-  }, [fabricLoaded, mapId])
+  }, [fabricLoaded, map, mapImage, isLoadingMap])
 
   const loadBackgroundImage = (imageUrl: string) => {
-    if (!fabricCanvasRef.current) return
+    if (!fabricCanvasRef.current || !window.fabric) return
 
     const fabric = window.fabric
-    fabric.Image.fromURL(imageUrl, (img: any) => {
-      img.set({
-        selectable: false,
-        evented: false,
-      })
-      fabricCanvasRef.current.setBackgroundImage(img, fabricCanvasRef.current.renderAll.bind(fabricCanvasRef.current), {
-        scaleX: fabricCanvasRef.current.width / img.width,
-        scaleY: fabricCanvasRef.current.height / img.height,
-      })
-    })
+    
+    fabric.Image.fromURL(
+      imageUrl, 
+      (img: any) => {
+        if (!img) {
+          console.error('Failed to load image')
+          return
+        }
+        img.set({
+          selectable: false,
+          evented: false,
+        })
+        if (fabricCanvasRef.current) {
+          fabricCanvasRef.current.setBackgroundImage(
+            img, 
+            fabricCanvasRef.current.renderAll.bind(fabricCanvasRef.current), 
+            {
+              scaleX: fabricCanvasRef.current.width / img.width,
+              scaleY: fabricCanvasRef.current.height / img.height,
+            }
+          )
+        }
+      },
+      {
+        crossOrigin: 'anonymous'
+      }
+    )
   }
 
   const addLotToCanvas = (lot: DrawingLot) => {
-    if (!fabricCanvasRef.current) return
+    if (!fabricCanvasRef.current || !window.fabric) return
 
     const fabric = window.fabric
     const statusColors: Record<string, string> = {
@@ -227,8 +308,12 @@ export default function AdvancedMapEditor({ mapId }: { mapId: string }) {
     obj.setCoords()
     fabricCanvasRef.current.renderAll()
 
-    const newMap = mapStore.updateLot(map.id, obj.lotId, updatedLot)
-    if (newMap) setMap(newMap)
+    // Update lot position in database
+    mapStoreApi.updateLot(map.id, obj.lotId, updatedLot).then((newMap) => {
+      if (newMap) setMap(newMap)
+    }).catch(error => {
+      console.error('Failed to update lot position:', error)
+    })
   }
 
   const handleSelection = (e: any) => {
@@ -239,13 +324,13 @@ export default function AdvancedMapEditor({ mapId }: { mapId: string }) {
     const file = e.target.files?.[0]
     if (file && fabricCanvasRef.current) {
       const reader = new FileReader()
-      reader.onload = (event) => {
+      reader.onload = async (event) => {
         const imageUrl = event.target?.result as string
         setMapImage(imageUrl)
         loadBackgroundImage(imageUrl)
 
         if (map) {
-          const updated = mapStore.updateMap(map.id, { ...map, imageUrl })
+          const updated = await mapStoreApi.updateMap(map.id, { ...map, imageUrl })
           if (updated) setMap(updated)
         }
       }
@@ -328,106 +413,165 @@ export default function AdvancedMapEditor({ mapId }: { mapId: string }) {
     fabricCanvasRef.current.renderAll()
   }
 
-  const handleSaveLot = () => {
+  const handleSaveLot = async () => {
     if (!map || !editForm.ownerName) return
 
-    if (editingLotId) {
-      const newMap = mapStore.updateLot(map.id, editingLotId, {
-        x: editForm.x,
-        y: editForm.y,
-        width: editForm.width,
-        height: editForm.height,
-        ownerName: editForm.ownerName,
-        lotType: editForm.lotType as "Lawn" | "Garden" | "Family State",
-        status: editForm.status as "vacant" | "still_on_payment" | "occupied",
-        price: editForm.price,
-        rotation: editForm.rotation,
-      })
+    setIsSaving(true)
+    try {
+      if (editingLotId) {
+        const newMap = await mapStoreApi.updateLot(map.id, editingLotId, {
+          x: editForm.x,
+          y: editForm.y,
+          width: editForm.width,
+          height: editForm.height,
+          ownerName: editForm.ownerName,
+          lotType: editForm.lotType as "Lawn" | "Garden" | "Family State",
+          status: editForm.status as "vacant" | "still_on_payment" | "occupied",
+          price: editForm.price,
+          rotation: editForm.rotation || 0,
+        })
+
+        if (newMap && fabricCanvasRef.current) {
+          setMap(newMap)
+
+          fabricCanvasRef.current.getObjects().forEach((obj: any) => {
+            if (obj.lotId === editingLotId) {
+              fabricCanvasRef.current.remove(obj)
+            }
+          })
+          newMap.lots?.forEach((lot: any) => addLotToCanvas(lot))
+          toast({ title: "Success", description: "Lot updated successfully" })
+        }
+      } else {
+        const newMap = await mapStoreApi.addLot(map.id, {
+          x: editForm.x || 0,
+          y: editForm.y || 0,
+          width: editForm.width || 100,
+          height: editForm.height || 120,
+          ownerName: editForm.ownerName || "[Available]",
+          lotType: editForm.lotType as "Lawn" | "Garden" | "Family State" || "Lawn",
+          status: editForm.status as "vacant" | "still_on_payment" | "occupied" || "vacant",
+          price: editForm.price || 75000,
+          rotation: editForm.rotation || 0,
+        })
+
+        if (newMap && fabricCanvasRef.current) {
+          setMap(newMap)
+          const newLot = newMap.lots?.[newMap.lots.length - 1]
+          if (newLot) addLotToCanvas(newLot)
+          toast({ title: "Success", description: "Lot created successfully" })
+        }
+      }
+
+      setEditForm({})
+      setEditingLotId(null)
+      setIsEditDialogOpen(false)
+    } catch (error) {
+      console.error('Failed to save lot:', error)
+      toast({ title: "Error", description: "Failed to save lot", variant: "destructive" })
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleBulkCreate = async () => {
+    if (!map) return
+
+    setIsSaving(true)
+    try {
+      const newMap = await mapStoreApi.createBulkLots(
+        map.id,
+        {
+          count: bulkCreateForm.count,
+          lotType: bulkCreateForm.lotType,
+          basePrice: bulkCreateForm.basePrice,
+        },
+        100,
+        100,
+        bulkCreateForm.spacing,
+      )
 
       if (newMap && fabricCanvasRef.current) {
         setMap(newMap)
-        const objects = fabricCanvasRef.current.getObjects()
-        objects.forEach((obj: any) => {
+        fabricCanvasRef.current.getObjects().forEach((obj: any) => {
           if (obj.lotId) {
             fabricCanvasRef.current.remove(obj)
           }
         })
-        newMap.lots?.forEach((lot) => addLotToCanvas(lot))
+        newMap.lots?.forEach((lot: any) => addLotToCanvas(lot))
+        toast({ 
+          title: "Success", 
+          description: `Created ${bulkCreateForm.count} ${bulkCreateForm.lotType} lots!` 
+        })
       }
-    } else {
-      const newMap = mapStore.addLot(map.id, {
-        x: editForm.x || 0,
-        y: editForm.y || 0,
-        width: editForm.width || 100,
-        height: editForm.height || 120,
-        ownerName: editForm.ownerName,
-        lotType: (editForm.lotType as "Lawn" | "Garden" | "Family State") || "Lawn",
-        status: (editForm.status as "vacant" | "still_on_payment" | "occupied") || "vacant",
-        price: editForm.price || 75000,
-        rotation: editForm.rotation || 0,
-      })
-
-      if (newMap && fabricCanvasRef.current) {
-        setMap(newMap)
-        const newLot = newMap.lots?.[newMap.lots.length - 1]
-        if (newLot) addLotToCanvas(newLot)
-      }
-    }
-
-    setIsEditDialogOpen(false)
-    setEditForm({})
-    setEditingLotId(null)
-  }
-
-  const handleBulkCreate = () => {
-    if (!map) return
-
-    const newMap = mapStore.createBulkLots(
-      map.id,
-      {
-        count: bulkCreateForm.count,
-        lotType: bulkCreateForm.lotType,
-        basePrice: bulkCreateForm.basePrice,
-      },
-      100,
-      100,
-      bulkCreateForm.spacing,
-    )
-
-    if (newMap && fabricCanvasRef.current) {
-      setMap(newMap)
-      const objects = fabricCanvasRef.current.getObjects()
-      objects.forEach((obj: any) => {
-        if (obj.lotId) {
-          fabricCanvasRef.current.remove(obj)
-        }
-      })
-      newMap.lots?.forEach((lot) => addLotToCanvas(lot))
-      alert(`Created ${bulkCreateForm.count} ${bulkCreateForm.lotType} lots!`)
+    } catch (error) {
+      console.error('Failed to create bulk lots:', error)
+      toast({ title: "Error", description: "Failed to create lots", variant: "destructive" })
+    } finally {
+      setIsSaving(false)
     }
   }
 
-  const handleDeleteSelected = () => {
+  const handleDeleteSelected = async () => {
     if (!fabricCanvasRef.current || !map) return
 
     const activeObjects = fabricCanvasRef.current.getActiveObjects()
     if (activeObjects.length === 0) return
 
-    if (confirm(`Delete ${activeObjects.length} selected lot(s)?`)) {
+    if (!confirm(`Delete ${activeObjects.length} selected lot(s)?`)) return
+
+    setIsSaving(true)
+    try {
       let updatedMap = map
-      activeObjects.forEach((obj: any) => {
+      for (const obj of activeObjects) {
         if (obj.lotId) {
-          updatedMap = mapStore.deleteLot(updatedMap.id, obj.lotId) || updatedMap
+          updatedMap = await mapStoreApi.deleteLot(updatedMap.id, obj.lotId) || updatedMap
           fabricCanvasRef.current.remove(obj)
         }
-      })
+      }
       setMap(updatedMap)
       fabricCanvasRef.current.discardActiveObject()
       fabricCanvasRef.current.renderAll()
+      toast({ title: "Success", description: "Lots deleted successfully" })
+    } catch (error) {
+      console.error('Failed to delete lots:', error)
+      toast({ title: "Error", description: "Failed to delete lots", variant: "destructive" })
+    } finally {
+      setIsSaving(false)
     }
   }
 
-  if (!map) return <div>Map not found</div>
+  if (isLoadingMap) {
+    return (
+      <Card>
+        <CardContent className="p-8 text-center">
+          <Loader2 className="h-12 w-12 text-gray-400 mx-auto mb-3 animate-spin" />
+          <p className="text-gray-600">Loading map data...</p>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (!map) {
+    return (
+      <Card>
+        <CardContent className="p-8 text-center">
+          <p className="text-red-600">Map not found. Please go back and try again.</p>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (!fabricLoaded) {
+    return (
+      <Card>
+        <CardContent className="p-8 text-center">
+          <Loader2 className="h-12 w-12 text-gray-400 mx-auto mb-3 animate-spin" />
+          <p className="text-gray-600">Loading map editor...</p>
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -741,11 +885,23 @@ export default function AdvancedMapEditor({ mapId }: { mapId: string }) {
                   setEditingLotId(null)
                   setEditForm({})
                 }}
+                disabled={isSaving}
               >
                 Cancel
               </Button>
-              <Button onClick={handleSaveLot} className="bg-blue-600 hover:bg-blue-700">
-                Save
+              <Button 
+                onClick={handleSaveLot} 
+                className="bg-blue-600 hover:bg-blue-700"
+                disabled={isSaving}
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save"
+                )}
               </Button>
             </div>
           </div>

@@ -291,7 +291,7 @@ import LotOwnerSelector from "@/components/lot-owner-selector"
 // } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import * as XLSX from "xlsx"
 import { NewsManager } from "@/components/news-manager"
 // import MapManager from "@/components/map-manager" // Already imported above
@@ -303,6 +303,9 @@ import type { Message } from '@/lib/messaging-store'
 import { logActivity } from '@/lib/activity-logger'
 import { DashboardOverview } from '@/components/dashboard-overview'
 import { logout } from '@/lib/dashboard-api'
+
+// Import tab components
+import { OverviewTab, LotsTab, MapsTab, NewsTab } from './components'
 
 // Global state management (in a real app, this would be Redux, Zustand, or Context API)
 // Moved to useEffect to ensure client-side execution
@@ -828,6 +831,9 @@ const defaultDashboardData = {
 // CHANGE Renamed function from AdminDashboard to EmployeeDashboard
 export default function EmployeeDashboard() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const activeTab = searchParams.get('tab') || 'overview'
+  
   const [isMounted, setIsMounted] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [dashboardData, setDashboardData] = useState<any>(null)
@@ -837,8 +843,7 @@ export default function EmployeeDashboard() {
   const [payments, setPayments] = useState<any[]>([])
   const [burials, setBurials] = useState<any[]>([])
 
-  // UI States
-  const [activeTab, setActiveTab] = useState("overview")
+  // UI States (activeTab removed - now using URL params)
   const [searchTerm, setSearchTerm] = useState("")
   const [clientSearchTerm, setClientSearchTerm] = useState("")
   const [paymentSearchTerm, setPaymentSearchTerm] = useState("")
@@ -2256,6 +2261,10 @@ export default function EmployeeDashboard() {
     logout(router);
   };
 
+  const handleTabChange = (value: string) => {
+    router.push(`/admin/employee/dashboard?tab=${value}`, { scroll: false })
+  }
+
   const handleUpdatePayment = (clientName: string, newBalance: number) => {
     // Find the client and update their balance
     const clientIndex = dashboardData.clients.findIndex((client) => client.name === clientName);
@@ -2326,7 +2335,7 @@ export default function EmployeeDashboard() {
           </p>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4 sm:space-y-6">
           <TabsList className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-9 w-full text-xs sm:text-sm overflow-x-auto">
             <TabsTrigger value="overview" className="px-2 sm:px-4">
               Overview
@@ -2357,127 +2366,18 @@ export default function EmployeeDashboard() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-4 sm:space-y-6">
-            {/* Real-time statistics from Supabase */}
-            <DashboardOverview role="employee" />
-            
-            {/* Additional Employee-specific stats */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mt-6">
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">Total Lots</p>
-                      <p className="text-xl sm:text-2xl font-bold">{dashboardData.stats.totalLots}</p>
-                      <p className="text-xs text-gray-500">
-                        {dashboardData.stats.occupiedLots} occupied • {dashboardData.stats.availableLots} available
-                      </p>
-                    </div>
-                    <MapPin />
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">Total Clients</p>
-                      <p className="text-xl sm:text-2xl font-bold">{dashboardData.stats.totalClients}</p>
-                      <p className="text-xs text-gray-500">Active lot owners</p>
-                    </div>
-                    <Users />
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">Monthly Revenue</p>
-                      <p className="text-xl sm:text-2xl font-bold">
-                        ₱{formatCurrency(dashboardData.stats.monthlyRevenue)}
-                      </p>
-                      <p className="text-xs text-gray-500">{dashboardData.stats.overduePayments} overdue payments</p>
-                    </div>
-                    <DollarSign />
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">Pending Inquiries</p>
-                      <p className="text-xl sm:text-2xl font-bold">
-                        {inquiries.filter((i) => i.status !== "Resolved").length}
-                      </p>
-                      <p className="text-xs text-gray-500">Require attention</p>
-                    </div>
-                    <MessageSquare />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+          {activeTab === 'overview' && (
+            <OverviewTab 
+              dashboardData={dashboardData}
+              inquiries={inquiries}
+              openViewBurial={openViewBurial}
+              openReplyInquiry={openReplyInquiry}
+            />
+          )}
 
-            {/* Recent Activity */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Recent Burials</CardTitle>
-                  <CardDescription>Latest burial records</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {dashboardData.recentBurials.map((burial) => (
-                      <div key={burial.id} className="flex items-center justify-between p-3 border rounded-lg">
-                        <div>
-                          <p className="font-medium">{burial.name}</p>
-                          <p className="text-sm text-gray-600">
-                            Lot {burial.lot} • {burial.family}
-                          </p>
-                          <p className="text-xs text-gray-500">{burial.date}</p>
-                        </div>
-                        <Button variant="outline" size="sm" onClick={() => openViewBurial(burial)}>
-                          <Eye />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+          {activeTab === 'lots' && <LotsTab />}
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Pending Inquiries</CardTitle>
-                  <CardDescription>Client inquiries requiring response</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {inquiries
-                      .filter((i) => i.status !== "Resolved")
-                      .slice(0, 3)
-                      .map((inquiry) => (
-                        <div key={inquiry.id} className="flex items-center justify-between p-3 border rounded-lg">
-                          <div>
-                            <p className="font-medium">{inquiry.name}</p>
-                            <p className="text-sm text-gray-600">{inquiry.type}</p>
-                            <p className="text-xs text-gray-500">{inquiry.date}</p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Badge variant={getStatusColor(inquiry.status)}>{inquiry.status}</Badge>
-                            <Button variant="outline" size="sm" onClick={() => openReplyInquiry(inquiry)}>
-                              Reply
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="lots" className="space-y-6">
+          <TabsContent value="lots" className="space-y-6" style={{ display: 'none' }}>
             <div className="flex flex-col sm:flex-col justify-between items-center mb-4 sm:mb-0">
               <div>
                 <h3 className="text-lg font-semibold">Lot Management</h3>
@@ -3471,20 +3371,9 @@ export default function EmployeeDashboard() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="maps" className="space-y-6">
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                
-                
-              </div>
-            </div>
+          {activeTab === 'maps' && <MapsTab />}
 
-            <MapManager />
-          </TabsContent>
-
-          <TabsContent value="news" className="space-y-6">
-            <NewsManager />
-          </TabsContent>
+          {activeTab === 'news' && <NewsTab />}
         </Tabs>
       </main>
 

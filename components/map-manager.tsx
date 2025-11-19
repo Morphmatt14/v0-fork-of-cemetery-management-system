@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,14 +15,18 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { mapStore, type CemeteryMap } from "@/lib/map-store"
-import { Plus, Trash2, Edit, MapPin, Upload } from "lucide-react"
+import { mapStoreApi, type CemeteryMap } from "@/lib/map-store-api"
+import { Plus, Trash2, Edit, MapPin, Upload, Loader2 } from "lucide-react"
 import Image from "next/image"
 import AdvancedMapEditor from "./advanced-map-editor"
+import { useToast } from "@/hooks/use-toast"
 
 export default function MapManager() {
-  const [maps, setMaps] = useState<CemeteryMap[]>(mapStore.getMaps())
+  const { toast } = useToast()
+  const [maps, setMaps] = useState<CemeteryMap[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [isAddOpen, setIsAddOpen] = useState(false)
+  const [isAdding, setIsAdding] = useState(false)
   const [selectedMapForEdit, setSelectedMapForEdit] = useState<CemeteryMap | null>(null)
   const [formData, setFormData] = useState({
     name: "",
@@ -30,6 +34,28 @@ export default function MapManager() {
     imageUrl: "",
   })
   const [imagePreview, setImagePreview] = useState<string>("")
+
+  // Load maps on component mount
+  useEffect(() => {
+    loadMaps()
+  }, [])
+
+  const loadMaps = async () => {
+    setIsLoading(true)
+    try {
+      const fetchedMaps = await mapStoreApi.getMaps()
+      setMaps(fetchedMaps)
+    } catch (error) {
+      console.error('Failed to load maps:', error)
+      toast({
+        title: "Error",
+        description: "Failed to load cemetery maps",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -44,30 +70,67 @@ export default function MapManager() {
     }
   }
 
-  const handleAddMap = () => {
+  const handleAddMap = async () => {
     if (!formData.name || !formData.imageUrl) {
-      alert("Please fill in all required fields and upload an image")
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields and upload an image",
+        variant: "destructive",
+      })
       return
     }
 
-    const newMap = mapStore.addMap({
-      name: formData.name,
-      description: formData.description,
-      imageUrl: formData.imageUrl,
-      sections: [],
-      lots: [],
-    })
+    setIsAdding(true)
+    try {
+      const newMap = await mapStoreApi.addMap({
+        name: formData.name,
+        description: formData.description,
+        imageUrl: formData.imageUrl,
+        sections: [],
+        lots: [],
+      })
 
-    setMaps(mapStore.getMaps())
-    setFormData({ name: "", description: "", imageUrl: "" })
-    setImagePreview("")
-    setIsAddOpen(false)
+      if (newMap) {
+        await loadMaps()
+        setFormData({ name: "", description: "", imageUrl: "" })
+        setImagePreview("")
+        setIsAddOpen(false)
+        toast({
+          title: "Success",
+          description: "Cemetery map created successfully",
+        })
+      }
+    } catch (error) {
+      console.error('Failed to create map:', error)
+      toast({
+        title: "Error",
+        description: "Failed to create cemetery map",
+        variant: "destructive",
+      })
+    } finally {
+      setIsAdding(false)
+    }
   }
 
-  const handleDeleteMap = (mapId: string) => {
-    if (confirm("Are you sure you want to delete this map?")) {
-      mapStore.deleteMap(mapId)
-      setMaps(mapStore.getMaps())
+  const handleDeleteMap = async (mapId: string) => {
+    if (!confirm("Are you sure you want to delete this map?")) return
+
+    try {
+      const success = await mapStoreApi.deleteMap(mapId)
+      if (success) {
+        await loadMaps()
+        toast({
+          title: "Success",
+          description: "Cemetery map deleted successfully",
+        })
+      }
+    } catch (error) {
+      console.error('Failed to delete map:', error)
+      toast({
+        title: "Error",
+        description: "Failed to delete cemetery map",
+        variant: "destructive",
+      })
     }
   }
 
@@ -161,11 +224,23 @@ export default function MapManager() {
                     setIsAddOpen(false)
                     setImagePreview("")
                   }}
+                  disabled={isAdding}
                 >
                   Cancel
                 </Button>
-                <Button onClick={handleAddMap} className="bg-blue-600 hover:bg-blue-700">
-                  Add Map
+                <Button 
+                  onClick={handleAddMap} 
+                  className="bg-blue-600 hover:bg-blue-700"
+                  disabled={isAdding}
+                >
+                  {isAdding ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    "Add Map"
+                  )}
                 </Button>
               </div>
             </div>
@@ -173,7 +248,14 @@ export default function MapManager() {
         </Dialog>
       </div>
 
-      {maps.length === 0 ? (
+      {isLoading ? (
+        <Card>
+          <CardContent className="p-8 text-center">
+            <Loader2 className="h-12 w-12 text-gray-400 mx-auto mb-3 animate-spin" />
+            <p className="text-gray-600">Loading cemetery maps...</p>
+          </CardContent>
+        </Card>
+      ) : maps.length === 0 ? (
         <Card>
           <CardContent className="p-8 text-center">
             <MapPin className="h-12 w-12 text-gray-300 mx-auto mb-3" />

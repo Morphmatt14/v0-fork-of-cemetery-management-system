@@ -112,11 +112,11 @@ export async function POST(request: NextRequest) {
     console.log('[Lots API] POST - Creating lot:', body)
 
     // Validate required fields
-    if (!body.lot_number || !body.section_id || !body.lot_type || !body.price) {
+    if (!body.lot_number || !body.lot_type || !body.price) {
       return NextResponse.json(
         { 
           success: false, 
-          error: 'Missing required fields: lot_number, section_id, lot_type, price' 
+          error: 'Missing required fields: lot_number, lot_type, price' 
         },
         { status: 400 }
       )
@@ -157,19 +157,21 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verify section exists
-    const { data: section } = await supabaseServer
-      .from('cemetery_sections')
-      .select('id')
-      .eq('id', body.section_id)
-      .is('deleted_at', null)
-      .single()
+    // Verify section exists if section_id is provided
+    if (body.section_id) {
+      const { data: section } = await supabaseServer
+        .from('cemetery_sections')
+        .select('id')
+        .eq('id', body.section_id)
+        .is('deleted_at', null)
+        .single()
 
-    if (!section) {
-      return NextResponse.json(
-        { success: false, error: 'Cemetery section not found' },
-        { status: 404 }
-      )
+      if (!section) {
+        return NextResponse.json(
+          { success: false, error: 'Cemetery section not found' },
+          { status: 404 }
+        )
+      }
     }
 
     // Insert lot
@@ -177,7 +179,7 @@ export async function POST(request: NextRequest) {
       .from('lots')
       .insert({
         lot_number: body.lot_number,
-        section_id: body.section_id,
+        section_id: body.section_id || null,
         lot_type: body.lot_type,
         status: body.status || 'Available',
         price: body.price,
@@ -186,6 +188,7 @@ export async function POST(request: NextRequest) {
         description: body.description,
         created_by: body.created_by,
         date_added: new Date().toISOString().split('T')[0],
+        map_id: body.map_id || null,
       })
       .select(`
         *,
@@ -213,7 +216,7 @@ export async function POST(request: NextRequest) {
         actor_id: body.created_by || null,
         actor_username: 'system',
         action: 'create_lot',
-        details: `Created lot ${body.lot_number} in section ${section.id}`,
+        details: `Created lot ${body.lot_number}${body.section_id ? ` in section ${body.section_id}` : ''}${body.map_id ? ` on map ${body.map_id}` : ''}`,
         category: 'lot_management',
         status: 'success',
       })

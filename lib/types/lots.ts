@@ -46,7 +46,7 @@ export interface Lot {
 
 export interface CreateLotInput {
   lot_number: string
-  section_id: string
+  section_id?: string  // Optional - can be null for map-created lots
   lot_type: LotType
   status?: LotStatus
   price: number
@@ -54,6 +54,7 @@ export interface CreateLotInput {
   features?: string
   description?: string
   created_by?: string
+  map_id?: string  // For linking to cemetery map
 }
 
 export interface UpdateLotInput {
@@ -69,6 +70,7 @@ export interface UpdateLotInput {
   description?: string
   date_reserved?: string
   date_occupied?: string
+  map_id?: string  // For linking to cemetery map
 }
 
 export interface LotFilters {
