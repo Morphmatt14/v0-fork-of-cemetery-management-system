@@ -95,8 +95,8 @@ const Heart = () => (
   </svg>
 )
 
-const LogOut = () => (
-  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+const LogOut = ({ className }: { className?: string }) => (
+  <svg className={className || "h-5 w-5"} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -117,8 +117,8 @@ const CreditCard = () => (
   </svg>
 )
 
-const ArrowLeft = () => (
-  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+const ArrowLeft = ({ className }: { className?: string }) => (
+  <svg className={className || "h-5 w-5"} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
   </svg>
 )
@@ -135,11 +135,13 @@ const Eye = () => (
   </svg>
 )
 
-export default function ClientDashboard() {
+import { Suspense } from 'react'
+
+function ClientDashboardContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const activeTab = searchParams.get('tab') || 'overview'  // ✅ URL-based tabs!
-  
+
   const [selectedLotForDetails, setSelectedLotForDetails] = useState<any>(null)
   const [selectedLotForAppointment, setSelectedLotForAppointment] = useState<any>(null)
   const [inquiries, setInquiries] = useState<any[]>([])
@@ -201,17 +203,17 @@ export default function ClientDashboard() {
   useEffect(() => {
     const clientSession = localStorage.getItem('clientSession')
     const clientUser = localStorage.getItem('clientUser')
-    
+
     console.log("[Client Portal] Checking authentication...")
     console.log("[Client Portal] clientSession:", clientSession)
     console.log("[Client Portal] clientUser:", clientUser)
-    
+
     if (!clientSession && !clientUser) {
       console.log("[Client Portal] No session found, redirecting to login")
       router.push('/login')
       return
     }
-    
+
     // Get client ID from session
     if (clientSession) {
       try {
@@ -245,7 +247,7 @@ export default function ClientDashboard() {
     try {
       console.log('[Client Dashboard] Refreshing data for client:', currentClientId)
       const data = await fetchClientDashboardData(currentClientId)
-      
+
       setClientData({
         name: data.profile.name || data.profile.full_name || 'Client',
         email: data.profile.email,
@@ -255,7 +257,7 @@ export default function ClientDashboard() {
         payments: data.payments || [],
         notifications: data.notifications || []
       })
-      
+
       setInquiries(data.requests || [])
     } catch (err: any) {
       console.error('[Client Dashboard] Error refreshing data:', err)
@@ -274,11 +276,11 @@ export default function ClientDashboard() {
 
       try {
         console.log('[Client Dashboard] Loading data for client:', currentClientId)
-        
+
         const data = await fetchClientDashboardData(currentClientId)
-        
+
         console.log('[Client Dashboard] Data loaded successfully:', data)
-        
+
         // Update client data with API response
         setClientData({
           name: data.profile.name || data.profile.full_name || 'Client',
@@ -289,16 +291,16 @@ export default function ClientDashboard() {
           payments: data.payments || [],
           notifications: data.notifications || []
         })
-        
+
         // Update inquiries
         setInquiries(data.requests || [])
-        
+
         setIsLoading(false)
       } catch (err: any) {
         console.error('[Client Dashboard] Error loading data:', err)
         setError(err.message || 'Failed to load client data')
         setIsLoading(false)
-        
+
         // Show error to user
         alert('Failed to load data: ' + (err.message || 'Unknown error'))
       }
@@ -323,16 +325,16 @@ export default function ClientDashboard() {
       const clientInquiries = getClientInquiries('client-001')
       setInquiries(clientInquiries)
     }
-    
+
     loadInquiries()
-    
+
     // Listen for portal sync updates
     const unsubscribe = onPortalSyncUpdate((detail) => {
       if (detail.dataType === 'inquiries') {
         loadInquiries()
       }
     })
-    
+
     return unsubscribe
   }, [])
 
@@ -344,9 +346,9 @@ export default function ClientDashboard() {
     // Clear client session and user data
     localStorage.removeItem('clientSession')
     localStorage.removeItem('clientUser')
-    
+
     console.log("[Client Portal] Logging out...")
-    
+
     // Redirect to login page
     router.push('/login')
   }
@@ -364,17 +366,17 @@ export default function ClientDashboard() {
 
     try {
       console.log('[Client Dashboard] Submitting request:', requestData)
-      
+
       // Submit request via API
       await submitClientRequest(currentClientId, requestData)
-      
+
       console.log('[Client Dashboard] Request submitted successfully')
       alert('Request submitted successfully! Cemetery staff will respond soon.')
-      
+
       // Reload requests to show the new one
       const data = await fetchClientDashboardData(currentClientId)
       setInquiries(data.requests || [])
-      
+
     } catch (error: any) {
       console.error('[Client Dashboard] Error submitting request:', error)
       alert('Failed to submit request: ' + (error.message || 'Unknown error'))
@@ -421,9 +423,9 @@ export default function ClientDashboard() {
                   <p className="text-xs text-gray-500">Lot Owner</p>
                 </div>
               </div>
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={handleLogout}
                 title="Logout"
                 className="hover:bg-red-50 hover:text-red-600"
@@ -468,84 +470,99 @@ export default function ClientDashboard() {
             </div>
 
             <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4 sm:space-y-6">
-          <TabsList className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 w-full text-xs sm:text-sm overflow-x-auto">
-            <TabsTrigger value="overview" className="px-2 sm:px-4">
-              Overview
-            </TabsTrigger>
-            <TabsTrigger value="lots" className="px-2 sm:px-4">
-              My Lots
-            </TabsTrigger>
-            <TabsTrigger value="map" className="px-2 sm:px-4">
-              Map Viewer
-            </TabsTrigger>
-            <TabsTrigger value="payments" className="px-2 sm:px-4">
-              Payments
-            </TabsTrigger>
-            <TabsTrigger value="requests" className="px-2 sm:px-4">
-              Requests
-            </TabsTrigger>
-            <TabsTrigger value="notifications" className="px-2 sm:px-4">
-              Notifications
-            </TabsTrigger>
-            <TabsTrigger value="inquiries" className="px-2 sm:px-4">
-              Inquiries
-            </TabsTrigger>
-          </TabsList>
+              <TabsList className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 w-full text-xs sm:text-sm overflow-x-auto">
+                <TabsTrigger value="overview" className="px-2 sm:px-4">
+                  Overview
+                </TabsTrigger>
+                <TabsTrigger value="lots" className="px-2 sm:px-4">
+                  My Lots
+                </TabsTrigger>
+                <TabsTrigger value="map" className="px-2 sm:px-4">
+                  Map Viewer
+                </TabsTrigger>
+                <TabsTrigger value="payments" className="px-2 sm:px-4">
+                  Payments
+                </TabsTrigger>
+                <TabsTrigger value="requests" className="px-2 sm:px-4">
+                  Requests
+                </TabsTrigger>
+                <TabsTrigger value="notifications" className="px-2 sm:px-4">
+                  Notifications
+                </TabsTrigger>
+                <TabsTrigger value="inquiries" className="px-2 sm:px-4">
+                  Inquiries
+                </TabsTrigger>
+              </TabsList>
 
-          {activeTab === 'overview' && <OverviewTab clientData={clientData} />}
+              {activeTab === 'overview' && <OverviewTab clientData={clientData} />}
 
-          {activeTab === 'lots' && (
-            <MyLotsTab
-              lots={clientData.lots}
-              onViewDetails={(lot) => setSelectedLotForDetails(lot)}
-            />
-          )}
+              {activeTab === 'lots' && (
+                <MyLotsTab
+                  lots={clientData.lots}
+                  onViewDetails={(lot) => setSelectedLotForDetails(lot)}
+                />
+              )}
 
-          {activeTab === 'map' && (
-            <div className="space-y-6">
-              <LotViewerMap
-                userLots={clientData.lots.map((lot) => lot.id)}
-                onAppointmentRequest={(lot) => setSelectedLotForAppointment(lot)}
-              />
-            </div>
-          )}
+              {activeTab === 'map' && (
+                <div className="space-y-6">
+                  <LotViewerMap
+                    userLots={clientData.lots.map((lot: any) => lot.id)}
+                    onAppointmentRequest={(lot: any) => setSelectedLotForAppointment(lot)}
+                  />
+                </div>
+              )}
 
-          {activeTab === 'payments' && (
-            <PaymentsTab
-              payments={clientData.payments}
-              lots={clientData.lots}
-              clientId={currentClientId || ''}
-              onRefresh={refreshClientData}
-            />
-          )}
+              {activeTab === 'payments' && (
+                <PaymentsTab
+                  payments={clientData.payments}
+                  lots={clientData.lots}
+                  clientId={currentClientId || ''}
+                  onRefresh={refreshClientData}
+                />
+              )}
 
-          {activeTab === 'requests' && (
-            <RequestsTab
-              inquiries={inquiries}
-              lots={clientData.lots}
-              onSubmitRequest={handleSubmitInquiry}
-            />
-          )}
+              {activeTab === 'requests' && (
+                <RequestsTab
+                  inquiries={inquiries}
+                  lots={clientData.lots}
+                  onSubmitRequest={handleSubmitInquiry}
+                />
+              )}
 
-          {activeTab === 'notifications' && (
-            <NotificationsTab
-              notifications={clientData.notifications}
-            />
-          )}
+              {activeTab === 'notifications' && (
+                <NotificationsTab
+                  notifications={clientData.notifications}
+                />
+              )}
 
-          {activeTab === 'inquiries' && (
-            <RequestsTab
-              inquiries={inquiries}
-              lots={clientData.lots}
-              onSubmitRequest={handleSubmitInquiry}
-            />
-          )}
-        </Tabs>
+              {activeTab === 'inquiries' && (
+                <RequestsTab
+                  inquiries={inquiries}
+                  lots={clientData.lots}
+                  onSubmitRequest={handleSubmitInquiry}
+                />
+              )}
+            </Tabs>
           </>
         )}
       </main>
 
       <AIHelpWidget portalType="client" />
     </div>
+  )
+}
+
+export default function ClientDashboard() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    }>
+      <ClientDashboardContent />
+    </Suspense>
   )
 }

@@ -50,7 +50,7 @@ export function PaymentsTab({ payments, lots, clientId, onRefresh }: PaymentsTab
     if (!status) {
       return "bg-gray-100 text-gray-800 border-gray-200"
     }
-    
+
     switch (status.toLowerCase()) {
       case "paid":
       case "completed":
@@ -297,7 +297,7 @@ export function PaymentsTab({ payments, lots, clientId, onRefresh }: PaymentsTab
             <div>
               <h4 className="font-medium text-blue-900 mb-1">Payment Information</h4>
               <p className="text-sm text-blue-800">
-                Schedule your payments using the "Schedule Payment" button above. Once scheduled, cemetery
+                Schedule your payments using the &quot;Schedule Payment&quot; button above. Once scheduled, cemetery
                 staff will update the status after receiving your payment.
               </p>
             </div>

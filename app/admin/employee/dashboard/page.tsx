@@ -32,14 +32,14 @@ import {
 } from "@/components/ui/alert-dialog"
 import { toast } from "@/hooks/use-toast"
 import { mapStore } from "@/lib/map-store"
-import { 
-  submitPendingAction, 
+import {
+  submitPendingAction,
   checkApprovalRequired,
   listMyPendingActions,
   formatActionType,
   formatApprovalStatus,
   getStatusColor,
-  getTimeElapsed 
+  getTimeElapsed
 } from "@/lib/api/approvals-api"
 import { fetchDashboardData, createClient as createClientInDB, checkClientEmailExists, updatePayment } from "@/lib/api/dashboard-api"
 import { updateLot } from "@/lib/api/lots-api"
@@ -913,7 +913,7 @@ export default function EmployeeDashboard() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const activeTab = searchParams.get('tab') || 'overview'
-  
+
   const [isMounted, setIsMounted] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [dashboardData, setDashboardData] = useState<any>(null)
@@ -1014,11 +1014,11 @@ export default function EmployeeDashboard() {
   const [pendingActions, setPendingActions] = useState<any[]>([])
   const [isLoadingPendingActions, setIsLoadingPendingActions] = useState(false)
   const [showPendingActions, setShowPendingActions] = useState(false)
-  
+
   // Get real employee ID from authenticated user
   const getCurrentEmployeeId = () => {
     if (typeof window === 'undefined') return null;
-    
+
     const currentUser = localStorage.getItem('currentUser');
     if (currentUser) {
       try {
@@ -1030,7 +1030,7 @@ export default function EmployeeDashboard() {
     }
     return null;
   };
-  
+
   const currentEmployeeId = getCurrentEmployeeId()
 
   // Load pending actions for current employee
@@ -1039,19 +1039,38 @@ export default function EmployeeDashboard() {
       console.warn('[Pending Actions] No currentEmployeeId, skipping load');
       return;
     }
-    
+
     console.log('[Pending Actions] Loading for employee:', currentEmployeeId);
     setIsLoadingPendingActions(true);
     try {
       const response = await listMyPendingActions(currentEmployeeId, {
         status: ['pending', 'approved', 'rejected']
       });
-      
+
       console.log('[Pending Actions] Response:', response);
-      
+
       if (response.success) {
         console.log('[Pending Actions] Loaded:', response.data.length, 'actions');
         setPendingActions(response.data);
+
+        // Check if any actions were recently executed (approved in last 5 minutes and executed)
+        const recentlyExecuted = response.data.filter((action: any) => {
+          if (action.status === 'approved' && action.is_executed && action.executed_at) {
+            const executedTime = new Date(action.executed_at).getTime();
+            const now = Date.now();
+            const fiveMinutesAgo = now - (5 * 60 * 1000);
+            return executedTime > fiveMinutesAgo;
+          }
+          return false;
+        });
+
+        // If there are recently executed actions, auto-refresh dashboard data
+        if (recentlyExecuted.length > 0) {
+          console.log('[Pending Actions] Found recently executed actions, auto-refreshing dashboard...');
+          setTimeout(() => {
+            refreshDashboard();
+          }, 1000);
+        }
       } else {
         console.error('[Pending Actions] Failed to load:', response.error);
       }
@@ -1075,18 +1094,18 @@ export default function EmployeeDashboard() {
     const employeeSession = localStorage.getItem('employeeSession')
     const employeeUser = localStorage.getItem('employeeUser')
     const currentUser = localStorage.getItem('currentUser')
-    
+
     console.log("[v0] Checking employee authentication...")
     console.log("[v0] employeeSession:", employeeSession)
     console.log("[v0] employeeUser:", employeeUser)
     console.log("[v0] currentUser:", currentUser)
-    
+
     if (!employeeSession && !employeeUser && !currentUser) {
       console.log("[v0] No employee session found, redirecting to login")
       router.push('/admin/employee/login')
       return
     }
-    
+
     // Verify it's actually an employee role
     if (currentUser) {
       try {
@@ -1100,7 +1119,7 @@ export default function EmployeeDashboard() {
         console.error("[v0] Error parsing currentUser:", e)
       }
     }
-    
+
     console.log("[v0] Employee authenticated, continuing to dashboard")
   }, [router])
 
@@ -1113,10 +1132,10 @@ export default function EmployeeDashboard() {
   const refreshDashboard = async () => {
     console.log('[Dashboard] Manual refresh triggered')
     setIsLoading(true)
-    
+
     try {
       const response = await fetchDashboardData()
-      
+
       if (response.success && response.data) {
         console.log('[Dashboard] Data refreshed successfully:', response.data)
         setDashboardData(response.data)
@@ -1125,7 +1144,7 @@ export default function EmployeeDashboard() {
         setClients(response.data.clients || [])
         setPayments(response.data.payments || [])
         setBurials(response.data.burials || [])
-        
+
         toast({
           title: "Refreshed ✓",
           description: "Dashboard data has been updated",
@@ -1154,11 +1173,11 @@ export default function EmployeeDashboard() {
     async function loadDashboardFromSupabase() {
       setIsMounted(true)
       setIsLoading(true)
-      
+
       try {
         console.log('[Dashboard] Fetching data from Supabase...')
         const response = await fetchDashboardData()
-        
+
         if (response.success && response.data) {
           console.log('[Dashboard] Data loaded successfully:', response.data)
           setDashboardData(response.data)
@@ -1170,11 +1189,11 @@ export default function EmployeeDashboard() {
         } else {
           console.error('[Dashboard] Error loading data:', response.error)
           // Set empty arrays if loading fails
-          setDashboardData({ 
-            lots: [], 
-            clients: [], 
-            payments: [], 
-            burials: [], 
+          setDashboardData({
+            lots: [],
+            clients: [],
+            payments: [],
+            burials: [],
             pendingInquiries: [],
             recentBurials: [],
             stats: {
@@ -1196,11 +1215,11 @@ export default function EmployeeDashboard() {
       } catch (error) {
         console.error('[Dashboard] Unexpected error loading data:', error)
         // Set empty arrays on error
-        setDashboardData({ 
-          lots: [], 
-          clients: [], 
-          payments: [], 
-          burials: [], 
+        setDashboardData({
+          lots: [],
+          clients: [],
+          payments: [],
+          burials: [],
           pendingInquiries: [],
           recentBurials: [],
           stats: {
@@ -1222,7 +1241,7 @@ export default function EmployeeDashboard() {
         setIsLoading(false)
       }
     }
-    
+
     loadDashboardFromSupabase()
   }, []) // Empty dependency array - runs only once on mount
 
@@ -1238,7 +1257,7 @@ export default function EmployeeDashboard() {
 
   useEffect(() => {
     loadMessages()
-    
+
     // Auto-reload messages every 10 seconds
     const interval = setInterval(loadMessages, 10000)
     return () => clearInterval(interval)
@@ -1267,9 +1286,9 @@ export default function EmployeeDashboard() {
 
     const adminUser = localStorage.getItem('employeeUser') || 'employee' // Use employeeUser
     sendMessage(adminUser, 'superadmin', `Re: ${selectedMessage.subject}`, replyText, 'normal', 'reply', selectedMessage.id)
-    
+
     logActivity(adminUser, 'MESSAGE_REPLY', `Replied to super admin message: ${selectedMessage.subject}`, 'success', 'system')
-    
+
     setReplyText('')
     setSelectedMessage(null)
     toast({ title: 'Reply sent successfully' })
@@ -1494,7 +1513,7 @@ export default function EmployeeDashboard() {
 
       // Check if approval is required for client creation
       const approvalCheck = await checkApprovalRequired('client_create')
-      
+
       if (approvalCheck.required) {
         // Submit for approval workflow
         const approvalRequest = {
@@ -1512,7 +1531,7 @@ export default function EmployeeDashboard() {
             title: "Submitted for Approval ⏳",
             description: `Client account for ${clientFormData.name} has been submitted for admin approval.`,
           })
-          
+
           // Refresh pending actions
           loadPendingActions()
         } else {
@@ -1530,7 +1549,7 @@ export default function EmployeeDashboard() {
           // Update local state with new client
           const updatedClients = [...clients, response.data]
           setClients(updatedClients)
-          
+
           // Update dashboardData
           const updatedDashboardData = {
             ...dashboardData,
@@ -1588,7 +1607,7 @@ export default function EmployeeDashboard() {
     try {
       // Check if approval is required for client updates
       const approvalCheck = await checkApprovalRequired('client_update')
-      
+
       if (approvalCheck.required && currentEmployeeId) {
         // Submit for approval workflow
         const approvalRequest = {
@@ -1616,7 +1635,7 @@ export default function EmployeeDashboard() {
             title: 'Submitted for Approval',
             description: `Client update request for ${clientFormData.name} has been submitted to admin for review.`,
           })
-          
+
           const adminUser = localStorage.getItem('employeeUser') || 'employee'
           logActivity(
             adminUser,
@@ -1973,7 +1992,7 @@ export default function EmployeeDashboard() {
     // Check if approval is required for burial creation
     try {
       const approvalCheck = await checkApprovalRequired('burial_create')
-      
+
       if (approvalCheck.required && currentEmployeeId) {
         // Submit for approval workflow
         const burialData = {
@@ -2120,7 +2139,7 @@ export default function EmployeeDashboard() {
             availableLots: dashboardData.stats.availableLots,
             occupancyRate: ((dashboardData.stats.occupiedLots / dashboardData.stats.totalLots) * 100).toFixed(2) + "%",
           },
-          data: dashboardData.lots.map((lot) => ({
+          data: dashboardData.lots.map((lot: any) => ({
             id: lot.id,
             section: lot.section,
             type: lot.type,
@@ -2133,32 +2152,32 @@ export default function EmployeeDashboard() {
           sections: [
             {
               name: "Garden of Peace",
-              total: dashboardData.lots.filter((lot) => lot.section === "Garden of Peace").length,
+              total: dashboardData.lots.filter((lot: any) => lot.section === "Garden of Peace").length,
               occupied: dashboardData.lots.filter(
-                (lot) => lot.section === "Garden of Peace" && lot.status === "Occupied",
+                (lot: any) => lot.section === "Garden of Peace" && lot.status === "Occupied",
               ).length,
               available: dashboardData.lots.filter(
-                (lot) => lot.section === "Garden of Peace" && lot.status === "Available",
+                (lot: any) => lot.section === "Garden of Peace" && lot.status === "Available",
               ).length,
             },
             {
               name: "Garden of Serenity",
-              total: dashboardData.lots.filter((lot) => lot.section === "Garden of Serenity").length,
+              total: dashboardData.lots.filter((lot: any) => lot.section === "Garden of Serenity").length,
               occupied: dashboardData.lots.filter(
-                (lot) => lot.section === "Garden of Serenity" && lot.status === "Occupied",
+                (lot: any) => lot.section === "Garden of Serenity" && lot.status === "Occupied",
               ).length,
               available: dashboardData.lots.filter(
-                (lot) => lot.section === "Garden of Serenity" && lot.status === "Available",
+                (lot: any) => lot.section === "Garden of Serenity" && lot.status === "Available",
               ).length,
             },
             {
               name: "Garden of Tranquility",
-              total: dashboardData.lots.filter((lot) => lot.section === "Garden of Tranquility").length,
+              total: dashboardData.lots.filter((lot: any) => lot.section === "Garden of Tranquility").length,
               occupied: dashboardData.lots.filter(
-                (lot) => lot.section === "Garden of Tranquility" && lot.status === "Occupied",
+                (lot: any) => lot.section === "Garden of Tranquility" && lot.status === "Occupied",
               ).length,
               available: dashboardData.lots.filter(
-                (lot) => lot.section === "Garden of Tranquility" && lot.status === "Available",
+                (lot: any) => lot.section === "Garden of Tranquility" && lot.status === "Available",
               ).length,
             },
           ],
@@ -2169,15 +2188,15 @@ export default function EmployeeDashboard() {
           date: new Date().toLocaleDateString(),
           period: reportPeriod === "monthly" ? "Monthly" : reportPeriod === "quarterly" ? "Quarterly" : "Annual",
           summary: {
-            totalRevenue: formatCurrency(dashboardData.payments.reduce((sum, payment) => sum + (payment.amount || 0), 0)),
-            paidPayments: dashboardData.payments.filter((payment) => payment.status === "Paid").length,
-            underPaymentPayments: dashboardData.payments.filter((payment) => payment.status === "Under Payment").length,
-            overduePayments: dashboardData.payments.filter((payment) => payment.status === "Overdue").length,
+            totalRevenue: formatCurrency(dashboardData.payments.reduce((sum: any, payment: any) => sum + (payment.amount || 0), 0)),
+            paidPayments: dashboardData.payments.filter((payment: any) => payment.status === "Paid").length,
+            underPaymentPayments: dashboardData.payments.filter((payment: any) => payment.status === "Under Payment").length,
+            overduePayments: dashboardData.payments.filter((payment: any) => payment.status === "Overdue").length,
             averagePayment: formatCurrency(
-              dashboardData.payments.reduce((sum, payment) => sum + (payment.amount || 0), 0) / dashboardData.payments.length || 0
+              dashboardData.payments.reduce((sum: any, payment: any) => sum + (payment.amount || 0), 0) / dashboardData.payments.length || 0
             ),
           },
-          data: dashboardData.payments.map((payment) => ({
+          data: dashboardData.payments.map((payment: any) => ({
             id: payment.id,
             client: payment.client,
             date: payment.date,
@@ -2191,24 +2210,24 @@ export default function EmployeeDashboard() {
           paymentTypes: [
             {
               type: "Full Payment",
-              count: dashboardData.payments.filter((payment) => payment.type === "Full Payment").length,
+              count: dashboardData.payments.filter((payment: any) => payment.type === "Full Payment").length,
               total: formatCurrency(dashboardData.payments
-                .filter((payment) => payment.type === "Full Payment")
-                .reduce((sum, payment) => sum + (payment.amount || 0), 0)),
+                .filter((payment: any) => payment.type === "Full Payment")
+                .reduce((sum: any, payment: any) => sum + (payment.amount || 0), 0)),
             },
             {
               type: "Down Payment",
-              count: dashboardData.payments.filter((payment) => payment.type === "Down Payment").length,
+              count: dashboardData.payments.filter((payment: any) => payment.type === "Down Payment").length,
               total: formatCurrency(dashboardData.payments
-                .filter((payment) => payment.type === "Down Payment")
-                .reduce((sum, payment) => sum + (payment.amount || 0), 0)),
+                .filter((payment: any) => payment.type === "Down Payment")
+                .reduce((sum: any, payment: any) => sum + (payment.amount || 0), 0)),
             },
             {
               type: "Installment",
-              count: dashboardData.payments.filter((payment) => payment.type === "Installment").length,
+              count: dashboardData.payments.filter((payment: any) => payment.type === "Installment").length,
               total: formatCurrency(dashboardData.payments
-                .filter((payment) => payment.type === "Installment")
-                .reduce((sum, payment) => sum + (payment.amount || 0), 0)),
+                .filter((payment: any) => payment.type === "Installment")
+                .reduce((sum: any, payment: any) => sum + (payment.amount || 0), 0)),
             },
           ],
         }
@@ -2219,11 +2238,11 @@ export default function EmployeeDashboard() {
           period: reportPeriod === "monthly" ? "Monthly" : reportPeriod === "quarterly" ? "Quarterly" : "Annual",
           summary: {
             totalClients: dashboardData.clients.length,
-            activeClients: dashboardData.clients.filter((client) => client.status === "Active").length,
-            inactiveClients: dashboardData.clients.filter((client) => client.status !== "Active").length,
-            clientsWithBalance: dashboardData.clients.filter((client) => client.balance > 0).length,
+            activeClients: dashboardData.clients.filter((client: any) => client.status === "Active").length,
+            inactiveClients: dashboardData.clients.filter((client: any) => client.status !== "Active").length,
+            clientsWithBalance: dashboardData.clients.filter((client: any) => client.balance > 0).length,
           },
-          data: dashboardData.clients.map((client) => ({
+          data: dashboardData.clients.map((client: any) => ({
             id: client.id,
             name: client.name,
             email: client.email,
@@ -2243,11 +2262,11 @@ export default function EmployeeDashboard() {
           summary: {
             totalBurials: dashboardData.burials.length,
             averageAge: Math.round(
-              dashboardData.burials.reduce((sum, burial) => sum + burial.age, 0) / dashboardData.burials.length,
+              dashboardData.burials.reduce((sum: any, burial: any) => sum + burial.age, 0) / dashboardData.burials.length,
             ),
-            largestAttendance: Math.max(...dashboardData.burials.map((burial) => burial.attendees)),
+            largestAttendance: Math.max(...dashboardData.burials.map((burial: any) => burial.attendees)),
           },
-          data: dashboardData.burials.map((burial) => ({
+          data: dashboardData.burials.map((burial: any) => ({
             id: burial.id,
             name: burial.name,
             date: burial.date,
@@ -2267,12 +2286,12 @@ export default function EmployeeDashboard() {
           period: reportPeriod === "monthly" ? "Monthly" : reportPeriod === "quarterly" ? "Quarterly" : "Annual",
           summary: {
             totalPayments: dashboardData.payments.length,
-            paidPayments: dashboardData.payments.filter((payment) => payment.status === "Paid").length,
-            underPaymentPayments: dashboardData.payments.filter((payment) => payment.status === "Under Payment").length,
-            overduePayments: dashboardData.payments.filter((payment) => payment.status === "Overdue").length,
-            totalAmount: formatCurrency(dashboardData.payments.reduce((sum, payment) => sum + (payment.amount || 0), 0)),
+            paidPayments: dashboardData.payments.filter((payment: any) => payment.status === "Paid").length,
+            underPaymentPayments: dashboardData.payments.filter((payment: any) => payment.status === "Under Payment").length,
+            overduePayments: dashboardData.payments.filter((payment: any) => payment.status === "Overdue").length,
+            totalAmount: formatCurrency(dashboardData.payments.reduce((sum: any, payment: any) => sum + (payment.amount || 0), 0)),
           },
-          data: dashboardData.payments.map((payment) => ({
+          data: dashboardData.payments.map((payment: any) => ({
             id: payment.id,
             client: payment.client,
             date: payment.date,
@@ -2286,31 +2305,31 @@ export default function EmployeeDashboard() {
           paymentMethods: [
             {
               method: "Bank Transfer",
-              count: dashboardData.payments.filter((payment) => payment.method === "Bank Transfer").length,
+              count: dashboardData.payments.filter((payment: any) => payment.method === "Bank Transfer").length,
               total: formatCurrency(dashboardData.payments
-                .filter((payment) => payment.method === "Bank Transfer")
-                .reduce((sum, payment) => sum + (payment.amount || 0), 0)),
+                .filter((payment: any) => payment.method === "Bank Transfer")
+                .reduce((sum: any, payment: any) => sum + (payment.amount || 0), 0)),
             },
             {
               method: "Credit Card",
-              count: dashboardData.payments.filter((payment) => payment.method === "Credit Card").length,
+              count: dashboardData.payments.filter((payment: any) => payment.method === "Credit Card").length,
               total: formatCurrency(dashboardData.payments
-                .filter((payment) => payment.method === "Credit Card")
-                .reduce((sum, payment) => sum + (payment.amount || 0), 0)),
+                .filter((payment: any) => payment.method === "Credit Card")
+                .reduce((sum: any, payment: any) => sum + (payment.amount || 0), 0)),
             },
             {
               method: "Cash",
-              count: dashboardData.payments.filter((payment) => payment.method === "Cash").length,
+              count: dashboardData.payments.filter((payment: any) => payment.method === "Cash").length,
               total: formatCurrency(dashboardData.payments
-                .filter((payment) => payment.method === "Cash")
-                .reduce((sum, payment) => sum + (payment.amount || 0), 0)),
+                .filter((payment: any) => payment.method === "Cash")
+                .reduce((sum: any, payment: any) => sum + (payment.amount || 0), 0)),
             },
             {
               method: "Online Banking",
-              count: dashboardData.payments.filter((payment) => payment.method === "Online Banking").length,
+              count: dashboardData.payments.filter((payment: any) => payment.method === "Online Banking").length,
               total: formatCurrency(dashboardData.payments
-                .filter((payment) => payment.method === "Online Banking")
-                .reduce((sum, payment) => sum + (payment.amount || 0), 0)),
+                .filter((payment: any) => payment.method === "Online Banking")
+                .reduce((sum: any, payment: any) => sum + (payment.amount || 0), 0)),
             },
           ],
         }
@@ -2837,7 +2856,7 @@ export default function EmployeeDashboard() {
 
   // Filter functions for search bars
   const filteredLots = dashboardData.lots.filter(
-    (lot) =>
+    (lot: any) =>
       lot.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       lot.section.toLowerCase().includes(searchTerm.toLowerCase()) ||
       lot.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -2847,16 +2866,16 @@ export default function EmployeeDashboard() {
   )
 
   const filteredClients = dashboardData.clients.filter(
-    (client) =>
+    (client: any) =>
       client.name.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
       client.email.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
       client.phone.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
       client.address.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
-      client.lots.some((lot) => lot.toLowerCase().includes(clientSearchTerm.toLowerCase())),
+      client.lots.some((lot: any) => lot.toLowerCase().includes(clientSearchTerm.toLowerCase())),
   )
 
   const filteredPayments = dashboardData.payments.filter(
-    (payment) =>
+    (payment: any) =>
       payment.client.toLowerCase().includes(paymentSearchTerm.toLowerCase()) ||
       payment.type.toLowerCase().includes(paymentSearchTerm.toLowerCase()) ||
       payment.method.toLowerCase().includes(paymentSearchTerm.toLowerCase()) ||
@@ -2961,7 +2980,7 @@ export default function EmployeeDashboard() {
     try {
       // Check if approval is required for payment updates
       const approvalCheck = await checkApprovalRequired('payment_update');
-      
+
       if (approvalCheck.required) {
         // Submit for approval workflow
         const approvalRequest = {
@@ -2994,7 +3013,7 @@ export default function EmployeeDashboard() {
             title: "Submitted for Approval ⏳",
             description: `Payment status change for ${selectedPayment.client} has been submitted for admin approval.`,
           });
-          
+
           // Refresh pending actions
           loadPendingActions();
         } else {
@@ -3034,7 +3053,7 @@ export default function EmployeeDashboard() {
 
       if (response.success && response.data) {
         // Update local state with new payment data
-        const updatedPayments = payments.map((p: any) => 
+        const updatedPayments = payments.map((p: any) =>
           p.id === selectedPayment.id ? { ...p, status: newPaymentStatus } : p
         );
         setPayments(updatedPayments);
@@ -3161,7 +3180,7 @@ export default function EmployeeDashboard() {
           </TabsList>
 
           {activeTab === 'overview' && (
-            <OverviewTab 
+            <OverviewTab
               dashboardData={dashboardData}
               inquiries={inquiries}
               openViewBurial={openViewBurial}
@@ -3187,7 +3206,7 @@ export default function EmployeeDashboard() {
                   Assign Lot to Owner
                 </Button>
                 <Dialog open={isAddLotOpen} onOpenChange={setIsAddLotOpen}>
-                  
+
                   <DialogContent className="max-w-2xl">
                     <DialogHeader>
                       <DialogTitle>Add New Lot</DialogTitle>
@@ -3623,7 +3642,7 @@ export default function EmployeeDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {dashboardData.burials.map((burial) => (
+                  {dashboardData.burials.map((burial: any) => (
                     <div key={burial.id} className="flex items-center justify-between p-4 border rounded-lg">
                       <div className="flex items-center gap-4">
                         <div className="bg-green-100 p-2 rounded-lg">
@@ -3723,7 +3742,7 @@ export default function EmployeeDashboard() {
                         <p className="text-xs text-red-500">Passwords do not match</p>
                       )}
                     </div>
-                    
+
                     {/* Personal Information Section */}
                     <div className="col-span-1 sm:col-span-2 mt-4">
                       <h3 className="text-sm font-semibold text-gray-700 mb-3">Personal Information</h3>
@@ -3803,8 +3822,8 @@ export default function EmployeeDashboard() {
                     >
                       Cancel
                     </Button>
-                    <Button 
-                      onClick={handleAddClient} 
+                    <Button
+                      onClick={handleAddClient}
                       className="bg-green-600 hover:bg-green-700"
                       disabled={isCreateClientDisabled}
                     >
@@ -3835,7 +3854,7 @@ export default function EmployeeDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {filteredClients.map((client) => (
+                  {filteredClients.map((client: any) => (
                     <div
                       key={client.id}
                       className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border rounded-lg"
@@ -3846,7 +3865,7 @@ export default function EmployeeDashboard() {
                           <AvatarFallback>
                             {client.name
                               .split(" ")
-                              .map((n) => n[0])
+                              .map((n: any) => n[0])
                               .join("")}
                           </AvatarFallback>
                         </Avatar>
@@ -3961,10 +3980,9 @@ export default function EmployeeDashboard() {
                           <Badge variant={getStatusColor(inquiry.status)}>{inquiry.status}</Badge>
                           {inquiry.status === "Resolved" && <CheckCircle />}
                           {inquiry.followUpDate && inquiry.status !== "Resolved" && (
-                            <AlertCircle
-                              className="h-4 w-4 text-orange-500"
-                              title={`Follow up: ${inquiry.followUpDate}`}
-                            />
+                            <span title={`Follow up: ${inquiry.followUpDate}`}>
+                              <AlertCircle className="h-4 w-4 text-orange-500" />
+                            </span>
                           )}
                         </div>
                       </div>
@@ -3987,7 +4005,7 @@ export default function EmployeeDashboard() {
 
                         {inquiry.tags && inquiry.tags.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-2">
-                            {inquiry.tags.map((tag, index) => (
+                            {inquiry.tags.map((tag: any, index: any) => (
                               <Badge key={index} variant="outline" className="text-xs">
                                 {tag}
                               </Badge>
@@ -4002,7 +4020,7 @@ export default function EmployeeDashboard() {
                             Recent Responses ({inquiry.responses.length}):
                           </p>
                           <div className="space-y-2">
-                            {inquiry.responses.slice(-2).map((response) => (
+                            {inquiry.responses.slice(-2).map((response: any) => (
                               <div key={response.id} className="bg-blue-50 p-3 rounded-lg border-l-4 border-blue-200">
                                 <div className="flex justify-between items-start mb-1">
                                   <p className="text-xs font-medium text-blue-800">{response.respondent}</p>
@@ -4205,7 +4223,7 @@ export default function EmployeeDashboard() {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {filteredPayments.map((payment) => (
+                      {filteredPayments.map((payment: any) => (
                         <tr key={payment.id} className={payment.status === "Pending" ? "bg-yellow-50" : ""}>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div>
@@ -4233,9 +4251,9 @@ export default function EmployeeDashboard() {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <Badge variant={
-                              payment.status === "Paid" || payment.status === "Completed" ? "default" : 
-                              payment.status === "Pending" || payment.status === "Under Payment" ? "secondary" : 
-                              "destructive"
+                              payment.status === "Paid" || payment.status === "Completed" ? "default" :
+                                payment.status === "Pending" || payment.status === "Under Payment" ? "secondary" :
+                                  "destructive"
                             }>
                               {payment.status}
                             </Badge>
@@ -4278,15 +4296,37 @@ export default function EmployeeDashboard() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={loadPendingActions}
-                      disabled={isLoadingPendingActions}
+                      onClick={() => {
+                        loadPendingActions();
+                        refreshDashboard();
+                      }}
+                      disabled={isLoadingPendingActions || isLoading}
+                      className="flex items-center gap-2"
                     >
-                      {isLoadingPendingActions ? "Loading..." : "Refresh"}
+                      <RefreshCw className={`h-4 w-4 ${(isLoadingPendingActions || isLoading) ? 'animate-spin' : ''}`} />
+                      {isLoadingPendingActions || isLoading ? "Refreshing..." : "Refresh All"}
                     </Button>
                   </div>
                 </div>
               </CardHeader>
               <CardContent>
+                {/* Info banner about approved actions */}
+                {pendingActions.some((action: any) => action.status === 'approved' && action.is_executed) && (
+                  <div className="mb-4 bg-green-50 border border-green-200 rounded-lg p-3">
+                    <div className="flex items-start gap-2">
+                      <svg className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <div className="flex-1">
+                        <h4 className="text-sm font-medium text-green-800">Approvals Executed Successfully</h4>
+                        <p className="text-xs text-green-700 mt-1">
+                          Your approved actions have been executed. Payment statuses may have been updated. Click &quot;Refresh All&quot; above or go to the Payments tab to see the latest data.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {isLoadingPendingActions ? (
                   <div className="flex justify-center items-center py-8">
                     <div className="text-sm text-gray-500">Loading pending actions...</div>
@@ -4349,12 +4389,12 @@ export default function EmployeeDashboard() {
                               )}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
-                              <Badge 
+                              <Badge
                                 variant={
                                   action.status === 'pending' ? 'secondary' :
-                                  action.status === 'approved' ? 'default' :
-                                  action.status === 'rejected' ? 'destructive' :
-                                  'outline'
+                                    action.status === 'approved' ? 'default' :
+                                      action.status === 'rejected' ? 'destructive' :
+                                        'outline'
                                 }
                                 className={
                                   action.status === 'pending' ? 'bg-orange-100 text-orange-800' : ''
@@ -4677,7 +4717,7 @@ export default function EmployeeDashboard() {
                     return (
                       <div key={key} className="bg-white p-3 rounded border">
                         <p className="text-sm text-gray-600">{formattedKey}</p>
-                        <p className="text-lg font-semibold">{value}</p>
+                        <p className="text-lg font-semibold">{value as any}</p>
                       </div>
                     )
                   })}
@@ -4707,11 +4747,11 @@ export default function EmployeeDashboard() {
                           </tr>
                         </thead>
                         <tbody>
-                          {selectedReport.data.map((item, index) => (
+                          {selectedReport.data.map((item: any, index: any) => (
                             <tr key={index} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
                               {Object.values(item).map((value, cellIndex) => (
                                 <td key={cellIndex} className="px-4 py-2 text-sm text-gray-900">
-                                  {value}
+                                  {value as any}
                                 </td>
                               ))}
                             </tr>
@@ -4728,7 +4768,7 @@ export default function EmployeeDashboard() {
                 <div>
                   <h3 className="text-lg font-semibold mb-3">Section Analysis</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {selectedReport.sections.map((section, index) => (
+                    {selectedReport.sections.map((section: any, index: any) => (
                       <div key={index} className="bg-white border rounded-lg p-4">
                         <h4 className="font-medium mb-2">{section.name}</h4>
                         <div className="space-y-1 text-sm">
@@ -4752,7 +4792,7 @@ export default function EmployeeDashboard() {
                 <div>
                   <h3 className="text-lg font-semibold mb-3">Payment Type Analysis</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {selectedReport.paymentTypes.map((type, index) => (
+                    {selectedReport.paymentTypes.map((type: any, index: any) => (
                       <div key={index} className="bg-white border rounded-lg p-4">
                         <h4 className="font-medium mb-2">{type.type}</h4>
                         <div className="space-y-1 text-sm">
@@ -4769,7 +4809,7 @@ export default function EmployeeDashboard() {
                 <div>
                   <h3 className="text-lg font-semibold mb-3">Payment Method Analysis</h3>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    {selectedReport.paymentMethods.map((method, index) => (
+                    {selectedReport.paymentMethods.map((method: any, index: any) => (
                       <div key={index} className="bg-white border rounded-lg p-4">
                         <h4 className="font-medium mb-2">{method.method}</h4>
                         <div className="space-y-1 text-sm">
@@ -4786,7 +4826,7 @@ export default function EmployeeDashboard() {
                 <div>
                   <h3 className="text-lg font-semibold mb-3">Inquiry Type Analysis</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {selectedReport.inquiryTypes.map((type, index) => {
+                    {selectedReport.inquiryTypes.map((type: any, index: any) => {
                       const resolutionRate = type.count > 0 ? Math.round((type.resolved / type.count) * 100) : 0
                       return (
                         <div key={index} className="bg-white border rounded-lg p-4">
@@ -5148,7 +5188,7 @@ export default function EmployeeDashboard() {
               <div>
                 <Label className="text-sm font-medium text-gray-500 mb-2 block">Payment History</Label>
                 <div className="space-y-2">
-                  {selectedClient.paymentHistory?.map((payment, index) => (
+                  {selectedClient.paymentHistory?.map((payment: any, index: any) => (
                     <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
                       <div>
                         <p className="text-sm font-medium">{payment.type}</p>
@@ -5157,9 +5197,9 @@ export default function EmployeeDashboard() {
                       <div className="text-right">
                         <p className="text-sm font-medium">₱{formatCurrency(payment.amount)}</p>
                         <Badge variant={
-                          payment.status === "Paid" ? "default" : 
-                          payment.status === "Under Payment" ? "secondary" : 
-                          "destructive"
+                          payment.status === "Paid" ? "default" :
+                            payment.status === "Under Payment" ? "secondary" :
+                              "destructive"
                         } className="text-xs">
                           {payment.status}
                         </Badge>
@@ -5248,7 +5288,7 @@ export default function EmployeeDashboard() {
         <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>Reply to Inquiry</DialogTitle>
-            <DialogDescription>Send a response to {selectedInquiry?.name}'s inquiry.</DialogDescription>
+            <DialogDescription>Send a response to {selectedInquiry?.name}&apos;s inquiry.</DialogDescription>
           </DialogHeader>
           {selectedInquiry && (
             <div className="space-y-4">
@@ -5416,7 +5456,7 @@ export default function EmployeeDashboard() {
                 <div>
                   <Label className="text-sm font-medium text-gray-500 mb-2 block">Tags</Label>
                   <div className="flex flex-wrap gap-1">
-                    {selectedInquiry.tags.map((tag, index) => (
+                    {selectedInquiry.tags.map((tag: any, index: any) => (
                       <Badge key={index} variant="outline" className="text-xs">
                         {tag}
                       </Badge>
@@ -5431,7 +5471,7 @@ export default function EmployeeDashboard() {
                     Response History ({selectedInquiry.responses.length})
                   </Label>
                   <div className="space-y-3 max-h-60 overflow-y-auto">
-                    {selectedInquiry.responses.map((response) => (
+                    {selectedInquiry.responses.map((response: any) => (
                       <div key={response.id} className="bg-blue-50 p-3 rounded-lg border-l-4 border-blue-200">
                         <div className="flex justify-between items-start mb-2">
                           <p className="text-sm font-medium text-blue-800">{response.respondent}</p>
@@ -5492,7 +5532,7 @@ export default function EmployeeDashboard() {
                     <AvatarFallback>
                       {selectedClient.name
                         .split(" ")
-                        .map((n) => n[0])
+                        .map((n: any) => n[0])
                         .join("")}
                     </AvatarFallback>
                   </Avatar>
@@ -5590,7 +5630,7 @@ export default function EmployeeDashboard() {
                     <div className="flex gap-2">
                       <Badge variant={
                         selectedMessage.priority === 'urgent' ? 'destructive' :
-                        selectedMessage.priority === 'high' ? 'default' : 'secondary'
+                          selectedMessage.priority === 'high' ? 'default' : 'secondary'
                       }>
                         {selectedMessage.priority}
                       </Badge>
@@ -5600,7 +5640,7 @@ export default function EmployeeDashboard() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm whitespace-pre-wrap">{selectedMessage.body}</p>
-                  
+
                   <form onSubmit={handleReplyMessage} className="mt-4 space-y-2">
                     <Textarea
                       placeholder="Type your reply..."
@@ -5633,7 +5673,7 @@ export default function EmployeeDashboard() {
                             {!msg.read && <Badge variant="default">New</Badge>}
                             <Badge variant={
                               msg.priority === 'urgent' ? 'destructive' :
-                              msg.priority === 'high' ? 'default' : 'secondary'
+                                msg.priority === 'high' ? 'default' : 'secondary'
                             }>
                               {msg.priority}
                             </Badge>
@@ -5684,9 +5724,9 @@ export default function EmployeeDashboard() {
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Current Status:</span>
                   <Badge variant={
-                    selectedPayment.status === "Paid" ? "default" : 
-                    selectedPayment.status === "Under Payment" ? "secondary" : 
-                    "destructive"
+                    selectedPayment.status === "Completed" ? "default" :
+                      selectedPayment.status === "Pending" ? "secondary" :
+                        "destructive"
                   }>
                     {selectedPayment.status}
                   </Badge>
@@ -5718,22 +5758,16 @@ export default function EmployeeDashboard() {
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="Pending">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+                        Pending
+                      </div>
+                    </SelectItem>
                     <SelectItem value="Completed">
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-green-500"></div>
                         Completed
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="Paid">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                        Paid
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="Under Payment">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                        Under Payment
                       </div>
                     </SelectItem>
                     <SelectItem value="Overdue">
@@ -5746,6 +5780,12 @@ export default function EmployeeDashboard() {
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-gray-500"></div>
                         Cancelled
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="Refunded">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                        Refunded
                       </div>
                     </SelectItem>
                   </SelectContent>

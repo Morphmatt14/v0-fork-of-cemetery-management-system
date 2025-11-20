@@ -157,9 +157,8 @@ export function NotificationsTab({ notifications, onMarkAsRead }: NotificationsT
           filteredNotifications.map((notification) => (
             <Card
               key={notification.id}
-              className={`${getNotificationBgColor(notification.type, notification.read)} ${
-                !notification.read ? "shadow-md" : ""
-              }`}
+              className={`${getNotificationBgColor(notification.type, notification.read)} ${!notification.read ? "shadow-md" : ""
+                }`}
             >
               <CardContent className="pt-6">
                 <div className="flex items-start gap-4">
@@ -173,9 +172,8 @@ export function NotificationsTab({ notifications, onMarkAsRead }: NotificationsT
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1">
                         <p
-                          className={`text-sm ${
-                            notification.read ? "text-gray-700" : "text-gray-900 font-medium"
-                          }`}
+                          className={`text-sm ${notification.read ? "text-gray-700" : "text-gray-900 font-medium"
+                            }`}
                         >
                           {notification.message}
                         </p>
@@ -238,7 +236,7 @@ export function NotificationsTab({ notifications, onMarkAsRead }: NotificationsT
             <div>
               <h4 className="font-medium text-blue-900 mb-1">About Notifications</h4>
               <p className="text-sm text-blue-800">
-                You'll receive notifications for important updates including payment reminders, scheduled
+                You&apos;ll receive notifications for important updates including payment reminders, scheduled
                 maintenance, new map uploads, and general announcements from cemetery administration.
               </p>
             </div>

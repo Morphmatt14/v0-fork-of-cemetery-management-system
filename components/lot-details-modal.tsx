@@ -19,6 +19,7 @@ interface LotDetailsModalProps {
     occupant?: string
     burialDate?: string
     purchaseDate: string
+    description?: string
   } | null
   onClose: () => void
   onPaymentClick?: () => void
@@ -232,7 +233,7 @@ export function LotDetailsModal({ isOpen = false, lot, onClose, onPaymentClick }
                       </ul>
                     </div>
                     <div>
-                      <h4 className="font-semibold text-gray-900 mb-3">What's Included</h4>
+                      <h4 className="font-semibold text-gray-900 mb-3">What&apos;s Included</h4>
                       <ul className="space-y-2 text-gray-700 text-sm">
                         <li className="flex items-start gap-2">
                           <span className="text-teal-600 font-bold">•</span>

@@ -172,7 +172,7 @@ export function RequestsTab({ inquiries, lots, onSubmitRequest }: RequestsTabPro
                 </div>
                 <h3 className="text-sm font-medium text-gray-900">No Requests Yet</h3>
                 <p className="text-sm text-gray-500 mb-4">
-                  You haven't submitted any requests or inquiries
+                  You haven&apos;t submitted any requests or inquiries
                 </p>
                 <Button onClick={() => setShowForm(true)}>Submit Your First Request</Button>
               </div>
@@ -283,7 +283,7 @@ export function RequestsTab({ inquiries, lots, onSubmitRequest }: RequestsTabPro
               <h4 className="font-medium text-blue-900 mb-1">Request Information</h4>
               <p className="text-sm text-blue-800 mb-2">
                 Submit requests for lot maintenance, document requests, payment inquiries, and general
-                questions. Cemetery staff will respond to your requests and you'll be notified of any
+                questions. Cemetery staff will respond to your requests and you&apos;ll be notified of any
                 updates.
               </p>
               <p className="text-xs text-blue-700">

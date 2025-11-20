@@ -48,8 +48,8 @@ export function PaymentModal({ lotName, lotPrice, lotType, onClose, onPaymentSuc
       if (data.sessionId) {
         // Redirect to Stripe checkout
         const stripe = await import("@stripe/stripe-js").then((m) => m.loadStripe)
-        const stripeInstance = await stripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
-        await stripeInstance?.redirectToCheckout({ sessionId: data.sessionId })
+        const stripeInstance = await stripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
+        await (stripeInstance as any)?.redirectToCheckout({ sessionId: data.sessionId })
         onPaymentSuccess?.()
       } else {
         alert("Error creating checkout session")

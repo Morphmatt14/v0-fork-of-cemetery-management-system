@@ -206,18 +206,17 @@ export default function RegisterPage() {
                   <MapPin className="h-5 w-5" />
                   Our Services
                 </CardTitle>
-                <CardDescription>Select a service you're interested in (optional)</CardDescription>
+                <CardDescription>Select a service you&apos;re interested in (optional)</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   {services.map((service) => (
                     <div
                       key={service.id}
-                      className={`border rounded-lg p-4 cursor-pointer transition-all ${
-                        selectedService === service.title
+                      className={`border rounded-lg p-4 cursor-pointer transition-all ${selectedService === service.title
                           ? "border-green-500 bg-green-50"
                           : "border-gray-200 hover:border-gray-300"
-                      }`}
+                        }`}
                       onClick={() => setSelectedService(service.title)}
                     >
                       <div className="aspect-video relative overflow-hidden rounded-lg mb-3">
@@ -250,7 +249,7 @@ export default function RegisterPage() {
                   Registration Request Form
                 </CardTitle>
                 <CardDescription>
-                  Fill out your information and we'll help you get started with our services.
+                  Fill out your information and we&apos;ll help you get started with our services.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -505,7 +504,7 @@ export default function RegisterPage() {
                   </div>
                   <h4 className="font-semibold text-gray-900 mb-2">1. Confirmation</h4>
                   <p className="text-sm text-gray-600">
-                    You'll receive an email confirmation with your request details within a few minutes.
+                    You&apos;ll receive an email confirmation with your request details within a few minutes.
                   </p>
                 </div>
                 <div className="text-center">
@@ -523,7 +522,7 @@ export default function RegisterPage() {
                   </div>
                   <h4 className="font-semibold text-gray-900 mb-2">3. Account Setup</h4>
                   <p className="text-sm text-gray-600">
-                    After consultation, we'll help you set up your lot owner account and provide access credentials.
+                    After consultation, we&apos;ll help you set up your lot owner account and provide access credentials.
                   </p>
                 </div>
               </div>

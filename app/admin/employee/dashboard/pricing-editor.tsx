@@ -29,12 +29,16 @@ export function PricingEditor() {
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
-    const newPrices: Record<string, number> = {}
-    PRICING_ITEMS.forEach((item) => {
-      const price = Number.parseInt(getContent(item.key))
-      newPrices[item.key] = price || item.currentPrice
-    })
-    setPrices(newPrices)
+    const loadPrices = async () => {
+      const newPrices: Record<string, number> = {}
+      await Promise.all(PRICING_ITEMS.map(async (item) => {
+        const content = await getContent(item.key)
+        const price = Number.parseInt(content)
+        newPrices[item.key] = price || item.currentPrice
+      }))
+      setPrices(newPrices)
+    }
+    loadPrices()
   }, [])
 
   const handleEdit = (key: string) => {

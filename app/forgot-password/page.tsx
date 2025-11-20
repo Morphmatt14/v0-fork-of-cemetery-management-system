@@ -483,7 +483,7 @@ export default function ForgotPasswordPage() {
         {step <= 3 && (
           <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-sm text-blue-800">
-              <strong>Security Notice:</strong> For your security, the OTP will expire in 10 minutes. If you don't
+              <strong>Security Notice:</strong> For your security, the OTP will expire in 10 minutes. If you don&apos;t
               receive the code, please check your spam folder or try again.
             </p>
           </div>

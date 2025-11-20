@@ -81,8 +81,8 @@ export default function GuestModePage() {
               </h1>
 
               <p className="text-lg opacity-90 mb-8 leading-relaxed">
-                "Choose how you'd like to access the Surigao Memorial Park system — explore our services or login to
-                your account."
+                &quot;Choose how you&apos;d like to access the Surigao Memorial Park system — explore our services or login to
+                your account.&quot;
               </p>
             </div>
 

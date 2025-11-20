@@ -47,7 +47,7 @@ export async function getContentByCategory(category: string) {
     const supabase = await getSupabaseClient()
 
     // Try to fetch from database
-    const { data, error } = await supabase.from("content_fields").select("id, field_key as key, field_value as value")
+    const { data, error } = await supabase.from("content_fields").select("id, field_key, field_value")
 
     if (error || !data) {
       // Fallback to cache
@@ -59,10 +59,10 @@ export async function getContentByCategory(category: string) {
       }))
     }
 
-    return data.map((item, idx) => ({
+    return data.map((item: any, idx: number) => ({
       id: `${category}-${idx}`,
-      key: item.key,
-      value: item.value,
+      key: item.field_key,
+      value: item.field_value,
     }))
   } catch (error) {
     // Fallback to cache

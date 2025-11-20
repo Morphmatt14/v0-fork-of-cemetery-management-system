@@ -306,6 +306,26 @@ export function ApprovalsManagement({ adminId }: ApprovalsManagementProps) {
                           ))}
                         </div>
                       </div>
+
+                      {/* Show execution error if exists */}
+                      {action.status === 'approved' && !action.is_executed && action.execution_error && (
+                        <div className="text-xs bg-red-50 p-2 rounded border border-red-200 mt-2">
+                          <span className="font-medium text-red-800">⚠️ Execution Failed:</span>
+                          <p className="text-red-700 mt-1">{action.execution_error}</p>
+                        </div>
+                      )}
+
+                      {/* Show execution success */}
+                      {action.status === 'approved' && action.is_executed && (
+                        <div className="text-xs bg-green-50 p-2 rounded border border-green-200 mt-2">
+                          <span className="font-medium text-green-800">✅ Executed Successfully</span>
+                          {action.executed_at && (
+                            <p className="text-green-700 mt-1">
+                              Executed {getTimeElapsed(action.executed_at)}
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     <div className="ml-4">

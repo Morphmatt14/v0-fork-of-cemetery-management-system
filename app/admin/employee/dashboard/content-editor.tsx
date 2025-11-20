@@ -23,8 +23,7 @@ export function ContentEditor({ category, title }: ContentEditorProps) {
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
-    const content = getContentByCategory(category)
-    setItems(content)
+    getContentByCategory(category).then(setItems)
   }, [category])
 
   const handleEdit = (item: any) => {

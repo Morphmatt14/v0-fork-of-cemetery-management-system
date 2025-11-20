@@ -19,17 +19,19 @@ import PasswordResetsTab from './components/password-resets-tab'
 import ActivityLogsTab from './components/activity-logs-tab'
 import { ApprovalsManagement } from './components/approvals-management'
 
-const LogOut = () => (
-  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+const LogOut = ({ className }: { className?: string }) => (
+  <svg className={className || "h-5 w-5"} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
   </svg>
 )
 
-export default function SuperAdminDashboard() {
+import { Suspense } from 'react'
+
+function DashboardContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const activeTab = searchParams.get('tab') || 'overview'
-  
+
   const [activityLogs, setActivityLogs] = useState<AdminActivity[]>([])
   const [passwordResetRequests, setPasswordResetRequests] = useState<PasswordResetRequest[]>([])
   const [adminUsers, setAdminUsers] = useState<any[]>([])
@@ -40,18 +42,18 @@ export default function SuperAdminDashboard() {
     const adminSession = localStorage.getItem('adminSession')
     const adminUser = localStorage.getItem('adminUser')
     const currentUser = localStorage.getItem('currentUser')
-    
+
     console.log("[v0] Checking admin authentication...")
     console.log("[v0] adminSession:", adminSession)
     console.log("[v0] adminUser:", adminUser)
     console.log("[v0] currentUser:", currentUser)
-    
+
     if (!adminSession && !adminUser && !currentUser) {
       console.log("[v0] No admin session found, redirecting to login")
       router.push('/admin/login')
       return
     }
-    
+
     // Verify it's actually an admin role
     if (currentUser) {
       try {
@@ -65,7 +67,7 @@ export default function SuperAdminDashboard() {
         console.error("[v0] Error parsing currentUser:", e)
       }
     }
-    
+
     console.log("[v0] Admin authenticated, loading dashboard data")
     loadData()
   }, [])
@@ -131,7 +133,7 @@ export default function SuperAdminDashboard() {
           )}
 
           {activeTab === 'admins' && (
-            <AdminManagementTab 
+            <AdminManagementTab
               onShowMessage={showMessage}
             />
           )}
@@ -139,7 +141,7 @@ export default function SuperAdminDashboard() {
           {activeTab === 'monitoring' && <ActivityMonitoringTab />}
 
           {activeTab === 'messaging' && (
-            <MessagingTab 
+            <MessagingTab
               adminUsers={adminUsers}
               sentMessages={sentMessages}
               onDataChange={loadData}
@@ -148,7 +150,7 @@ export default function SuperAdminDashboard() {
           )}
 
           {activeTab === 'password-resets' && (
-            <PasswordResetsTab 
+            <PasswordResetsTab
               passwordResetRequests={passwordResetRequests}
               onDataChange={loadData}
               onShowMessage={showMessage}
@@ -156,14 +158,22 @@ export default function SuperAdminDashboard() {
           )}
 
           {activeTab === 'activity' && (
-            <ActivityLogsTab 
+            <ActivityLogsTab
               activityLogs={activityLogs}
             />
           )}
         </Tabs>
       </main>
-      
+
       <AIHelpWidget portalType="super-admin" />
     </div>
+  )
+}
+
+export default function SuperAdminDashboard() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading dashboard...</div>}>
+      <DashboardContent />
+    </Suspense>
   )
 }

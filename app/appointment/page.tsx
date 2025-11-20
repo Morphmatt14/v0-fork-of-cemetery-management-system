@@ -228,7 +228,7 @@ export default function AppointmentPage() {
                   </div>
 
                   <div className="bg-teal-50 p-4 rounded-lg">
-                    <h4 className="font-semibold text-teal-900 mb-2">What's Included:</h4>
+                    <h4 className="font-semibold text-teal-900 mb-2">What&apos;s Included:</h4>
                     <ul className="text-sm text-teal-800 space-y-1">
                       <li>• Perpetual care & maintenance</li>
                       <li>• Legal documentation</li>

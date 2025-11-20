@@ -148,7 +148,7 @@ export default function ServicesPage() {
           <div className="bg-white rounded-2xl p-8 shadow-lg max-w-4xl mx-auto">
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">Need Help Choosing?</h2>
             <p className="text-gray-600 mb-6">
-              Our experienced staff can help you select the perfect memorial option for your family's needs and
+              Our experienced staff can help you select the perfect memorial option for your family&apos;s needs and
               budget. We offer flexible payment plans and personalized consultation services.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">

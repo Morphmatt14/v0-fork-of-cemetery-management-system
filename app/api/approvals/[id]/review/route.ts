@@ -135,11 +135,24 @@ export async function POST(
     // If approved, execute the action
     if (body.action === 'approve') {
       try {
+        console.log('[Approvals API] Starting execution for action:', {
+          id: updatedAction.id,
+          action_type: updatedAction.action_type,
+          target_entity: updatedAction.target_entity,
+          target_id: updatedAction.target_id
+        })
+
         const executionResult = await executeApprovedAction(updatedAction)
         executed = executionResult.success
 
+        console.log('[Approvals API] Execution result:', {
+          success: executionResult.success,
+          error: executionResult.error,
+          data: executionResult.data
+        })
+
         // Update execution status
-        await supabaseServer
+        const { error: updateError } = await supabaseServer
           .from('pending_actions')
           .update({
             is_executed: executionResult.success,
@@ -150,13 +163,20 @@ export async function POST(
           })
           .eq('id', id)
 
+        if (updateError) {
+          console.error('[Approvals API] Failed to update execution status:', updateError)
+        }
+
         if (!executionResult.success) {
           executionError = executionResult.error
+          console.error('[Approvals API] Execution failed:', executionError)
+        } else {
+          console.log('[Approvals API] ✅ Execution successful!')
         }
 
       } catch (error) {
-        console.error('[Approvals API] Execution error:', error)
-        executionError = 'Unexpected error during execution'
+        console.error('[Approvals API] Execution exception:', error)
+        executionError = error instanceof Error ? error.message : 'Unexpected error during execution'
         
         // Update with execution error
         await supabaseServer

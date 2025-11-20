@@ -1,0 +1,164 @@
+
+> cemetery-management@0.1.0 build
+> next build
+
+  ▲ Next.js 14.2.33
+  - Environments: .env.local
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+   Skipping validation of types
+   Skipping linting
+   Collecting page data ...
+   Generating static pages (0/48) ...
+[Client Lots API] Unexpected error: B [Error]: Dynamic server usage: Route /api/client/lots couldn't be rendered statically because it used `request.url`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at V (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:21778)
+    at Object.get (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:29465)
+    at c (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\.next\server\app\api\client\lots\route.js:1:697)
+    at C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:38417
+    at C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\server\lib\trace\tracer.js:140:36
+    at NoopContextManager.with (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:7062)
+    at ContextAPI.with (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:518)
+    at NoopTracer.startActiveSpan (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18093)
+    at ProxyTracer.startActiveSpan (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18854)
+    at C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\server\lib\trace\tracer.js:122:103 {
+  description: "Route /api/client/lots couldn't be rendered statically because it used `request.url`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+[Activity Logs API] ❌ Error: B [Error]: Dynamic server usage: Route /api/admin/activity-logs couldn't be rendered statically because it used `request.url`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at V (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:21778)
+    at Object.get (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:29465)
+    at l (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\.next\server\app\api\admin\activity-logs\route.js:1:557)
+    at C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:38417
+    at C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\server\lib\trace\tracer.js:140:36
+    at NoopContextManager.with (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:7062)
+    at ContextAPI.with (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:518)
+    at NoopTracer.startActiveSpan (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18093)
+    at ProxyTracer.startActiveSpan (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18854)
+    at C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\server\lib\trace\tracer.js:122:103 {
+  description: "Route /api/admin/activity-logs couldn't be rendered statically because it used `request.url`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+[Client Profile API] Unexpected error: B [Error]: Dynamic server usage: Route /api/client/profile couldn't be rendered statically because it used `request.url`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at V (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:21778)
+    at Object.get (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:29465)
+    at p (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\.next\server\app\api\client\profile\route.js:1:696)
+    at C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:38417
+    at C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\server\lib\trace\tracer.js:140:36
+    at NoopContextManager.with (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:7062)
+    at ContextAPI.with (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:518)
+    at NoopTracer.startActiveSpan (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18093)
+    at ProxyTracer.startActiveSpan (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18854)
+    at C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\server\lib\trace\tracer.js:122:103 {
+  description: "Route /api/client/profile couldn't be rendered statically because it used `request.url`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+[Dashboard Stats] ❌ Error: B [Error]: Dynamic server usage: Route /api/dashboard/stats couldn't be rendered statically because it used `request.url`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at V (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:21778)
+    at Object.get (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:29465)
+    at d (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\.next\server\app\api\dashboard\stats\route.js:1:557)
+    at C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:38417
+    at C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\server\lib\trace\tracer.js:140:36
+    at NoopContextManager.with (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:7062)
+    at ContextAPI.with (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:518)
+    at NoopTracer.startActiveSpan (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18093)
+    at ProxyTracer.startActiveSpan (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18854)
+    at C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\server\lib\trace\tracer.js:122:103 {
+  description: "Route /api/dashboard/stats couldn't be rendered statically because it used `request.url`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+[Approvals API] GET stats - Fetching approval statistics
+[Approvals API] GET stats unexpected error: B [Error]: Dynamic server usage: Route /api/approvals/stats couldn't be rendered statically because it used `request.headers`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at V (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:21778)
+    at Object.get (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:29465)
+    at d (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\.next\server\app\api\approvals\stats\route.js:1:606)
+    at C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:38417
+    at C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\server\lib\trace\tracer.js:140:36
+    at NoopContextManager.with (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:7062)
+    at ContextAPI.with (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:518)
+    at NoopTracer.startActiveSpan (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18093)
+    at ProxyTracer.startActiveSpan (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18854)
+    at C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\server\lib\trace\tracer.js:122:103 {
+  description: "Route /api/approvals/stats couldn't be rendered statically because it used `request.headers`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+   Generating static pages (12/48) 
+[Password Resets API] ❌ Error: B [Error]: Dynamic server usage: Route /api/admin/password-resets couldn't be rendered statically because it used `request.url`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at V (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:21778)
+    at Object.get (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:29465)
+    at d (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\.next\server\app\api\admin\password-resets\route.js:1:557)
+    at C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:38417
+    at C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\server\lib\trace\tracer.js:140:36
+    at NoopContextManager.with (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:7062)
+    at ContextAPI.with (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:518)
+    at NoopTracer.startActiveSpan (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18093)
+    at ProxyTracer.startActiveSpan (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18854)
+    at C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\server\lib\trace\tracer.js:122:103 {
+  description: "Route /api/admin/password-resets couldn't be rendered statically because it used `request.url`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+[Dashboard API] Fetching dashboard data...
+[Dashboard API] Data fetched successfully: { lots: 36, clients: 6, payments: 2, burials: 0, inquiries: 0 }
+[Activity Logs] ❌ Error: B [Error]: Dynamic server usage: Route /api/dashboard/activity-logs couldn't be rendered statically because it used `request.url`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at V (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:21778)
+    at Object.get (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:29465)
+    at l (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\.next\server\app\api\dashboard\activity-logs\route.js:1:557)
+    at C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:38417
+    at C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\server\lib\trace\tracer.js:140:36
+    at NoopContextManager.with (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:7062)
+    at ContextAPI.with (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:518)
+    at NoopTracer.startActiveSpan (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18093)
+    at ProxyTracer.startActiveSpan (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18854)
+    at C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\server\lib\trace\tracer.js:122:103 {
+  description: "Route /api/dashboard/activity-logs couldn't be rendered statically because it used `request.url`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+ ⨯ useSearchParams() should be wrapped in a suspense boundary at page "/admin/dashboard". Read more: https://nextjs.org/docs/messages/missing-suspense-with-csr-bailout
+    at o (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\.next\server\chunks\82.js:1:10701)
+    at s (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\.next\server\chunks\82.js:1:21684)
+    at ep (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\.next\server\app\admin\dashboard\page.js:1:56475)
+    at nj (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:46252)
+    at nM (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:47572)
+    at nN (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:64547)
+    at nI (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:47011)
+    at nM (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:47718)
+    at nM (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:61547)
+    at nN (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:64547)
+
+Error occurred prerendering page "/admin/dashboard". Read more: https://nextjs.org/docs/messages/prerender-error
+
+   Generating static pages (24/48) 
+ ⨯ useSearchParams() should be wrapped in a suspense boundary at page "/client/dashboard". Read more: https://nextjs.org/docs/messages/missing-suspense-with-csr-bailout
+    at o (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\.next\server\chunks\82.js:1:10701)
+    at s (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\.next\server\chunks\82.js:1:21684)
+    at U (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\.next\server\app\client\dashboard\page.js:1:52459)
+    at nj (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:46252)
+    at nM (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:47572)
+    at nN (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:64547)
+    at nI (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:47011)
+    at nM (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:47718)
+    at nM (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:61547)
+    at nN (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:64547)
+
+Error occurred prerendering page "/client/dashboard". Read more: https://nextjs.org/docs/messages/prerender-error
+
+   Generating static pages (36/48) 
+[Client Payments API] Unexpected error: B [Error]: Dynamic server usage: Route /api/client/payments couldn't be rendered statically because it used `request.url`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at V (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:21778)
+    at Object.get (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:29465)
+    at l (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\.next\server\app\api\client\payments\route.js:1:694)
+    at C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:38417
+    at C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\server\lib\trace\tracer.js:140:36
+    at NoopContextManager.with (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:7062)
+    at ContextAPI.with (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:518)
+    at NoopTracer.startActiveSpan (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18093)
+    at ProxyTracer.startActiveSpan (C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18854)
+    at C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\node_modules\next\dist\server\lib\trace\tracer.js:122:103 {
+  description: "Route /api/client/payments couldn't be rendered statically because it used `request.url`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+ ✓ Generating static pages (48/48)
+
+> Export encountered errors on following paths:
+	/admin/dashboard/page: /admin/dashboard
+	/client/dashboard/page: /client/dashboard

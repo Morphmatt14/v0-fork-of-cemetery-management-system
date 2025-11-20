@@ -1,0 +1,6 @@
+
+> cemetery-management@0.1.0 lint
+> next lint
+
+Failed to load config "next/typescript" to extend from.
+Referenced from: C:\Users\Engr. John Rome\Desktop\capstone\v0-fork-of-cemetery-management-system\.eslintrc.json

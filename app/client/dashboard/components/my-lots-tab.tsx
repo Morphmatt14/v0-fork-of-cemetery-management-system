@@ -94,7 +94,7 @@ export function MyLotsTab({ lots, onViewDetails }: MyLotsTabProps) {
                 </svg>
               </div>
               <h3 className="text-lg font-medium text-gray-900 mb-1">No Lots Assigned</h3>
-              <p className="text-gray-600">You don't have any lots assigned yet.</p>
+              <p className="text-gray-600">You don&apos;t have any lots assigned yet.</p>
               <p className="text-sm text-gray-500 mt-2">
                 Contact cemetery staff to inquire about available lots.
               </p>

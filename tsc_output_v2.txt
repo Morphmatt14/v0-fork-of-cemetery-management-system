@@ -1,0 +1,42 @@
+app/admin/employee/dashboard/content-editor.tsx(27,14): error TS2345: Argument of type 'Promise<{ id: string; key: any; value: any; }[]>' is not assignable to parameter of type 'SetStateAction<any[]>'.
+app/admin/employee/dashboard/page.tsx(2155,49): error TS7006: Parameter 'lot' implicitly has an 'any' type.
+app/admin/employee/dashboard/page.tsx(2165,49): error TS7006: Parameter 'lot' implicitly has an 'any' type.
+app/admin/employee/dashboard/page.tsx(2175,49): error TS7006: Parameter 'lot' implicitly has an 'any' type.
+app/admin/employee/dashboard/page.tsx(2289,58): error TS7006: Parameter 'payment' implicitly has an 'any' type.
+app/admin/employee/dashboard/page.tsx(2290,66): error TS7006: Parameter 'payment' implicitly has an 'any' type.
+app/admin/employee/dashboard/page.tsx(2291,61): error TS7006: Parameter 'payment' implicitly has an 'any' type.
+app/admin/employee/dashboard/page.tsx(2292,72): error TS7006: Parameter 'sum' implicitly has an 'any' type.
+app/admin/employee/dashboard/page.tsx(2292,77): error TS7006: Parameter 'payment' implicitly has an 'any' type.
+app/admin/employee/dashboard/page.tsx(2294,45): error TS7006: Parameter 'payment' implicitly has an 'any' type.
+app/admin/employee/dashboard/page.tsx(2308,53): error TS7006: Parameter 'payment' implicitly has an 'any' type.
+app/admin/employee/dashboard/page.tsx(2310,26): error TS7006: Parameter 'payment' implicitly has an 'any' type.
+app/admin/employee/dashboard/page.tsx(2311,26): error TS7006: Parameter 'sum' implicitly has an 'any' type.
+app/admin/employee/dashboard/page.tsx(2311,31): error TS7006: Parameter 'payment' implicitly has an 'any' type.
+app/admin/employee/dashboard/page.tsx(2315,53): error TS7006: Parameter 'payment' implicitly has an 'any' type.
+app/admin/employee/dashboard/page.tsx(2317,26): error TS7006: Parameter 'payment' implicitly has an 'any' type.
+app/admin/employee/dashboard/page.tsx(2318,26): error TS7006: Parameter 'sum' implicitly has an 'any' type.
+app/admin/employee/dashboard/page.tsx(2318,31): error TS7006: Parameter 'payment' implicitly has an 'any' type.
+app/admin/employee/dashboard/page.tsx(2322,53): error TS7006: Parameter 'payment' implicitly has an 'any' type.
+app/admin/employee/dashboard/page.tsx(2324,26): error TS7006: Parameter 'payment' implicitly has an 'any' type.
+app/admin/employee/dashboard/page.tsx(2325,26): error TS7006: Parameter 'sum' implicitly has an 'any' type.
+app/admin/employee/dashboard/page.tsx(2325,31): error TS7006: Parameter 'payment' implicitly has an 'any' type.
+app/admin/employee/dashboard/page.tsx(2329,53): error TS7006: Parameter 'payment' implicitly has an 'any' type.
+app/admin/employee/dashboard/page.tsx(2331,26): error TS7006: Parameter 'payment' implicitly has an 'any' type.
+app/admin/employee/dashboard/page.tsx(2332,26): error TS7006: Parameter 'sum' implicitly has an 'any' type.
+app/admin/employee/dashboard/page.tsx(2332,31): error TS7006: Parameter 'payment' implicitly has an 'any' type.
+app/admin/employee/dashboard/page.tsx(2859,6): error TS7006: Parameter 'lot' implicitly has an 'any' type.
+app/admin/employee/dashboard/page.tsx(2869,6): error TS7006: Parameter 'client' implicitly has an 'any' type.
+app/admin/employee/dashboard/page.tsx(2874,25): error TS7006: Parameter 'lot' implicitly has an 'any' type.
+app/admin/employee/dashboard/page.tsx(2878,6): error TS7006: Parameter 'payment' implicitly has an 'any' type.
+app/admin/employee/dashboard/page.tsx(3645,47): error TS7006: Parameter 'burial' implicitly has an 'any' type.
+app/admin/employee/dashboard/page.tsx(3857,41): error TS7006: Parameter 'client' implicitly has an 'any' type.
+app/admin/employee/dashboard/page.tsx(3868,37): error TS7006: Parameter 'n' implicitly has an 'any' type.
+app/admin/employee/dashboard/page.tsx(3985,31): error TS2322: Type '{ className: string; title: string; }' is not assignable to type 'IntrinsicAttributes & SVGProps<SVGSVGElement>'.
+  Property 'title' does not exist on type 'IntrinsicAttributes & SVGProps<SVGSVGElement>'.
+app/admin/employee/dashboard/page.tsx(4024,63): error TS7006: Parameter 'response' implicitly has an 'any' type.
+app/admin/employee/dashboard/page.tsx(4227,46): error TS7006: Parameter 'payment' implicitly has an 'any' type.
+app/admin/employee/dashboard/page.tsx(4721,62): error TS2322: Type 'unknown' is not assignable to type 'ReactNode'.
+app/admin/employee/dashboard/page.tsx(4755,35): error TS2322: Type 'unknown' is not assignable to type 'ReactNode'.
+app/admin/employee/dashboard/page.tsx(5536,31): error TS7006: Parameter 'n' implicitly has an 'any' type.
+app/admin/employee/dashboard/pricing-editor.tsx(34,37): error TS2345: Argument of type 'Promise<any>' is not assignable to parameter of type 'string'.
+app/client/dashboard/page.tsx(507,52): error TS7006: Parameter 'lot' implicitly has an 'any' type.

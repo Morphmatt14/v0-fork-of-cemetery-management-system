@@ -17,20 +17,20 @@ import {
 import { fetchEmployees, createEmployee, updateEmployee, deleteEmployee, type Employee } from '@/lib/admin-api'
 import { Loader2 } from 'lucide-react'
 
-const Plus = () => (
-  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+const Plus = ({ className }: { className?: string }) => (
+  <svg className={className || "h-4 w-4"} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
   </svg>
 )
 
-const Pencil = () => (
-  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+const Pencil = ({ className }: { className?: string }) => (
+  <svg className={className || "h-4 w-4"} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
   </svg>
 )
 
-const Trash2 = () => (
-  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+const Trash2 = ({ className }: { className?: string }) => (
+  <svg className={className || "h-4 w-4"} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
   </svg>
 )
@@ -42,9 +42,9 @@ interface AdminManagementTabProps {
 export default function AdminManagementTab({ onShowMessage }: AdminManagementTabProps) {
   const [showCreateEmployee, setShowCreateEmployee] = useState(false)
   const [showEditEmployee, setShowEditEmployee] = useState(false)
-  const [newEmployeeData, setNewEmployeeData] = useState({ 
-    username: '', 
-    password: '', 
+  const [newEmployeeData, setNewEmployeeData] = useState({
+    username: '',
+    password: '',
     name: '',
     email: '',
     phone: ''
@@ -105,14 +105,14 @@ export default function AdminManagementTab({ onShowMessage }: AdminManagementTab
       })
 
       console.log('[Employee Management] Employee created, refreshing list...')
-      
+
       onShowMessage(`Employee '${newEmployeeData.username}' created successfully`)
       setNewEmployeeData({ username: '', password: '', name: '', email: '', phone: '' })
       setShowCreateEmployee(false)
-      
+
       // Add small delay to ensure database has committed the transaction
       await new Promise(resolve => setTimeout(resolve, 500))
-      
+
       // Reload employees list
       await loadEmployees()
     } catch (err: any) {
@@ -190,7 +190,7 @@ export default function AdminManagementTab({ onShowMessage }: AdminManagementTab
     try {
       setError(null)
       setIsLoading(true)
-      
+
       // Get current admin user
       const currentUser = localStorage.getItem('currentUser')
       const adminId = currentUser ? JSON.parse(currentUser).id : undefined
@@ -342,13 +342,13 @@ export default function AdminManagementTab({ onShowMessage }: AdminManagementTab
               </div>
             </div>
             <DialogFooter>
-              <Button 
-                type="button" 
+              <Button
+                type="button"
                 onClick={() => {
                   setShowEditEmployee(false)
                   setEditEmployeeData(null)
                   setEditFormData({ name: '', email: '', phone: '', password: '' })
-                }} 
+                }}
                 variant="outline"
               >
                 Cancel
@@ -373,23 +373,23 @@ export default function AdminManagementTab({ onShowMessage }: AdminManagementTab
           <DialogHeader>
             <DialogTitle>Delete Employee</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete employee <span className="font-semibold">{employeeToDelete?.username}</span>? 
+              Are you sure you want to delete employee <span className="font-semibold">{employeeToDelete?.username}</span>?
               This action will soft delete the employee (they will be marked as inactive but data will be preserved).
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button 
-              type="button" 
+            <Button
+              type="button"
               onClick={() => {
                 setShowDeleteConfirm(false)
                 setEmployeeToDelete(null)
-              }} 
+              }}
               variant="outline"
             >
               Cancel
             </Button>
-            <Button 
-              type="button" 
+            <Button
+              type="button"
               onClick={handleDeleteEmployee}
               disabled={isLoading}
               className="bg-red-600 hover:bg-red-700"
@@ -444,9 +444,8 @@ export default function AdminManagementTab({ onShowMessage }: AdminManagementTab
                     </p>
                   )}
                   <p className="text-xs">
-                    <span className={`inline-block px-2 py-0.5 rounded text-xs ${
-                      employee.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                    }`}>
+                    <span className={`inline-block px-2 py-0.5 rounded text-xs ${employee.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                      }`}>
                       {employee.status}
                     </span>
                   </p>

@@ -93,11 +93,11 @@ export default function LoginPage() {
       if (response.ok && data.success) {
         // Store client session
         localStorage.setItem("clientUser", JSON.stringify(data.user))
-        localStorage.setItem("clientSession", JSON.stringify({ 
-          userId: data.user.id, 
-          timestamp: Date.now() 
+        localStorage.setItem("clientSession", JSON.stringify({
+          userId: data.user.id,
+          timestamp: Date.now()
         }))
-        
+
         console.log('[Client Login] Login successful, redirecting...')
         router.push("/client/dashboard")
       } else {
@@ -211,7 +211,7 @@ export default function LoginPage() {
 
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-600">
-                Don't have an account?{" "}
+                Don&apos;t have an account?{" "}
                 <Link href="/register" className="text-green-600 hover:text-green-700 font-medium">
                   Contact us to register
                 </Link>

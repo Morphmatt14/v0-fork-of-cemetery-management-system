@@ -76,8 +76,8 @@ export default function GuestInfoPage() {
             </CardHeader>
             <CardContent>
               <ul className="space-y-2 text-sm text-gray-600">
-                <li>• Standard, Garden Lot, and Family plots    
-   available</li>
+                <li>• Standard, Garden Lot, and Family plots
+                  available</li>
                 <li>• Flexible installment payment plans</li>
                 <li>• Professional lot planning services</li>
                 <li>• Legal documentation and certificates</li>
@@ -98,7 +98,7 @@ export default function GuestInfoPage() {
                 <li>• Regular landscaping and upkeep</li>
                 <li>• Tomb cleaning and maintenance</li>
                 <li>• Pathway and facility maintenance</li>
-                
+
               </ul>
             </CardContent>
           </Card>
@@ -131,7 +131,7 @@ export default function GuestInfoPage() {
                 Submit an Inquiry
               </CardTitle>
               <CardDescription>
-                Have questions about our services? Send us a message and we'll get back to you promptly.
+                Have questions about our services? Send us a message and we&apos;ll get back to you promptly.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -330,7 +330,7 @@ export default function GuestInfoPage() {
                 Providing dignified memorial services to the Surigao community with compassion and professionalism.
               </p>
             </div>
-            
+
             <div>
               <h4 className="font-semibold mb-4">Contact Info</h4>
               <div className="space-y-2 text-sm text-gray-400">

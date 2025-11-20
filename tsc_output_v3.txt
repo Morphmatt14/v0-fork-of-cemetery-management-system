@@ -1,0 +1,12 @@
+app/admin/employee/dashboard/page.tsx(2294,45): error TS7006: Parameter 'payment' implicitly has an 'any' type.
+app/admin/employee/dashboard/page.tsx(2859,6): error TS7006: Parameter 'lot' implicitly has an 'any' type.
+app/admin/employee/dashboard/page.tsx(2869,6): error TS7006: Parameter 'client' implicitly has an 'any' type.
+app/admin/employee/dashboard/page.tsx(2874,25): error TS7006: Parameter 'lot' implicitly has an 'any' type.
+app/admin/employee/dashboard/page.tsx(2878,6): error TS7006: Parameter 'payment' implicitly has an 'any' type.
+app/admin/employee/dashboard/page.tsx(3645,47): error TS7006: Parameter 'burial' implicitly has an 'any' type.
+app/admin/employee/dashboard/page.tsx(3857,41): error TS7006: Parameter 'client' implicitly has an 'any' type.
+app/admin/employee/dashboard/page.tsx(3868,37): error TS7006: Parameter 'n' implicitly has an 'any' type.
+app/admin/employee/dashboard/page.tsx(4023,63): error TS7006: Parameter 'response' implicitly has an 'any' type.
+app/admin/employee/dashboard/page.tsx(4226,46): error TS7006: Parameter 'payment' implicitly has an 'any' type.
+app/admin/employee/dashboard/page.tsx(4720,62): error TS2322: Type 'unknown' is not assignable to type 'ReactNode'.
+app/admin/employee/dashboard/page.tsx(5535,31): error TS7006: Parameter 'n' implicitly has an 'any' type.
