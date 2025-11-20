@@ -2929,7 +2929,7 @@ export default function EmployeeDashboard() {
   }
 
   const handleLogout = () => {
-    logout(router, '/admin/employee/login'); // Redirect to Employee Login Page
+    logout(router, '/'); // Redirect to Welcome Page
   };
 
   const handleTabChange = (value: string) => {
