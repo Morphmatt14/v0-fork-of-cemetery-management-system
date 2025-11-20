@@ -16,11 +16,16 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     
     // Parse filters from query parameters
+    const statusParam = searchParams.get('status')
+    const actionTypeParam = searchParams.get('action_type')
+    const targetEntityParam = searchParams.get('target_entity')
+    const priorityParam = searchParams.get('priority')
+    
     const filters: ApprovalFilters = {
-      status: searchParams.get('status') as any,
-      action_type: searchParams.get('action_type') as any,
-      target_entity: searchParams.get('target_entity') as any,
-      priority: searchParams.get('priority') as any,
+      status: statusParam ? statusParam.split(',') as any : undefined,
+      action_type: actionTypeParam ? actionTypeParam.split(',') as any : undefined,
+      target_entity: targetEntityParam ? targetEntityParam.split(',') as any : undefined,
+      priority: priorityParam ? priorityParam.split(',') as any : undefined,
       requested_by_id: searchParams.get('requested_by_id') || undefined,
       reviewed_by_id: searchParams.get('reviewed_by_id') || undefined,
       category: searchParams.get('category') || undefined,

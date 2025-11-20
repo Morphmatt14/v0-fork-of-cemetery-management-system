@@ -340,8 +340,8 @@ const Loader2 = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
 
 import { AIHelpWidget } from '@/components/ai-help-widget'
 
-// Import Mail and Phone components
-import { Mail, Phone } from 'lucide-react'
+// Import Mail, Phone, and RefreshCw components
+import { Mail, Phone, RefreshCw } from 'lucide-react'
 import MapManager from "@/components/map-manager"
 import LotOwnerSelector from "@/components/lot-owner-selector"
 
@@ -1035,21 +1035,28 @@ export default function EmployeeDashboard() {
 
   // Load pending actions for current employee
   const loadPendingActions = async () => {
-    if (!currentEmployeeId) return;
+    if (!currentEmployeeId) {
+      console.warn('[Pending Actions] No currentEmployeeId, skipping load');
+      return;
+    }
     
+    console.log('[Pending Actions] Loading for employee:', currentEmployeeId);
     setIsLoadingPendingActions(true);
     try {
       const response = await listMyPendingActions(currentEmployeeId, {
         status: ['pending', 'approved', 'rejected']
       });
       
+      console.log('[Pending Actions] Response:', response);
+      
       if (response.success) {
+        console.log('[Pending Actions] Loaded:', response.data.length, 'actions');
         setPendingActions(response.data);
       } else {
-        console.error('Failed to load pending actions:', response.error);
+        console.error('[Pending Actions] Failed to load:', response.error);
       }
     } catch (error) {
-      console.error('Error loading pending actions:', error);
+      console.error('[Pending Actions] Error:', error);
     } finally {
       setIsLoadingPendingActions(false);
     }
@@ -1101,6 +1108,46 @@ export default function EmployeeDashboard() {
   useEffect(() => {
     loadPendingActions();
   }, []);
+
+  // Manual refresh function
+  const refreshDashboard = async () => {
+    console.log('[Dashboard] Manual refresh triggered')
+    setIsLoading(true)
+    
+    try {
+      const response = await fetchDashboardData()
+      
+      if (response.success && response.data) {
+        console.log('[Dashboard] Data refreshed successfully:', response.data)
+        setDashboardData(response.data)
+        setInquiries(response.data.pendingInquiries || [])
+        setLots(response.data.lots || [])
+        setClients(response.data.clients || [])
+        setPayments(response.data.payments || [])
+        setBurials(response.data.burials || [])
+        
+        toast({
+          title: "Refreshed ✓",
+          description: "Dashboard data has been updated",
+        })
+      } else {
+        toast({
+          title: "Refresh Failed",
+          description: response.error || "Failed to refresh data",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      console.error('[Dashboard] Refresh error:', error)
+      toast({
+        title: "Error",
+        description: "Failed to refresh dashboard",
+        variant: "destructive"
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   // Initialize dashboard data from Supabase
   useEffect(() => {
@@ -1523,41 +1570,108 @@ export default function EmployeeDashboard() {
     }
   }
 
-  const handleUpdateClient = (e?: React.FormEvent) => {
+  const handleUpdateClient = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
-    const clientIndex = dashboardData.clients.findIndex((client: any) => client.id === selectedClient?.id)
-    if (clientIndex !== -1) {
-      const updatedData = { ...dashboardData }
-      updatedData.clients[clientIndex] = {
-        ...updatedData.clients[clientIndex],
-        name: clientFormData.name,
-        email: clientFormData.email,
-        phone: clientFormData.phone,
-        address: clientFormData.address,
-        emergencyContact: clientFormData.emergencyContact,
-        emergencyPhone: clientFormData.emergencyPhone,
-        notes: clientFormData.notes,
-      }
 
-      setDashboardData(updatedData)
-      saveToLocalStorage(updatedData)
+    if (!selectedClient) return
+
+    const updateData = {
+      name: clientFormData.name,
+      email: clientFormData.email,
+      phone: clientFormData.phone,
+      address: clientFormData.address,
+      emergencyContact: clientFormData.emergencyContact,
+      emergencyPhone: clientFormData.emergencyPhone,
+      notes: clientFormData.notes,
     }
 
-    toast({
-      title: "Client Updated Successfully",
-      description: `${clientFormData.name}'s information has been updated.`,
-    })
-    setIsEditClientOpen(false)
+    try {
+      // Check if approval is required for client updates
+      const approvalCheck = await checkApprovalRequired('client_update')
+      
+      if (approvalCheck.required && currentEmployeeId) {
+        // Submit for approval workflow
+        const approvalRequest = {
+          action_type: 'client_update' as const,
+          target_entity: 'client' as const,
+          target_id: selectedClient.id,
+          change_data: updateData,
+          previous_data: {
+            name: selectedClient.name,
+            email: selectedClient.email,
+            phone: selectedClient.phone,
+            address: selectedClient.address,
+            emergencyContact: selectedClient.emergencyContact,
+            emergencyPhone: selectedClient.emergencyPhone,
+            notes: selectedClient.notes,
+          },
+          notes: `Update client ${selectedClient.name}`,
+          priority: 'normal' as const
+        }
 
-    const adminUser = localStorage.getItem('employeeUser') || 'employee' // Use employeeUser
-    logActivity(
-      adminUser,
-      'CLIENT_UPDATED',
-      `Updated client ${selectedClient.name}`,
-      'success',
-      'client',
-      [selectedClient.id]
-    )
+        const response = await submitPendingAction(approvalRequest, currentEmployeeId)
+
+        if (response.success) {
+          toast({
+            title: 'Submitted for Approval',
+            description: `Client update request for ${clientFormData.name} has been submitted to admin for review.`,
+          })
+          
+          const adminUser = localStorage.getItem('employeeUser') || 'employee'
+          logActivity(
+            adminUser,
+            'CLIENT_UPDATE_SUBMITTED',
+            `Submitted update request for client ${selectedClient.name}`,
+            'success',
+            'client',
+            [selectedClient.id]
+          )
+        } else {
+          toast({
+            title: 'Submission Failed',
+            description: response.error || 'Failed to submit for approval.',
+            variant: 'destructive',
+          })
+        }
+      } else {
+        // Direct update without approval
+        const clientIndex = dashboardData.clients.findIndex((client: any) => client.id === selectedClient?.id)
+        if (clientIndex !== -1) {
+          const updatedData = { ...dashboardData }
+          updatedData.clients[clientIndex] = {
+            ...updatedData.clients[clientIndex],
+            ...updateData
+          }
+
+          setDashboardData(updatedData)
+          saveToLocalStorage(updatedData)
+        }
+
+        toast({
+          title: 'Client Updated Successfully',
+          description: `${clientFormData.name}'s information has been updated.`,
+        })
+
+        const adminUser = localStorage.getItem('employeeUser') || 'employee'
+        logActivity(
+          adminUser,
+          'CLIENT_UPDATED',
+          `Updated client ${selectedClient.name}`,
+          'success',
+          'client',
+          [selectedClient.id]
+        )
+      }
+
+      setIsEditClientOpen(false)
+    } catch (error: any) {
+      console.error('Error updating client:', error)
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update client. Please try again.',
+        variant: 'destructive',
+      })
+    }
   }
 
   const handleReplyInquiry = () => {
@@ -1855,6 +1969,60 @@ export default function EmployeeDashboard() {
     }
 
     const ownerRecord = dashboardData?.clients?.find((client: any) => String(client.id) === burialFormData.ownerId)
+
+    // Check if approval is required for burial creation
+    try {
+      const approvalCheck = await checkApprovalRequired('burial_create')
+      
+      if (approvalCheck.required && currentEmployeeId) {
+        // Submit for approval workflow
+        const burialData = {
+          deceasedName: burialFormData.deceasedName,
+          familyName: burialFormData.familyName || ownerRecord?.name || "Family",
+          lotId: burialFormData.lotId,
+          ownerId: burialFormData.ownerId,
+          burialDate: burialFormData.burialDate,
+          burialTime: burialFormData.burialTime,
+          age: burialFormData.age ? Number(burialFormData.age) : undefined,
+          cause: burialFormData.cause || "N/A",
+          funeralHome: burialFormData.funeralHome || "N/A",
+          attendees: burialFormData.attendees ? Number(burialFormData.attendees) : 0,
+          notes: burialFormData.notes || "",
+          ownerName: ownerRecord?.name || lot.owner || "",
+        }
+
+        const approvalRequest = {
+          action_type: 'burial_create' as const,
+          target_entity: 'burial' as const,
+          change_data: burialData,
+          notes: `Create burial record for ${burialFormData.deceasedName} at Lot ${lot.id}`,
+          priority: 'high' as const
+        }
+
+        const response = await submitPendingAction(approvalRequest, currentEmployeeId)
+
+        if (response.success) {
+          toast({
+            title: 'Submitted for Approval',
+            description: `Burial record for ${burialFormData.deceasedName} has been submitted to admin for review.`,
+          })
+          resetBurialForm()
+          setIsAddBurialOpen(false)
+          return
+        } else {
+          toast({
+            title: 'Submission Failed',
+            description: response.error || 'Failed to submit for approval.',
+            variant: 'destructive',
+          })
+          return
+        }
+      }
+    } catch (error: any) {
+      console.error('Error checking approval:', error)
+    }
+
+    // Direct creation without approval (if not required or approval check failed)
 
     const newBurial = {
       id: `burial-${Date.now()}`,
@@ -2812,7 +2980,14 @@ export default function EmployeeDashboard() {
           priority: 'normal' as const
         };
 
+        console.log('[Payment Update] Submitting for approval:', {
+          approvalRequest,
+          currentEmployeeId
+        });
+
         const response = await submitPendingAction(approvalRequest, currentEmployeeId);
+
+        console.log('[Payment Update] Approval submission response:', response);
 
         if (response.success) {
           toast({
@@ -2823,6 +2998,7 @@ export default function EmployeeDashboard() {
           // Refresh pending actions
           loadPendingActions();
         } else {
+          console.error('[Payment Update] Submission failed:', response.error);
           toast({
             title: "Submission Failed",
             description: response.error || "Failed to submit payment update for approval.",
@@ -2890,6 +3066,7 @@ export default function EmployeeDashboard() {
       });
     }
   };
+
 
 
   return (
@@ -2992,7 +3169,7 @@ export default function EmployeeDashboard() {
             />
           )}
 
-          {activeTab === 'lots' && <LotsTab />}
+          {activeTab === 'lots' && <LotsTab currentEmployeeId={currentEmployeeId || undefined} />}
 
           <TabsContent value="lots" className="space-y-6" style={{ display: 'none' }}>
             <div className="flex flex-col sm:flex-col justify-between items-center mb-4 sm:mb-0">
@@ -3935,16 +4112,39 @@ export default function EmployeeDashboard() {
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div>
                     <CardTitle>Payment Management</CardTitle>
-                    <CardDescription>Monitor client payments and balances (Status Updates Only)</CardDescription>
+                    <CardDescription>Monitor client payments and update status after receiving payment</CardDescription>
                   </div>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      placeholder="Search payments..."
-                      value={paymentSearchTerm}
-                      onChange={(e) => setPaymentSearchTerm(e.target.value)}
-                      className="pl-10 w-64"
-                    />
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={refreshDashboard}
+                      disabled={isLoading}
+                      className="flex items-center gap-2"
+                    >
+                      <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                      Refresh
+                    </Button>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <Input
+                        placeholder="Search payments..."
+                        value={paymentSearchTerm}
+                        onChange={(e) => setPaymentSearchTerm(e.target.value)}
+                        className="pl-10 w-64"
+                      />
+                    </div>
+                    <Select defaultValue="all">
+                      <SelectTrigger className="w-[150px]">
+                        <SelectValue placeholder="Filter Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Status</SelectItem>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="overdue">Overdue</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               </CardHeader>
@@ -3990,16 +4190,13 @@ export default function EmployeeDashboard() {
                           Client
                         </th>
                         <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Lot ID
+                          Amount
                         </th>
                         <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Total Price
+                          Scheduled Date
                         </th>
                         <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Amount Paid
-                        </th>
-                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Balance
+                          Payment Method
                         </th>
                         <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Status
@@ -4009,22 +4206,35 @@ export default function EmployeeDashboard() {
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {filteredPayments.map((payment) => (
-                        <tr key={payment.id}>
-                          <td className="px-6 py-4 whitespace-nowrap font-medium">{payment.client}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">{payment.reference}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">₱{formatCurrency(payment.amount)}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-green-600 font-medium">
-                            ₱{formatCurrency((payment.amount || 0) * 0.6)}
+                        <tr key={payment.id} className={payment.status === "Pending" ? "bg-yellow-50" : ""}>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div>
+                              <p className="font-medium text-gray-900">{payment.client}</p>
+                              <p className="text-xs text-gray-500">Ref: {payment.reference}</p>
+                            </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="font-medium text-orange-600">
-                              ₱{formatCurrency((payment.amount || 0) * 0.4)}
-                            </span>
+                            <span className="font-semibold text-gray-900">₱{formatCurrency(payment.amount)}</span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div>
+                              <p className="text-sm text-gray-900">
+                                {payment.payment_date ? new Date(payment.payment_date).toLocaleDateString() : payment.date ? new Date(payment.date).toLocaleDateString() : 'N/A'}
+                              </p>
+                              {payment.status === "Pending" && payment.payment_date && (
+                                <p className="text-xs text-gray-500">
+                                  {new Date(payment.payment_date) < new Date() ? '⚠️ Past due' : '📅 Upcoming'}
+                                </p>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="text-sm text-gray-600">{payment.method || payment.payment_method || 'N/A'}</span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <Badge variant={
-                              payment.status === "Paid" ? "default" : 
-                              payment.status === "Under Payment" ? "secondary" : 
+                              payment.status === "Paid" || payment.status === "Completed" ? "default" : 
+                              payment.status === "Pending" || payment.status === "Under Payment" ? "secondary" : 
                               "destructive"
                             }>
                               {payment.status}
@@ -4040,8 +4250,9 @@ export default function EmployeeDashboard() {
                                 setIsUpdatePaymentStatusOpen(true)
                               }}
                               title="Update payment status"
+                              className={payment.status === "Pending" ? "border-green-600 text-green-600 hover:bg-green-50" : ""}
                             >
-                              Update Status
+                              {payment.status === "Pending" ? "Confirm Payment" : "Update Status"}
                             </Button>
                           </td>
                         </tr>
@@ -5482,6 +5693,21 @@ export default function EmployeeDashboard() {
                 </div>
               </div>
 
+              {/* Approval Notice */}
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <div className="flex items-start gap-2">
+                  <svg className="h-5 w-5 text-yellow-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  <div className="flex-1">
+                    <h4 className="text-sm font-medium text-yellow-800">Admin Approval Required</h4>
+                    <p className="text-xs text-yellow-700 mt-1">
+                      This payment status change requires administrator approval. Your update will be submitted for review.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="payment-status">New Payment Status</Label>
                 <Select
@@ -5492,6 +5718,12 @@ export default function EmployeeDashboard() {
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="Completed">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                        Completed
+                      </div>
+                    </SelectItem>
                     <SelectItem value="Paid">
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-green-500"></div>
@@ -5508,6 +5740,12 @@ export default function EmployeeDashboard() {
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-red-500"></div>
                         Overdue
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="Cancelled">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-gray-500"></div>
+                        Cancelled
                       </div>
                     </SelectItem>
                   </SelectContent>
@@ -5530,7 +5768,7 @@ export default function EmployeeDashboard() {
                   className="bg-blue-600 hover:bg-blue-700"
                   disabled={!newPaymentStatus || newPaymentStatus === selectedPayment.status}
                 >
-                  Update Status
+                  Submit for Approval
                 </Button>
               </div>
             </div>

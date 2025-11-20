@@ -303,15 +303,37 @@ async function executeLotUpdate(lotId: string, changes: any) {
 
 // Execute payment update
 async function executePaymentUpdate(paymentId: string, changes: any) {
+  // Map frontend field names to database column names
+  const updateData: any = {
+    updated_at: new Date().toISOString()
+  }
+  
+  // Map status → payment_status (database column)
+  if (changes.status) {
+    updateData.payment_status = changes.status
+  }
+  
+  // Map other fields if present
+  if (changes.amount !== undefined) updateData.amount = changes.amount
+  if (changes.payment_type) updateData.payment_type = changes.payment_type
+  if (changes.payment_method) updateData.payment_method = changes.payment_method
+  if (changes.payment_date) updateData.payment_date = changes.payment_date
+  if (changes.notes) updateData.notes = changes.notes
+
+  console.log('[Approvals API] Executing payment update:', { paymentId, updateData })
+
   const { data, error } = await supabaseServer
     .from('payments')
-    .update({
-      ...changes,
-      updated_at: new Date().toISOString()
-    })
+    .update(updateData)
     .eq('id', paymentId)
     .select('*')
     .single()
+
+  if (error) {
+    console.error('[Approvals API] Payment update error:', error)
+  } else {
+    console.log('[Approvals API] Payment updated successfully:', data)
+  }
 
   return {
     success: !error,

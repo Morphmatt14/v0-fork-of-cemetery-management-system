@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
         date: payment.payment_date,
         amount: payment.amount,
         type: payment.payment_type || 'Installment',
-        status: payment.status,
+        status: payment.payment_status || payment.status || 'Pending', // Fix: Use payment_status from DB
         lotId: lot?.lot_number || payment.lot_id,
         ...payment
       }

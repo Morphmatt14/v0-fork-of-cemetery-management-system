@@ -1,11 +1,16 @@
 "use client"
 
+import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { SchedulePaymentForm } from "./schedule-payment-form"
 
 interface PaymentsTabProps {
   payments: any[]
   lots: any[]
+  clientId: string
+  onRefresh?: () => void
 }
 
 const CreditCard = () => (
@@ -19,7 +24,20 @@ const CreditCard = () => (
   </svg>
 )
 
-export function PaymentsTab({ payments, lots }: PaymentsTabProps) {
+export function PaymentsTab({ payments, lots, clientId, onRefresh }: PaymentsTabProps) {
+  const [isSchedulePaymentOpen, setIsSchedulePaymentOpen] = useState(false)
+  const [selectedLot, setSelectedLot] = useState<any>(null)
+
+  const handleSchedulePayment = (lot: any) => {
+    setSelectedLot(lot)
+    setIsSchedulePaymentOpen(true)
+  }
+
+  const handleScheduleSuccess = () => {
+    if (onRefresh) {
+      onRefresh()
+    }
+  }
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-PH", {
       style: "currency",
@@ -28,8 +46,14 @@ export function PaymentsTab({ payments, lots }: PaymentsTabProps) {
   }
 
   const getStatusColor = (status: string) => {
+    // Handle undefined or null status
+    if (!status) {
+      return "bg-gray-100 text-gray-800 border-gray-200"
+    }
+    
     switch (status.toLowerCase()) {
       case "paid":
+      case "completed":
         return "bg-green-100 text-green-800 border-green-200"
       case "under payment":
       case "pending":
@@ -44,13 +68,14 @@ export function PaymentsTab({ payments, lots }: PaymentsTabProps) {
 
   const totalBalance = lots.reduce((sum, lot) => sum + (lot.balance || 0), 0)
   const totalPaid = payments.reduce(
-    (sum, payment) => sum + (payment.status === "Paid" ? payment.amount : 0),
+    (sum, payment) => sum + (payment.status === "Paid" || payment.status === "Completed" ? payment.amount : 0),
     0
   )
   const pendingPayments = payments.filter(
-    (p) => p.status === "Due" || p.status === "Pending" || p.status === "Under Payment"
+    (p) => p.status && (p.status === "Due" || p.status === "Pending" || p.status === "Under Payment")
   ).length
   const overduePayments = payments.filter((p) => p.status === "Overdue").length
+  const scheduledPayments = payments.filter((p) => p.status === "Pending")
 
   return (
     <div className="space-y-6">
@@ -179,7 +204,7 @@ export function PaymentsTab({ payments, lots }: PaymentsTabProps) {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <Badge variant="outline" className={getStatusColor(payment.status)}>
-                          {payment.status}
+                          {payment.status || "Unknown"}
                         </Badge>
                       </td>
                     </tr>
@@ -223,6 +248,13 @@ export function PaymentsTab({ payments, lots }: PaymentsTabProps) {
                         <p className="text-sm font-semibold text-orange-600 mt-1">
                           {formatCurrency(lot.balance)} due
                         </p>
+                        <Button
+                          size="sm"
+                          onClick={() => handleSchedulePayment(lot)}
+                          className="mt-2 bg-green-600 hover:bg-green-700 w-full"
+                        >
+                          Schedule Payment
+                        </Button>
                       </div>
                     ) : (
                       <div>
@@ -232,6 +264,13 @@ export function PaymentsTab({ payments, lots }: PaymentsTabProps) {
                         <p className="text-sm font-semibold text-red-600 mt-1">
                           {formatCurrency(lot.balance)} overdue
                         </p>
+                        <Button
+                          size="sm"
+                          onClick={() => handleSchedulePayment(lot)}
+                          className="mt-2 bg-green-600 hover:bg-green-700 w-full"
+                        >
+                          Schedule Payment
+                        </Button>
                       </div>
                     )}
                   </div>
@@ -258,13 +297,27 @@ export function PaymentsTab({ payments, lots }: PaymentsTabProps) {
             <div>
               <h4 className="font-medium text-blue-900 mb-1">Payment Information</h4>
               <p className="text-sm text-blue-800">
-                For payment arrangements or inquiries, please contact cemetery administration or submit a
-                request through the Requests tab.
+                Schedule your payments using the "Schedule Payment" button above. Once scheduled, cemetery
+                staff will update the status after receiving your payment.
               </p>
             </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Schedule Payment Form */}
+      {selectedLot && (
+        <SchedulePaymentForm
+          isOpen={isSchedulePaymentOpen}
+          onClose={() => {
+            setIsSchedulePaymentOpen(false)
+            setSelectedLot(null)
+          }}
+          lot={selectedLot}
+          clientId={clientId}
+          onSuccess={handleScheduleSuccess}
+        />
+      )}
     </div>
   )
 }

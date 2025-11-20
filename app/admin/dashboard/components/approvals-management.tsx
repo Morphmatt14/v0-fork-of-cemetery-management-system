@@ -295,9 +295,16 @@ export function ApprovalsManagement({ adminId }: ApprovalsManagementProps) {
                       {/* Show change data preview */}
                       <div className="text-xs bg-gray-50 p-2 rounded border border-gray-200">
                         <span className="font-medium">Changes:</span>
-                        <pre className="mt-1 text-xs overflow-x-auto">
-                          {JSON.stringify(action.change_data, null, 2)}
-                        </pre>
+                        <div className="mt-1 space-y-1">
+                          {Object.entries(action.change_data).map(([key, value]) => (
+                            <div key={key} className="flex gap-2">
+                              <span className="text-gray-600 capitalize">{key.replace(/_/g, ' ')}:</span>
+                              <span className="font-semibold text-gray-900">
+                                {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
 
@@ -354,18 +361,60 @@ export function ApprovalsManagement({ adminId }: ApprovalsManagementProps) {
               {/* Change Data */}
               <div>
                 <Label className="text-sm font-medium">Proposed Changes:</Label>
-                <pre className="mt-2 p-3 bg-gray-900 text-gray-100 rounded-lg text-xs overflow-x-auto">
-                  {JSON.stringify(selectedAction.change_data, null, 2)}
-                </pre>
+                <div className="mt-2 p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-2">
+                  {Object.entries(selectedAction.change_data).map(([key, value]) => (
+                    <div key={key} className="flex items-start gap-2">
+                      <span className="text-sm font-medium text-gray-700 capitalize min-w-[100px]">
+                        {key.replace(/_/g, ' ')}:
+                      </span>
+                      <span className="text-sm text-gray-900 font-semibold">
+                        {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {/* Previous Data (if update) */}
               {selectedAction.previous_data && (
                 <div>
                   <Label className="text-sm font-medium">Previous Data:</Label>
-                  <pre className="mt-2 p-3 bg-gray-100 rounded-lg text-xs overflow-x-auto">
-                    {JSON.stringify(selectedAction.previous_data, null, 2)}
-                  </pre>
+                  <div className="mt-2 p-4 bg-gray-50 border border-gray-200 rounded-lg space-y-2">
+                    {Object.entries(selectedAction.previous_data).map(([key, value]) => (
+                      <div key={key} className="flex items-start gap-2">
+                        <span className="text-sm font-medium text-gray-600 capitalize min-w-[100px]">
+                          {key.replace(/_/g, ' ')}:
+                        </span>
+                        <span className="text-sm text-gray-700">
+                          {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Comparison View for Updates */}
+              {selectedAction.previous_data && selectedAction.action_type.includes('update') && (
+                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <Label className="text-sm font-medium text-yellow-900">Changes Summary:</Label>
+                  <div className="mt-2 space-y-1">
+                    {Object.keys(selectedAction.change_data).map((key) => {
+                      const oldValue = selectedAction.previous_data?.[key]
+                      const newValue = selectedAction.change_data[key]
+                      if (oldValue !== newValue) {
+                        return (
+                          <div key={key} className="text-sm">
+                            <span className="font-medium capitalize">{key.replace(/_/g, ' ')}</span>:{' '}
+                            <span className="line-through text-red-600">{String(oldValue)}</span>
+                            {' → '}
+                            <span className="text-green-600 font-semibold">{String(newValue)}</span>
+                          </div>
+                        )
+                      }
+                      return null
+                    })}
+                  </div>
                 </div>
               )}
 

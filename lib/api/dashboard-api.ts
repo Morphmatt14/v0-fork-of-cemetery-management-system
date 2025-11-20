@@ -1,39 +1,58 @@
 // ============================================================================
 // DASHBOARD DATA API
 // ============================================================================
-// Functions to fetch dashboard data from Supabase instead of localStorage
-// Date: 2024-11-20
+// Functions to fetch dashboard data from API endpoint
+// Updated: 2024-11-21 - Changed to use API endpoint to bypass RLS
 // ============================================================================
 
 import { supabase } from '@/lib/supabase-client'
 
 /**
- * Fetch all dashboard data via API endpoint
- * Uses server-side API that bypasses RLS
+ * Fetch all dashboard data from API endpoint
+ * Uses service role key on server-side to bypass RLS
  */
 export async function fetchDashboardData() {
   try {
-    console.log('[Dashboard API Client] Fetching dashboard data from API...')
+    console.log('[Dashboard API Helper] Fetching from /api/dashboard...')
     
     const response = await fetch('/api/dashboard', {
       method: 'GET',
       headers: {
-        'Content-Type': 'application/json'
-      }
+        'Content-Type': 'application/json',
+      },
     })
 
-    if (!response.ok) {
-      throw new Error(`HTTP error ${response.status}`)
-    }
-
     const result = await response.json()
-    
-    console.log('[Dashboard API Client] Data fetched successfully')
-    
-    return result
 
+    if (response.ok && result.success) {
+      console.log('[Dashboard API Helper] Data fetched successfully')
+      return result
+    } else {
+      console.error('[Dashboard API Helper] API returned error:', result.error)
+      return {
+        success: false,
+        error: result.error || 'Failed to fetch dashboard data',
+        data: {
+          lots: [],
+          clients: [],
+          payments: [],
+          burials: [],
+          pendingInquiries: [],
+          recentBurials: [],
+          stats: {
+            totalLots: 0,
+            occupiedLots: 0,
+            availableLots: 0,
+            totalClients: 0,
+            monthlyRevenue: 0,
+            pendingInquiries: 0,
+            overduePayments: 0
+          }
+        }
+      }
+    }
   } catch (error) {
-    console.error('[Dashboard API Client] Error fetching dashboard data:', error)
+    console.error('[Dashboard API Helper] Error fetching dashboard data:', error)
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to fetch dashboard data',

@@ -37,8 +37,13 @@ import { fetchLots, updateLot, deleteLot } from '@/lib/api/lots-api'
 import type { Lot } from '@/lib/types/lots'
 import { useToast } from '@/hooks/use-toast'
 import LotOwnerSelector from '@/components/lot-owner-selector'
+import { checkApprovalRequired, submitPendingAction } from '@/lib/api/approvals-api'
 
-export default function LotsTab() {
+interface LotsTabProps {
+  currentEmployeeId?: string
+}
+
+export default function LotsTab({ currentEmployeeId }: LotsTabProps = {}) {
   const { toast } = useToast()
   
   // Data state
@@ -92,14 +97,25 @@ export default function LotsTab() {
 
   const handleAssignLotToOwner = async (lotId: string, ownerId: string, ownerName: string) => {
     try {
+      // Get the lot details to set initial balance
+      const lot = lots.find(l => l.id === lotId)
+      
+      if (!lot) {
+        throw new Error('Lot not found')
+      }
+
+      // Set balance to the lot's price when assigning
+      const initialBalance = lot.price || 0
+
       await updateLot(lotId, {
         owner_id: ownerId,
         status: 'Reserved',
+        balance: initialBalance, // Initialize balance to lot price
       })
 
       toast({
         title: 'Lot Assigned',
-        description: `Lot ${lotId} has been assigned to ${ownerName}.`,
+        description: `Lot ${lotId} has been assigned to ${ownerName}. Balance: ₱${initialBalance.toLocaleString()}`,
       })
 
       setIsAssignOwnerOpen(false)
@@ -121,27 +137,70 @@ export default function LotsTab() {
   const handleEditLot = async () => {
     if (!selectedLot) return
 
-    try {
-      await updateLot(selectedLot.id, {
-        lot_number: lotFormData.lot_number,
-        section_id: lotFormData.section_id,
-        lot_type: lotFormData.lot_type as any,
-        status: lotFormData.status as any,
-        price: parseFloat(lotFormData.price),
-        dimensions: lotFormData.dimensions,
-        features: lotFormData.features,
-        description: lotFormData.description,
-      })
+    const updateData = {
+      lot_number: lotFormData.lot_number,
+      section_id: lotFormData.section_id,
+      lot_type: lotFormData.lot_type as any,
+      status: lotFormData.status as any,
+      price: parseFloat(lotFormData.price),
+      dimensions: lotFormData.dimensions,
+      features: lotFormData.features,
+      description: lotFormData.description,
+    }
 
-      toast({
-        title: 'Lot Updated Successfully',
-        description: `Lot ${lotFormData.lot_number} has been updated.`,
-      })
+    try {
+      // Check if approval is required for lot updates
+      const approvalCheck = await checkApprovalRequired('lot_update')
+      
+      if (approvalCheck.required && currentEmployeeId) {
+        // Submit for approval workflow
+        const approvalRequest = {
+          action_type: 'lot_update' as const,
+          target_entity: 'lot' as const,
+          target_id: selectedLot.id,
+          change_data: updateData,
+          previous_data: {
+            lot_number: selectedLot.lot_number,
+            section_id: selectedLot.section_id,
+            lot_type: selectedLot.lot_type,
+            status: selectedLot.status,
+            price: selectedLot.price,
+            dimensions: selectedLot.dimensions,
+            features: selectedLot.features,
+            description: selectedLot.description,
+          },
+          notes: `Update lot ${selectedLot.lot_number}`,
+          priority: 'normal' as const
+        }
+
+        const response = await submitPendingAction(approvalRequest, currentEmployeeId)
+
+        if (response.success) {
+          toast({
+            title: 'Submitted for Approval',
+            description: `Lot update request for ${lotFormData.lot_number} has been submitted to admin for review.`,
+          })
+        } else {
+          toast({
+            title: 'Submission Failed',
+            description: response.error || 'Failed to submit for approval.',
+            variant: 'destructive',
+          })
+        }
+      } else {
+        // Direct update without approval
+        await updateLot(selectedLot.id, updateData)
+
+        toast({
+          title: 'Lot Updated Successfully',
+          description: `Lot ${lotFormData.lot_number} has been updated.`,
+        })
+        await loadLots()
+      }
 
       setIsEditLotOpen(false)
       resetFormData()
       setSelectedLot(null)
-      await loadLots() // Reload lots
     } catch (err: any) {
       console.error('Error updating lot:', err)
       toast({
@@ -154,14 +213,54 @@ export default function LotsTab() {
 
   const handleDeleteLot = async (lot: Lot) => {
     try {
-      await deleteLot(lot.id)
+      // Check if approval is required for lot deletion
+      const approvalCheck = await checkApprovalRequired('lot_delete')
+      
+      if (approvalCheck.required && currentEmployeeId) {
+        // Submit for approval workflow
+        const approvalRequest = {
+          action_type: 'lot_delete' as const,
+          target_entity: 'lot' as const,
+          target_id: lot.id,
+          change_data: { deleted: true },
+          previous_data: {
+            lot_number: lot.lot_number,
+            section_id: lot.section_id,
+            lot_type: lot.lot_type,
+            status: lot.status,
+            price: lot.price,
+            dimensions: lot.dimensions,
+            features: lot.features,
+            description: lot.description,
+          },
+          notes: `Delete lot ${lot.lot_number}`,
+          priority: 'high' as const
+        }
 
-      toast({
-        title: 'Lot Deleted',
-        description: `Lot ${lot.lot_number} has been deleted.`,
-      })
+        const response = await submitPendingAction(approvalRequest, currentEmployeeId)
 
-      await loadLots() // Reload lots
+        if (response.success) {
+          toast({
+            title: 'Submitted for Approval',
+            description: `Lot deletion request for ${lot.lot_number} has been submitted to admin for review.`,
+          })
+        } else {
+          toast({
+            title: 'Submission Failed',
+            description: response.error || 'Failed to submit for approval.',
+            variant: 'destructive',
+          })
+        }
+      } else {
+        // Direct delete without approval
+        await deleteLot(lot.id)
+
+        toast({
+          title: 'Lot Deleted',
+          description: `Lot ${lot.lot_number} has been deleted.`,
+        })
+        await loadLots()
+      }
     } catch (err: any) {
       console.error('Error deleting lot:', err)
       toast({

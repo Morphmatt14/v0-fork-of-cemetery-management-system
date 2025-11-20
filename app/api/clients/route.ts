@@ -26,6 +26,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Prepare client data
+    const now = new Date().toISOString()
     const clientData = {
       email: body.email,
       password_hash: passwordHash,
@@ -37,8 +38,9 @@ export async function POST(request: NextRequest) {
       emergency_contact_name: body.emergency_contact_name || null,
       emergency_contact_phone: body.emergency_contact_phone || null,
       notes: body.notes || null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      join_date: now.split('T')[0], // Add join_date as YYYY-MM-DD
+      created_at: now,
+      updated_at: now
     }
 
     // Insert into database

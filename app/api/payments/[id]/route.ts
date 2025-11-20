@@ -27,10 +27,13 @@ export async function PATCH(
       updated_at: new Date().toISOString()
     }
 
-    if (body.status) updateData.status = body.status
+    // Map status to payment_status (database column name)
+    if (body.status) updateData.payment_status = body.status
     if (body.amount !== undefined) updateData.amount = body.amount
     if (body.balance !== undefined) updateData.balance = body.balance
     if (body.payment_date) updateData.payment_date = body.payment_date
+    if (body.payment_type) updateData.payment_type = body.payment_type
+    if (body.payment_method) updateData.payment_method = body.payment_method
 
     // Update in database
     const { data, error } = await supabaseServer

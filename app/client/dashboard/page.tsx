@@ -236,6 +236,32 @@ export default function ClientDashboard() {
     }
   }, [router])
 
+  // Refresh function for reloading client data
+  const refreshClientData = async () => {
+    if (!currentClientId || !isAuthenticated) {
+      return
+    }
+
+    try {
+      console.log('[Client Dashboard] Refreshing data for client:', currentClientId)
+      const data = await fetchClientDashboardData(currentClientId)
+      
+      setClientData({
+        name: data.profile.name || data.profile.full_name || 'Client',
+        email: data.profile.email,
+        phone: data.profile.phone,
+        memberSince: data.profile.created_at,
+        lots: data.lots || [],
+        payments: data.payments || [],
+        notifications: data.notifications || []
+      })
+      
+      setInquiries(data.requests || [])
+    } catch (err: any) {
+      console.error('[Client Dashboard] Error refreshing data:', err)
+    }
+  }
+
   // Load client data from API
   useEffect(() => {
     async function loadClientData() {
@@ -488,6 +514,8 @@ export default function ClientDashboard() {
             <PaymentsTab
               payments={clientData.payments}
               lots={clientData.lots}
+              clientId={currentClientId || ''}
+              onRefresh={refreshClientData}
             />
           )}
 

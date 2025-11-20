@@ -63,6 +63,7 @@ export interface UpdateLotInput {
   lot_type?: LotType
   status?: LotStatus
   price?: number
+  balance?: number  // Outstanding balance for the lot
   dimensions?: string
   owner_id?: string
   occupant_name?: string
