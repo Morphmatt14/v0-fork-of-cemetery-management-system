@@ -33,7 +33,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { MapPin, Edit, Eye, Trash2, Loader2, Search } from 'lucide-react'
-import { fetchLots, createLot, updateLot, deleteLot } from '@/lib/api/lots-api'
+import { fetchLots, updateLot, deleteLot } from '@/lib/api/lots-api'
 import type { Lot } from '@/lib/types/lots'
 import { useToast } from '@/hooks/use-toast'
 
@@ -47,7 +47,7 @@ export default function LotsTab() {
   
   // UI state
   const [searchTerm, setSearchTerm] = useState('')
-  const [isAddLotOpen, setIsAddLotOpen] = useState(false)
+  // isAddLotOpen removed - Add New Lot feature disabled
   const [isEditLotOpen, setIsEditLotOpen] = useState(false)
   const [isViewLotOpen, setIsViewLotOpen] = useState(false)
   const [isAssignOwnerOpen, setIsAssignOwnerOpen] = useState(false)
@@ -89,38 +89,8 @@ export default function LotsTab() {
     }
   }
 
-  const handleAddLot = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault()
-    
-    try {
-      await createLot({
-        lot_number: lotFormData.lot_number,
-        section_id: lotFormData.section_id,
-        lot_type: lotFormData.lot_type as any,
-        status: lotFormData.status as any,
-        price: parseFloat(lotFormData.price),
-        dimensions: lotFormData.dimensions,
-        features: lotFormData.features,
-        description: lotFormData.description,
-      })
-
-      toast({
-        title: 'Lot Added Successfully',
-        description: `Lot ${lotFormData.lot_number} has been added.`,
-      })
-
-      setIsAddLotOpen(false)
-      resetFormData()
-      await loadLots() // Reload lots
-    } catch (err: any) {
-      console.error('Error adding lot:', err)
-      toast({
-        title: 'Error',
-        description: err.message || 'Failed to add lot. Please try again.',
-        variant: 'destructive',
-      })
-    }
-  }
+  // handleAddLot function removed - Add New Lot feature disabled per employee.md
+  // Lots are now only created through the map drawing tool
 
   const handleEditLot = async () => {
     if (!selectedLot) return
@@ -247,15 +217,7 @@ export default function LotsTab() {
           >
             Assign Lot to Owner
           </Button>
-          <Button
-            className="bg-blue-600 hover:bg-blue-700"
-            onClick={() => {
-              resetFormData()
-              setIsAddLotOpen(true)
-            }}
-          >
-            Add New Lot
-          </Button>
+          {/* Add New Lot button removed - lots are created through map drawing only */}
         </div>
       </div>
 
@@ -290,7 +252,7 @@ export default function LotsTab() {
 
             {filteredLots.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
-                <p>No lots found. Create a new lot or add lots from the map editor.</p>
+                <p>No lots found. Lots can only be created through the map editor.</p>
               </div>
             ) : (
               filteredLots.map((lot) => (
@@ -383,7 +345,9 @@ export default function LotsTab() {
         </CardContent>
       </Card>
 
-      {/* Add Lot Dialog */}
+      {/* Add Lot Dialog - REMOVED per employee.md requirements */}
+      {/* Lots are now only created through the map drawing tool */}
+      {/* 
       <Dialog open={isAddLotOpen} onOpenChange={setIsAddLotOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -507,6 +471,7 @@ export default function LotsTab() {
           </div>
         </DialogContent>
       </Dialog>
+      */}
 
       {/* Edit Lot Dialog */}
       <Dialog open={isEditLotOpen} onOpenChange={setIsEditLotOpen}>
@@ -542,8 +507,8 @@ export default function LotsTab() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Standard">Standard (Lawn Lot)</SelectItem>
-                  <SelectItem value="Premium">Premium (Garden Lot)</SelectItem>
+                  <SelectItem value="Standard">Standard</SelectItem>
+                  <SelectItem value="Premium">Premium</SelectItem>
                   <SelectItem value="Family">Family (Estate)</SelectItem>
                   <SelectItem value="Mausoleum">Mausoleum</SelectItem>
                 </SelectContent>

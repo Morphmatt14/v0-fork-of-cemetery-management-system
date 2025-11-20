@@ -220,21 +220,19 @@ This document provides a comprehensive analysis of the existing Admin (Super Adm
 #### 2. **Lots Tab**
 **Purpose**: Cemetery lot management and inventory
 
+**Important Notes**:
+- ⚠️ **Add New Lot feature is REMOVED** - Lots are only created through the map drawing tool
+- Lot type labels have been corrected:
+  - **Standard** (formerly labeled as "Lawn Lot")
+  - **Premium** (formerly labeled as "Garden Lot")
+  - **Family** (Estate)
+  - **Mausoleum**
+
 **Features**:
-- **Add New Lot**:
-  - Lot ID (unique identifier)
-  - Section selection (Garden of Peace, Garden of Serenity, etc.)
-  - Type selection:
-    - Standard (Lawn Lot)
-    - Premium (Garden Lot)
-    - Family (Estate)
-    - Mausoleum
-  - Status selection (Available, Reserved, Occupied, Maintenance)
-  - Price in PHP
-  - Dimensions (e.g., 2m x 1m)
-  - Features description
-  - Full description field
-  - Auto-updates statistics
+- **Assign Lot Owner**:
+  - Link lot to client/owner
+  - Updates lot status
+  - Records ownership information
 
 - **Edit Lot**:
   - Modify all lot attributes
@@ -252,11 +250,6 @@ This document provides a comprehensive analysis of the existing Admin (Super Adm
   - Full lot information display
   - Owner/occupant information
   - Payment history
-
-- **Assign Lot to Owner**:
-  - Link lot to client/owner
-  - Updates lot status
-  - Records ownership information
 
 - **Search Functionality**:
   - Search by lot ID
@@ -298,15 +291,22 @@ This document provides a comprehensive analysis of the existing Admin (Super Adm
 
 **Features**:
 - **Add New Client**:
-  - Name
-  - Email
-  - Phone number
-  - Address
-  - Emergency contact name
-  - Emergency contact phone
+  - **Automatic Account Creation**: System automatically creates a client account when adding a new client
+  - **Account Credentials**:
+    - Username (employee sets this)
+    - Password (employee sets this)
+  - **Personal Information**:
+    - Name
+    - Email
+    - Phone number
+    - Address
+  - **Emergency Contact**:
+    - Emergency contact name
+    - Emergency contact phone
   - Notes
   - Auto-assigns status as "Active"
   - Creates empty payment history
+  - Client can use the username/password to access the Client Portal
 
 - **Edit Client**:
   - Update all client information
@@ -325,6 +325,7 @@ This document provides a comprehensive analysis of the existing Admin (Super Adm
   - Send messages to clients
   - Subject and message body
   - Message type selection
+  - **Note**: Clients can reply to messages, but their replies appear in the **Client Portal**, not the Employee Portal
 
 - **Search Functionality**:
   - Search by name
@@ -351,12 +352,16 @@ This document provides a comprehensive analysis of the existing Admin (Super Adm
   - Payment date
   - Amount
   - Payment type (Full Payment, Down Payment, Installment, Partial)
-  - Status (Completed, Pending)
+  - **Payment Status**:
+    - **Paid** - Payment completed in full
+    - **Under Payment** - Payment plan in progress
+    - **Overdue** - Payment past due date
   - Payment method (Bank Transfer, Credit Card, Cash, Online Banking)
   - Reference number
   - Associated lot
 
 - **Update Payment Status**:
+  - Change status between: Paid, Under Payment, Overdue
   - Modify client balances
   - Update payment records
   - Activity logging
@@ -383,15 +388,22 @@ This document provides a comprehensive analysis of the existing Admin (Super Adm
 #### 6. **Maps Tab**
 **Purpose**: Interactive cemetery map management
 
+**Important Notes**:
+- ⚠️ **Lot Type Labels**: Ensure map displays correct labels (Standard, Premium) not old labels (Lawn Lot, Garden Lot)
+- ⚠️ **Naming Behavior**: When drawing a lot on the map, the system does NOT automatically set the lot name
+- ✅ **Correct Workflow**: Lot owner names and editing should be managed in the **Lots Section**, NOT during map drawing
+- This is the **ONLY** way to create new lots in the system
+
 **Features**:
 - **Map Manager Component** (`<MapManager />`):
   - Visual lot layout
   - Interactive lot selection
-  - Lot creation via map interface
-  - Lot status visualization
+  - **Lot creation via map interface** (primary lot creation method)
+  - Lot status visualization with correct type labels
   - Drag-and-drop functionality
   - Section organization
   - Real-time updates
+  - Manual editing required for lot names after creation
 
 - **Lot Owner Selector** (`<LotOwnerSelector />`):
   - Link lots to clients
@@ -403,13 +415,15 @@ This document provides a comprehensive analysis of the existing Admin (Super Adm
   - Updates lot status across system
   - Stores map IDs with lots
   - Supports multiple cemetery maps
+  - Lot details (names, owners) managed in Lots Section
 
 **Map Features**:
 - Visual representation of cemetery sections
-- Color-coded lot status
+- Color-coded lot status (Standard = blue, Premium = gold, etc.)
 - Interactive lot management
 - Owner assignment interface
 - Real-time synchronization
+- Lot creation only (naming and owner assignment done in Lots Section)
 
 #### 7. **News Tab**
 **Purpose**: News and announcements management
@@ -568,6 +582,37 @@ This document provides a comprehensive analysis of the existing Admin (Super Adm
   - Analysis breakdowns
   - Footer information
 
+#### 10. **Front Page Management Tab** 🆕
+**Purpose**: Manage public-facing website content and pricing
+
+**Features**:
+- **Update Front Page Content**:
+  - Edit website homepage content
+  - Update service descriptions
+  - Modify welcome messages
+  - Update contact information
+
+- **Edit Labels and Pricing**:
+  - Update lot type labels displayed to public
+  - Modify pricing information:
+    - Standard lot pricing
+    - Premium lot pricing
+    - Family lot pricing
+    - Mausoleum pricing
+  - Edit payment plan information
+  - Update service fees
+
+- **Content Management**:
+  - Edit text sections
+  - Update promotional content
+  - Manage public announcements
+  - Edit FAQ sections
+
+**Important Notes**:
+- ⚠️ Changes made here affect what the public sees on the website
+- 💡 Employee identity is displayed within the portal (after login)
+- 🔒 Employee identity is NOT shown on the login screen
+
 ### Additional Employee Portal Features
 
 - **Notification System**:
@@ -598,6 +643,66 @@ This document provides a comprehensive analysis of the existing Admin (Super Adm
 - **Search & Filter**: Comprehensive search across all data types
 
 - **Logout Function**: Secure session termination
+  - **Redirect Behavior**: When an employee logs out, they are redirected to the **Admin Login Page** (not the Employee Login Page)
+
+---
+
+## 🔐 Admin Approval Workflow 🆕
+
+**Critical Requirement**: All actions performed by employees require Admin approval to maintain system integrity and oversight.
+
+### Actions Requiring Admin Approval
+
+#### **✅ Requires Admin Approval (Mandatory)**
+
+1. **Creating or Editing Lots**:
+   - New lot entries (note: lots are created via map, but details may need approval)
+   - Changes to lot type, status, or pricing
+   - Lot owner assignment changes
+   - Status: Pending until admin reviews and approves
+
+2. **Burial Assignments**:
+   - Assigning deceased person to a lot
+   - Changes to burial information
+   - Burial record modifications
+   - Status: Pending until admin reviews and approves
+
+3. **Payment Updates**:
+   - Changes to payment status (Paid, Under Payment, Overdue)
+   - Payment record modifications
+   - Balance adjustments
+   - Status: Pending until admin reviews and approves
+
+#### **⚠️ Optional Admin Approval (Recommended)**
+
+4. **Adding New Clients**:
+   - Creating new client accounts
+   - Setting up client credentials
+   - Admin approval: Optional (can be configured based on workflow)
+
+5. **Creating Maps**:
+   - Drawing new lots on cemetery maps
+   - Map section modifications
+   - Admin approval: Optional (depends on organizational workflow)
+
+### Approval Workflow
+
+**Employee Action → Pending Status → Admin Review → Approved/Rejected**
+
+1. **Employee submits action**: Action is saved with "Pending" status
+2. **Admin receives notification**: Appears in Admin approval queue
+3. **Admin reviews**: Views details of requested change
+4. **Admin decision**:
+   - **Approve**: Action is executed, status changes to "Approved"
+   - **Reject**: Action is not executed, employee is notified
+
+### Benefits of Approval System
+
+- ✅ **Quality Control**: Admin oversight prevents errors
+- ✅ **Accountability**: All changes are tracked and audited
+- ✅ **Training Tool**: New employees can be monitored
+- ✅ **Security**: Prevents unauthorized or accidental changes
+- ✅ **Audit Trail**: Complete record of who requested and who approved
 
 ---
 

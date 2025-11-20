@@ -165,8 +165,10 @@ export function isAuthenticated(): boolean {
 
 /**
  * Logout user
+ * @param router - Next.js router instance
+ * @param redirectPath - Optional redirect path (defaults to '/admin/login')
  */
-export function logout(router?: any) {
+export function logout(router?: any, redirectPath: string = '/admin/login') {
   if (typeof window === 'undefined') return
   
   localStorage.removeItem('adminSession')
@@ -176,8 +178,8 @@ export function logout(router?: any) {
   localStorage.removeItem('currentUser')
   
   if (router) {
-    router.push('/admin/login')
+    router.push(redirectPath)
   } else if (typeof window !== 'undefined') {
-    window.location.href = '/admin/login'
+    window.location.href = redirectPath
   }
 }

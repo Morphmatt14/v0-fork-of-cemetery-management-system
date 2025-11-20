@@ -17,6 +17,7 @@ import ActivityMonitoringTab from './components/activity-monitoring-tab'
 import MessagingTab from './components/messaging-tab'
 import PasswordResetsTab from './components/password-resets-tab'
 import ActivityLogsTab from './components/activity-logs-tab'
+import { ApprovalsManagement } from './components/approvals-management'
 
 const LogOut = () => (
   <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -113,8 +114,9 @@ export default function SuperAdminDashboard() {
         )}
 
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="approvals">Approvals</TabsTrigger>
             <TabsTrigger value="admins">Employee Management</TabsTrigger>
             <TabsTrigger value="monitoring">Activity Monitoring</TabsTrigger>
             <TabsTrigger value="messaging">Messaging</TabsTrigger>
@@ -123,6 +125,10 @@ export default function SuperAdminDashboard() {
           </TabsList>
 
           {activeTab === 'overview' && <OverviewTab />}
+
+          {activeTab === 'approvals' && (
+            <ApprovalsManagement adminId={JSON.parse(localStorage.getItem('currentUser') || '{}').id || 'admin-mock'} />
+          )}
 
           {activeTab === 'admins' && (
             <AdminManagementTab 

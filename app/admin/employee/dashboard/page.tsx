@@ -31,6 +31,17 @@ import {
 } from "@/components/ui/alert-dialog"
 import { toast } from "@/hooks/use-toast"
 import { mapStore } from "@/lib/map-store"
+import { 
+  submitPendingAction, 
+  checkApprovalRequired,
+  listMyPendingActions,
+  formatActionType,
+  formatApprovalStatus,
+  getStatusColor,
+  getTimeElapsed 
+} from "@/lib/api/approvals-api"
+import { fetchDashboardData, createClient as createClientInDB, checkClientEmailExists, updatePayment } from "@/lib/api/dashboard-api"
+import { FrontPageTab } from "./components/front-page-tab"
 const MapPin = () => (
   <svg className="h-8 w-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path
@@ -613,7 +624,7 @@ const defaultDashboardData = {
       emergencyContact: "Juan Santos Jr.",
       emergencyPhone: "09111222333",
       notes: "Preferred contact via phone. Widow of Juan Santos.",
-      paymentHistory: [{ date: "2023-06-20", amount: 75000, type: "Full Payment", status: "Completed" }],
+      paymentHistory: [{ date: "2023-06-20", amount: 75000, type: "Full Payment", status: "Paid" }],
     },
     {
       id: 2,
@@ -628,7 +639,7 @@ const defaultDashboardData = {
       emergencyContact: "Elena Mendez",
       emergencyPhone: "09444555666",
       notes: "Prefers email communication. On installment plan.",
-      paymentHistory: [{ date: "2024-01-10", amount: 75000, type: "Down Payment", status: "Completed" }],
+      paymentHistory: [{ date: "2024-01-10", amount: 75000, type: "Down Payment", status: "Paid" }],
     },
     {
       id: 3,
@@ -644,8 +655,8 @@ const defaultDashboardData = {
       emergencyPhone: "09777888999",
       notes: "Regular client. Prefers monthly installments.",
       paymentHistory: [
-        { date: "2023-12-15", amount: 100000, type: "Down Payment", status: "Completed" },
-        { date: "2024-01-15", amount: 85000, type: "Installment", status: "Completed" },
+        { date: "2023-12-15", amount: 100000, type: "Down Payment", status: "Paid" },
+        { date: "2024-01-15", amount: 85000, type: "Installment", status: "Paid" },
       ],
     },
     {
@@ -661,7 +672,7 @@ const defaultDashboardData = {
       emergencyContact: "Carmen Cruz",
       emergencyPhone: "09777666555",
       notes: "Businessman. Prefers bank transfers.",
-      paymentHistory: [{ date: "2023-11-05", amount: 55000, type: "Down Payment", status: "Completed" }],
+      paymentHistory: [{ date: "2023-11-05", amount: 55000, type: "Down Payment", status: "Paid" }],
     },
     {
       id: 5,
@@ -676,7 +687,7 @@ const defaultDashboardData = {
       emergencyContact: "Pedro Fernandez",
       emergencyPhone: "09555444333",
       notes: "Account suspended due to non-payment.",
-      paymentHistory: [{ date: "2023-08-12", amount: 50000, type: "Partial Payment", status: "Pending" }],
+      paymentHistory: [{ date: "2023-08-12", amount: 50000, type: "Partial Payment", status: "Overdue" }],
     },
   ],
   payments: [
@@ -686,7 +697,7 @@ const defaultDashboardData = {
       date: "2023-06-20",
       amount: 75000,
       type: "Full Payment",
-      status: "Completed",
+      status: "Paid",
       method: "Bank Transfer",
       reference: "BT-20230620-001",
       lot: "A-002",
@@ -697,7 +708,7 @@ const defaultDashboardData = {
       date: "2024-01-10",
       amount: 75000,
       type: "Down Payment",
-      status: "Completed",
+      status: "Paid",
       method: "Credit Card",
       reference: "CC-20240110-002",
       lot: "B-001",
@@ -708,7 +719,7 @@ const defaultDashboardData = {
       date: "2023-12-15",
       amount: 100000,
       type: "Down Payment",
-      status: "Completed",
+      status: "Paid",
       method: "Cash",
       reference: "CA-20231215-003",
       lot: "C-003",
@@ -719,7 +730,7 @@ const defaultDashboardData = {
       date: "2024-01-15",
       amount: 85000,
       type: "Installment",
-      status: "Completed",
+      status: "Paid",
       method: "Bank Transfer",
       reference: "BT-20240115-004",
       lot: "C-003",
@@ -730,7 +741,7 @@ const defaultDashboardData = {
       date: "2024-02-10",
       amount: 15000,
       type: "Installment",
-      status: "Pending",
+      status: "Under Payment",
       method: "Online Banking",
       reference: "OB-20240210-005",
       lot: "B-001",
@@ -741,7 +752,7 @@ const defaultDashboardData = {
       date: "2023-11-05",
       amount: 55000,
       type: "Down Payment",
-      status: "Completed",
+      status: "Paid",
       method: "Bank Transfer",
       reference: "BT-20231105-006",
       lot: "D-001",
@@ -752,7 +763,7 @@ const defaultDashboardData = {
       date: "2023-08-12",
       amount: 50000,
       type: "Partial Payment",
-      status: "Pending",
+      status: "Overdue",
       method: "Cash",
       reference: "CA-20230812-007",
       lot: "E-001",
@@ -890,6 +901,9 @@ export default function EmployeeDashboard() {
     emergencyContact: "",
     emergencyPhone: "",
     notes: "",
+    username: "",
+    password: "",
+    confirmPassword: "",
   })
   const [replyFormData, setReplyFormData] = useState({
     subject: "",
@@ -909,6 +923,54 @@ export default function EmployeeDashboard() {
   const [selectedClient, setSelectedClient] = useState<any>(null)
   const [selectedInquiry, setSelectedInquiry] = useState<any>(null)
   const [selectedBurial, setSelectedBurial] = useState<any>(null)
+  const [selectedPayment, setSelectedPayment] = useState<any>(null)
+  const [isUpdatePaymentStatusOpen, setIsUpdatePaymentStatusOpen] = useState(false)
+  const [newPaymentStatus, setNewPaymentStatus] = useState<string>("")
+
+  // Approval Workflow States
+  const [pendingActions, setPendingActions] = useState<any[]>([])
+  const [isLoadingPendingActions, setIsLoadingPendingActions] = useState(false)
+  const [showPendingActions, setShowPendingActions] = useState(false)
+  
+  // Get real employee ID from authenticated user
+  const getCurrentEmployeeId = () => {
+    if (typeof window === 'undefined') return null;
+    
+    const currentUser = localStorage.getItem('currentUser');
+    if (currentUser) {
+      try {
+        const user = JSON.parse(currentUser);
+        return user.id; // This is the real UUID from the database
+      } catch (e) {
+        console.error('Error parsing currentUser:', e);
+      }
+    }
+    return null;
+  };
+  
+  const currentEmployeeId = getCurrentEmployeeId()
+
+  // Load pending actions for current employee
+  const loadPendingActions = async () => {
+    if (!currentEmployeeId) return;
+    
+    setIsLoadingPendingActions(true);
+    try {
+      const response = await listMyPendingActions(currentEmployeeId, {
+        status: ['pending', 'approved', 'rejected']
+      });
+      
+      if (response.success) {
+        setPendingActions(response.data);
+      } else {
+        console.error('Failed to load pending actions:', response.error);
+      }
+    } catch (error) {
+      console.error('Error loading pending actions:', error);
+    } finally {
+      setIsLoadingPendingActions(false);
+    }
+  };
 
   // Load messages from store
   const loadMessages = async () => {
@@ -952,31 +1014,86 @@ export default function EmployeeDashboard() {
     console.log("[v0] Employee authenticated, continuing to dashboard")
   }, [router])
 
-  // Initialize dashboard data from localStorage only on client side
+  // Load pending actions when component mounts
   useEffect(() => {
-    setIsMounted(true)
-    
-    // Load initial data from localStorage
-    const loadedData = loadFromLocalStorage()
-    if (loadedData) {
-      setDashboardData(loadedData)
-      setInquiries(loadedData?.pendingInquiries || [])
-      setLots(loadedData?.lots || [])
-      setClients(loadedData?.clients || [])
-      setPayments(loadedData?.payments || [])
-      setBurials(loadedData?.burials || [])
-    } else {
-      // Use default data if nothing is found in localStorage
-      setDashboardData(defaultDashboardData)
-      setInquiries(defaultDashboardData.pendingInquiries || [])
-      setLots(defaultDashboardData.lots || [])
-      setClients(defaultDashboardData.clients || [])
-      setPayments(defaultDashboardData.payments || [])
-      setBurials(defaultDashboardData.burials || [])
-      saveToLocalStorage(defaultDashboardData) // Save default data for future use
+    loadPendingActions();
+  }, []);
+
+  // Initialize dashboard data from Supabase
+  useEffect(() => {
+    async function loadDashboardFromSupabase() {
+      setIsMounted(true)
+      setIsLoading(true)
+      
+      try {
+        console.log('[Dashboard] Fetching data from Supabase...')
+        const response = await fetchDashboardData()
+        
+        if (response.success && response.data) {
+          console.log('[Dashboard] Data loaded successfully:', response.data)
+          setDashboardData(response.data)
+          setInquiries(response.data.pendingInquiries || [])
+          setLots(response.data.lots || [])
+          setClients(response.data.clients || [])
+          setPayments(response.data.payments || [])
+          setBurials(response.data.burials || [])
+        } else {
+          console.error('[Dashboard] Error loading data:', response.error)
+          // Set empty arrays if loading fails
+          setDashboardData({ 
+            lots: [], 
+            clients: [], 
+            payments: [], 
+            burials: [], 
+            pendingInquiries: [],
+            recentBurials: [],
+            stats: {
+              totalLots: 0,
+              occupiedLots: 0,
+              availableLots: 0,
+              totalClients: 0,
+              monthlyRevenue: 0,
+              pendingInquiries: 0,
+              overduePayments: 0
+            }
+          })
+          setInquiries([])
+          setLots([])
+          setClients([])
+          setPayments([])
+          setBurials([])
+        }
+      } catch (error) {
+        console.error('[Dashboard] Unexpected error loading data:', error)
+        // Set empty arrays on error
+        setDashboardData({ 
+          lots: [], 
+          clients: [], 
+          payments: [], 
+          burials: [], 
+          pendingInquiries: [],
+          recentBurials: [],
+          stats: {
+            totalLots: 0,
+            occupiedLots: 0,
+            availableLots: 0,
+            totalClients: 0,
+            monthlyRevenue: 0,
+            pendingInquiries: 0,
+            overduePayments: 0
+          }
+        })
+        setInquiries([])
+        setLots([])
+        setClients([])
+        setPayments([])
+        setBurials([])
+      } finally {
+        setIsLoading(false)
+      }
     }
     
-    setIsLoading(false)
+    loadDashboardFromSupabase()
   }, []) // Empty dependency array - runs only once on mount
 
   useEffect(() => {
@@ -1084,7 +1201,7 @@ export default function EmployeeDashboard() {
   }
 
   const handleEditLot = () => {
-    const lotIndex = dashboardData.lots.findIndex((lot) => lot.id === selectedLot?.id)
+    const lotIndex = dashboardData.lots.findIndex((lot: any) => lot.id === selectedLot?.id)
     if (lotIndex !== -1) {
       const oldStatus = dashboardData.lots[lotIndex].status
       const newStatus = lotFormData.status
@@ -1129,7 +1246,7 @@ export default function EmployeeDashboard() {
   }
 
   const handleDeleteLot = (lot: any) => {
-    const lotIndex = dashboardData.lots.findIndex((l) => l.id === lot.id)
+    const lotIndex = dashboardData.lots.findIndex((l: any) => l.id === lot.id)
     if (lotIndex !== -1) {
       const deletedLot = dashboardData.lots[lotIndex]
       const updatedData = { ...dashboardData }
@@ -1159,48 +1276,175 @@ export default function EmployeeDashboard() {
     })
   }
 
-  const handleAddClient = () => {
-    const newClient = {
-      id: dashboardData.clients.length + 1,
-      name: clientFormData.name,
-      email: clientFormData.email,
-      phone: clientFormData.phone,
-      address: clientFormData.address,
-      lots: [],
-      balance: 0,
-      status: "Active",
-      joinDate: new Date().toISOString().split("T")[0],
-      emergencyContact: clientFormData.emergencyContact,
-      emergencyPhone: clientFormData.emergencyPhone,
-      notes: clientFormData.notes,
-      paymentHistory: [],
+  const handleAddClient = async () => {
+    // Validate required fields
+    if (!clientFormData.email || !clientFormData.password || !clientFormData.confirmPassword) {
+      toast({
+        title: "Missing Required Fields",
+        description: "Email and password are required to create a client account.",
+        variant: "destructive",
+      })
+      return
     }
 
-    const updatedData = { ...dashboardData }
-    updatedData.clients.push(newClient)
-    updatedData.stats.totalClients += 1
-    setDashboardData(updatedData)
-    saveToLocalStorage(updatedData)
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(clientFormData.email)) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address.",
+        variant: "destructive",
+      })
+      return
+    }
 
-    toast({
-      title: "Client Added Successfully",
-      description: `${clientFormData.name} has been added to the system.`,
-    })
-    setIsAddClientOpen(false)
-    setClientFormData({
-      name: "",
-      email: "",
-      phone: "",
-      address: "",
-      emergencyContact: "",
-      emergencyPhone: "",
-      notes: "",
-    })
+    // Check if email already exists
+    const emailCheck = await checkClientEmailExists(clientFormData.email)
+    if (emailCheck.exists) {
+      toast({
+        title: "Email Already Exists",
+        description: "A client with this email address already exists. Please use a different email.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Validate password match
+    if (clientFormData.password !== clientFormData.confirmPassword) {
+      toast({
+        title: "Password Mismatch",
+        description: "Password and confirm password do not match.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Validate password strength (minimum 6 characters)
+    if (clientFormData.password.length < 6) {
+      toast({
+        title: "Weak Password",
+        description: "Password must be at least 6 characters long.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      // Prepare client data for database (only use fields that exist in schema)
+      // Note: clients table uses email for login, not username
+      const clientData: any = {
+        name: clientFormData.name,
+        email: clientFormData.email,
+        phone: clientFormData.phone,
+        address: clientFormData.address,
+        status: "active", // Lowercase required by DB constraint
+        password_hash: clientFormData.password, // Will be hashed in API
+        balance: 0,
+      }
+
+      // Add optional fields only if they have values (match database schema)
+      if (clientFormData.emergencyContact) {
+        clientData.emergency_contact_name = clientFormData.emergencyContact
+      }
+      if (clientFormData.emergencyPhone) {
+        clientData.emergency_contact_phone = clientFormData.emergencyPhone
+      }
+      if (clientFormData.notes) {
+        clientData.notes = clientFormData.notes
+      }
+
+      // Check if approval is required for client creation
+      const approvalCheck = await checkApprovalRequired('client_create')
+      
+      if (approvalCheck.required) {
+        // Submit for approval workflow
+        const approvalRequest = {
+          action_type: 'client_create' as const,
+          target_entity: 'client' as const,
+          change_data: clientData,
+          notes: `Create new client account for ${clientFormData.name}`,
+          priority: 'normal' as const
+        }
+
+        const response = await submitPendingAction(approvalRequest, currentEmployeeId!)
+
+        if (response.success) {
+          toast({
+            title: "Submitted for Approval ⏳",
+            description: `Client account for ${clientFormData.name} has been submitted for admin approval.`,
+          })
+          
+          // Refresh pending actions
+          loadPendingActions()
+        } else {
+          toast({
+            title: "Submission Failed",
+            description: response.error || "Failed to submit client creation for approval.",
+            variant: "destructive",
+          })
+        }
+      } else {
+        // Create directly if approval not required
+        const response = await createClientInDB(clientData)
+
+        if (response.success && response.data) {
+          // Update local state with new client
+          const updatedClients = [...clients, response.data]
+          setClients(updatedClients)
+          
+          // Update dashboardData
+          const updatedDashboardData = {
+            ...dashboardData,
+            clients: updatedClients,
+            stats: {
+              ...dashboardData.stats,
+              totalClients: updatedClients.length
+            }
+          }
+          setDashboardData(updatedDashboardData)
+
+          toast({
+            title: "Client Account Created ✅",
+            description: `${clientFormData.name} has been added. They can log in to the Client Portal using their email: ${clientFormData.email}`,
+          })
+        } else {
+          toast({
+            title: "Creation Failed",
+            description: response.error || "Failed to create client account.",
+            variant: "destructive",
+          })
+          return
+        }
+      }
+
+      // Close dialog and reset form
+      setIsAddClientOpen(false)
+      setClientFormData({
+        name: "",
+        email: "",
+        phone: "",
+        address: "",
+        emergencyContact: "",
+        emergencyPhone: "",
+        notes: "",
+        username: "",
+        password: "",
+        confirmPassword: "",
+      })
+
+    } catch (error) {
+      console.error('[handleAddClient] Error:', error)
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while creating the client account.",
+        variant: "destructive",
+      })
+    }
   }
 
   const handleUpdateClient = (e?: React.FormEvent) => {
     if (e) e.preventDefault()
-    const clientIndex = dashboardData.clients.findIndex((client) => client.id === selectedClient?.id)
+    const clientIndex = dashboardData.clients.findIndex((client: any) => client.id === selectedClient?.id)
     if (clientIndex !== -1) {
       const updatedData = { ...dashboardData }
       updatedData.clients[clientIndex] = {
@@ -1236,7 +1480,7 @@ export default function EmployeeDashboard() {
   }
 
   const handleReplyInquiry = () => {
-    const inquiryIndex = inquiries.findIndex((inquiry) => inquiry.id === selectedInquiry?.id)
+    const inquiryIndex = inquiries.findIndex((inquiry: any) => inquiry.id === selectedInquiry?.id)
     if (inquiryIndex !== -1) {
       const newResponse = {
         id: (inquiries[inquiryIndex].responses?.length || 0) + 1,
@@ -1262,7 +1506,7 @@ export default function EmployeeDashboard() {
       updatedInquiries[inquiryIndex] = updatedInquiry
 
       // Update global data
-      const globalInquiryIndex = dashboardData.pendingInquiries.findIndex((inq) => inq.id === selectedInquiry?.id)
+      const globalInquiryIndex = dashboardData.pendingInquiries.findIndex((inq: any) => inq.id === selectedInquiry?.id)
       const updatedGlobalData = { ...dashboardData }
       if (globalInquiryIndex !== -1) {
         updatedGlobalData.pendingInquiries[globalInquiryIndex] = updatedInquiry
@@ -1288,7 +1532,7 @@ export default function EmployeeDashboard() {
   }
 
   const handleMarkResolved = (inquiry: any) => {
-    const inquiryIndex = inquiries.findIndex((inq) => inq.id === inquiry.id)
+    const inquiryIndex = inquiries.findIndex((inq: any) => inq.id === inquiry.id)
     if (inquiryIndex !== -1) {
       const updatedInquiry = {
         ...inquiries[inquiryIndex],
@@ -1302,7 +1546,7 @@ export default function EmployeeDashboard() {
       updatedInquiries[inquiryIndex] = updatedInquiry
 
       // Update global data
-      const globalInquiryIndex = dashboardData.pendingInquiries.findIndex((inq) => inq.id === inquiry.id)
+      const globalInquiryIndex = dashboardData.pendingInquiries.findIndex((inq: any) => inq.id === inquiry.id)
       const updatedGlobalData = { ...dashboardData }
       if (globalInquiryIndex !== -1) {
         updatedGlobalData.pendingInquiries[globalInquiryIndex] = updatedInquiry
@@ -1320,7 +1564,7 @@ export default function EmployeeDashboard() {
   }
 
   const handleReopenInquiry = (inquiry: any) => {
-    const inquiryIndex = inquiries.findIndex((inq) => inq.id === inquiry.id)
+    const inquiryIndex = inquiries.findIndex((inq: any) => inq.id === inquiry.id)
     if (inquiryIndex !== -1) {
       const updatedInquiry = {
         ...inquiries[inquiryIndex],
@@ -1334,7 +1578,7 @@ export default function EmployeeDashboard() {
       updatedInquiries[inquiryIndex] = updatedInquiry
 
       // Update global data
-      const globalInquiryIndex = dashboardData.pendingInquiries.findIndex((inq) => inq.id === inquiry.id)
+      const globalInquiryIndex = dashboardData.pendingInquiries.findIndex((inq: any) => inq.id === inquiry.id)
       const updatedGlobalData = { ...dashboardData }
       if (globalInquiryIndex !== -1) {
         updatedGlobalData.pendingInquiries[globalInquiryIndex] = updatedInquiry
@@ -1352,7 +1596,7 @@ export default function EmployeeDashboard() {
   }
 
   const handleAssignInquiry = (inquiry: any, assignee: string) => {
-    const inquiryIndex = inquiries.findIndex((inq) => inq.id === inquiry.id)
+    const inquiryIndex = inquiries.findIndex((inq: any) => inq.id === inquiry.id)
     if (inquiryIndex !== -1) {
       const updatedInquiry = {
         ...inquiries[inquiryIndex],
@@ -1363,7 +1607,7 @@ export default function EmployeeDashboard() {
       updatedInquiries[inquiryIndex] = updatedInquiry
 
       // Update global data
-      const globalInquiryIndex = dashboardData.pendingInquiries.findIndex((inq) => inq.id === inquiry.id)
+      const globalInquiryIndex = dashboardData.pendingInquiries.findIndex((inq: any) => inq.id === inquiry.id)
       const updatedGlobalData = { ...dashboardData }
       if (globalInquiryIndex !== -1) {
         updatedGlobalData.pendingInquiries[globalInquiryIndex] = updatedInquiry
@@ -1381,7 +1625,7 @@ export default function EmployeeDashboard() {
   }
 
   const handleUpdatePriority = (inquiry: any, priority: string) => {
-    const inquiryIndex = inquiries.findIndex((inq) => inq.id === inquiry.id)
+    const inquiryIndex = inquiries.findIndex((inq: any) => inq.id === inquiry.id)
     if (inquiryIndex !== -1) {
       const updatedInquiry = {
         ...inquiries[inquiryIndex],
@@ -1392,7 +1636,7 @@ export default function EmployeeDashboard() {
       updatedInquiries[inquiryIndex] = updatedInquiry
 
       // Update global data
-      const globalInquiryIndex = dashboardData.pendingInquiries.findIndex((inq) => inq.id === inquiry.id)
+      const globalInquiryIndex = dashboardData.pendingInquiries.findIndex((inq: any) => inq.id === inquiry.id)
       const updatedGlobalData = { ...dashboardData }
       if (globalInquiryIndex !== -1) {
         updatedGlobalData.pendingInquiries[globalInquiryIndex] = updatedInquiry
@@ -1439,7 +1683,7 @@ export default function EmployeeDashboard() {
         // mapStore.linkLotToOwner(map.id, lotId, ownerName, ownerEmail, ownerId)
 
         // Update global lots system
-        const lotIndex = updatedData.lots.findIndex((l) => l.id === lotId)
+        const lotIndex = updatedData.lots.findIndex((l: any) => l.id === lotId)
         if (lotIndex !== -1) {
           updatedData.lots[lotIndex].owner = ownerName
           updatedData.lots[lotIndex].status = "Reserved" // Or "Occupied" depending on business logic
@@ -1532,8 +1776,9 @@ export default function EmployeeDashboard() {
           period: reportPeriod === "monthly" ? "Monthly" : reportPeriod === "quarterly" ? "Quarterly" : "Annual",
           summary: {
             totalRevenue: formatCurrency(dashboardData.payments.reduce((sum, payment) => sum + (payment.amount || 0), 0)),
-            completedPayments: dashboardData.payments.filter((payment) => payment.status === "Completed").length,
-            pendingPayments: dashboardData.payments.filter((payment) => payment.status === "Pending").length,
+            paidPayments: dashboardData.payments.filter((payment) => payment.status === "Paid").length,
+            underPaymentPayments: dashboardData.payments.filter((payment) => payment.status === "Under Payment").length,
+            overduePayments: dashboardData.payments.filter((payment) => payment.status === "Overdue").length,
             averagePayment: formatCurrency(
               dashboardData.payments.reduce((sum, payment) => sum + (payment.amount || 0), 0) / dashboardData.payments.length || 0
             ),
@@ -1590,7 +1835,7 @@ export default function EmployeeDashboard() {
             email: client.email,
             phone: client.phone,
             address: client.address,
-            lots: client.lots.join(", "),
+            lots: (client.lots || []).join(", "),
             balance: formatCurrency(client.balance),
             status: client.status,
             joinDate: client.joinDate,
@@ -1628,8 +1873,9 @@ export default function EmployeeDashboard() {
           period: reportPeriod === "monthly" ? "Monthly" : reportPeriod === "quarterly" ? "Quarterly" : "Annual",
           summary: {
             totalPayments: dashboardData.payments.length,
-            completedPayments: dashboardData.payments.filter((payment) => payment.status === "Completed").length,
-            pendingPayments: dashboardData.payments.filter((payment) => payment.status === "Pending").length,
+            paidPayments: dashboardData.payments.filter((payment) => payment.status === "Paid").length,
+            underPaymentPayments: dashboardData.payments.filter((payment) => payment.status === "Under Payment").length,
+            overduePayments: dashboardData.payments.filter((payment) => payment.status === "Overdue").length,
             totalAmount: formatCurrency(dashboardData.payments.reduce((sum, payment) => sum + (payment.amount || 0), 0)),
           },
           data: dashboardData.payments.map((payment) => ({
@@ -2258,7 +2504,7 @@ export default function EmployeeDashboard() {
   }
 
   const handleLogout = () => {
-    logout(router);
+    logout(router, '/admin/employee/login'); // Redirect to Employee Login Page
   };
 
   const handleTabChange = (value: string) => {
@@ -2267,7 +2513,7 @@ export default function EmployeeDashboard() {
 
   const handleUpdatePayment = (clientName: string, newBalance: number) => {
     // Find the client and update their balance
-    const clientIndex = dashboardData.clients.findIndex((client) => client.name === clientName);
+    const clientIndex = dashboardData.clients.findIndex((client: any) => client.name === clientName);
     const updatedData = { ...dashboardData };
     if (clientIndex !== -1) {
       updatedData.clients[clientIndex].balance = newBalance;
@@ -2283,6 +2529,128 @@ export default function EmployeeDashboard() {
       title: "Payment Status Updated",
       description: `The balance for ${clientName} has been updated to ₱${formatCurrency(newBalance)}.`,
     });
+  };
+
+  // Handler to update payment status (with approval workflow)
+  const handleUpdatePaymentStatus = async () => {
+    if (!selectedPayment || !newPaymentStatus) {
+      toast({
+        title: "Error",
+        description: "Please select a payment status.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Skip approval if status is the same
+    if (selectedPayment.status === newPaymentStatus) {
+      toast({
+        title: "No Changes",
+        description: "The payment status is already set to this value.",
+        variant: "default",
+      });
+      return;
+    }
+
+    try {
+      // Check if approval is required for payment updates
+      const approvalCheck = await checkApprovalRequired('payment_update');
+      
+      if (approvalCheck.required) {
+        // Submit for approval workflow
+        const approvalRequest = {
+          action_type: 'payment_update' as const,
+          target_entity: 'payment' as const,
+          target_id: selectedPayment.id,
+          change_data: {
+            status: newPaymentStatus
+          },
+          previous_data: {
+            status: selectedPayment.status
+          },
+          notes: `Update payment status from ${selectedPayment.status} to ${newPaymentStatus}`,
+          related_client_id: selectedPayment.client_id,
+          related_payment_id: selectedPayment.id,
+          priority: 'normal' as const
+        };
+
+        const response = await submitPendingAction(approvalRequest, currentEmployeeId);
+
+        if (response.success) {
+          toast({
+            title: "Submitted for Approval ⏳",
+            description: `Payment status change for ${selectedPayment.client} has been submitted for admin approval.`,
+          });
+          
+          // Refresh pending actions
+          loadPendingActions();
+        } else {
+          toast({
+            title: "Submission Failed",
+            description: response.error || "Failed to submit payment update for approval.",
+            variant: "destructive",
+          });
+        }
+      } else {
+        // Execute directly if approval not required
+        executePaymentStatusUpdate();
+      }
+
+      // Close dialog and reset
+      setIsUpdatePaymentStatusOpen(false);
+      setSelectedPayment(null);
+      setNewPaymentStatus("");
+
+    } catch (error) {
+      console.error('Payment update error:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while processing the payment update.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Direct execution function (for when approval not required)
+  const executePaymentStatusUpdate = async () => {
+    try {
+      const response = await updatePayment(selectedPayment.id, {
+        status: newPaymentStatus
+      });
+
+      if (response.success && response.data) {
+        // Update local state with new payment data
+        const updatedPayments = payments.map((p: any) => 
+          p.id === selectedPayment.id ? { ...p, status: newPaymentStatus } : p
+        );
+        setPayments(updatedPayments);
+
+        // Update dashboardData
+        const updatedDashboardData = {
+          ...dashboardData,
+          payments: updatedPayments
+        };
+        setDashboardData(updatedDashboardData);
+
+        toast({
+          title: "Payment Status Updated ✅",
+          description: `Payment status has been updated to ${newPaymentStatus}.`,
+        });
+      } else {
+        toast({
+          title: "Update Failed",
+          description: response.error || "Failed to update payment status.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error updating payment:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while updating the payment.",
+        variant: "destructive",
+      });
+    }
   };
 
 
@@ -2336,7 +2704,7 @@ export default function EmployeeDashboard() {
         </div>
 
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4 sm:space-y-6">
-          <TabsList className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-9 w-full text-xs sm:text-sm overflow-x-auto">
+          <TabsList className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-11 w-full text-xs sm:text-sm overflow-x-auto">
             <TabsTrigger value="overview" className="px-2 sm:px-4">
               Overview
             </TabsTrigger>
@@ -2352,6 +2720,14 @@ export default function EmployeeDashboard() {
             <TabsTrigger value="payments" className="px-2 sm:px-4">
               Payments
             </TabsTrigger>
+            <TabsTrigger value="approvals" className="px-2 sm:px-4 relative">
+              Approvals
+              {pendingActions.filter(a => a.status === 'pending').length > 0 && (
+                <Badge className="ml-1 bg-orange-500 text-white text-xs px-1 py-0 h-4 min-w-4">
+                  {pendingActions.filter(a => a.status === 'pending').length}
+                </Badge>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="maps" className="px-2 sm:px-4">
               Maps
             </TabsTrigger>
@@ -2363,6 +2739,9 @@ export default function EmployeeDashboard() {
             </TabsTrigger>
             <TabsTrigger value="reports" className="px-2 sm:px-4">
               Reports
+            </TabsTrigger>
+            <TabsTrigger value="frontpage" className="px-2 sm:px-4">
+              Front Page
             </TabsTrigger>
           </TabsList>
 
@@ -2680,9 +3059,60 @@ export default function EmployeeDashboard() {
                 <DialogContent className="max-w-2xl">
                   <DialogHeader>
                     <DialogTitle>Add New Client</DialogTitle>
-                    <DialogDescription>Register a new client in the system.</DialogDescription>
+                    <DialogDescription>
+                      Register a new client and create their portal account.
+                    </DialogDescription>
                   </DialogHeader>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Account Credentials Section */}
+                    <div className="col-span-1 sm:col-span-2">
+                      <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                        </svg>
+                        Client Portal Login Credentials
+                      </h3>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="client-username">Username <span className="text-red-500">*</span></Label>
+                      <Input
+                        id="client-username"
+                        placeholder="juandc"
+                        value={clientFormData.username}
+                        onChange={(e) => setClientFormData({ ...clientFormData, username: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="client-password">Password <span className="text-red-500">*</span></Label>
+                      <Input
+                        id="client-password"
+                        type="password"
+                        placeholder="••••••••"
+                        value={clientFormData.password}
+                        onChange={(e) => setClientFormData({ ...clientFormData, password: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="col-span-1 sm:col-span-2 space-y-2">
+                      <Label htmlFor="client-confirm-password">Confirm Password <span className="text-red-500">*</span></Label>
+                      <Input
+                        id="client-confirm-password"
+                        type="password"
+                        placeholder="••••••••"
+                        value={clientFormData.confirmPassword}
+                        onChange={(e) => setClientFormData({ ...clientFormData, confirmPassword: e.target.value })}
+                        required
+                      />
+                      {clientFormData.password && clientFormData.confirmPassword && clientFormData.password !== clientFormData.confirmPassword && (
+                        <p className="text-xs text-red-500">Passwords do not match</p>
+                      )}
+                    </div>
+                    
+                    {/* Personal Information Section */}
+                    <div className="col-span-1 sm:col-span-2 mt-4">
+                      <h3 className="text-sm font-semibold text-gray-700 mb-3">Personal Information</h3>
+                    </div>
                     <div className="space-y-2">
                       <Label htmlFor="client-name">Full Name</Label>
                       <Input
@@ -2752,8 +3182,18 @@ export default function EmployeeDashboard() {
                     <Button variant="outline" onClick={() => setIsAddClientOpen(false)}>
                       Cancel
                     </Button>
-                    <Button onClick={handleAddClient} className="bg-green-600 hover:bg-green-700">
-                      Add Client
+                    <Button 
+                      onClick={handleAddClient} 
+                      className="bg-green-600 hover:bg-green-700"
+                      disabled={
+                        !clientFormData.username || 
+                        !clientFormData.password || 
+                        !clientFormData.confirmPassword ||
+                        clientFormData.password !== clientFormData.confirmPassword ||
+                        clientFormData.password.length < 6
+                      }
+                    >
+                      Create Client Account
                     </Button>
                   </div>
                 </DialogContent>
@@ -2800,7 +3240,7 @@ export default function EmployeeDashboard() {
                           <p className="text-sm text-gray-600">{client.email}</p>
                           <p className="text-sm text-gray-600">{client.phone}</p>
                           <p className="text-xs text-gray-500">
-                            Lots: {client.lots.join(", ")} • Balance: ₱{formatCurrency(client.balance)}
+                            Lots: {(client.lots || []).join(", ") || 'None'} • Balance: ₱{formatCurrency(client.balance)}
                           </p>
                         </div>
                       </div>
@@ -3142,8 +3582,12 @@ export default function EmployeeDashboard() {
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <Badge variant={payment.status === "Completed" ? "default" : "secondary"}>
-                              {payment.status === "Completed" ? "On Payment" : "Overdue"}
+                            <Badge variant={
+                              payment.status === "Paid" ? "default" : 
+                              payment.status === "Under Payment" ? "secondary" : 
+                              "destructive"
+                            }>
+                              {payment.status}
                             </Badge>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right">
@@ -3151,21 +3595,11 @@ export default function EmployeeDashboard() {
                               variant="outline"
                               size="sm"
                               onClick={() => {
-                                const newBalanceInput = prompt("Enter new balance amount:")
-                                if (newBalanceInput !== null) {
-                                  const newBalance = Number.parseFloat(newBalanceInput)
-                                  if (!isNaN(newBalance) && newBalance >= 0) {
-                                    handleUpdatePayment(payment.client, newBalance)
-                                  } else {
-                                    toast({
-                                      title: "Invalid Input",
-                                      description: "Please enter a valid non-negative number for the balance.",
-                                      variant: "destructive"
-                                    })
-                                  }
-                                }
+                                setSelectedPayment(payment)
+                                setNewPaymentStatus(payment.status)
+                                setIsUpdatePaymentStatusOpen(true)
                               }}
-                              title="Update payment status or balance"
+                              title="Update payment status"
                             >
                               Update Status
                             </Button>
@@ -3174,6 +3608,171 @@ export default function EmployeeDashboard() {
                       ))}
                     </tbody>
                   </table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="approvals" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <div>
+                    <CardTitle>My Pending Actions</CardTitle>
+                    <CardDescription>
+                      Track your submitted requests awaiting admin approval
+                    </CardDescription>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={loadPendingActions}
+                      disabled={isLoadingPendingActions}
+                    >
+                      {isLoadingPendingActions ? "Loading..." : "Refresh"}
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {isLoadingPendingActions ? (
+                  <div className="flex justify-center items-center py-8">
+                    <div className="text-sm text-gray-500">Loading pending actions...</div>
+                  </div>
+                ) : pendingActions.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="text-gray-500 mb-2">No pending actions</div>
+                    <div className="text-sm text-gray-400">
+                      Your requests will appear here when they require admin approval
+                    </div>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Action
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Target
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Status
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Submitted
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Notes
+                          </th>
+                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {pendingActions.map((action) => (
+                          <tr key={action.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <div>
+                                  <div className="text-sm font-medium text-gray-900">
+                                    {formatActionType(action.action_type)}
+                                  </div>
+                                  <div className="text-sm text-gray-500">
+                                    {action.target_entity}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm text-gray-900">
+                                {action.target_id ? `ID: ${action.target_id.slice(0, 8)}...` : 'New Record'}
+                              </div>
+                              {action.change_data?.status && (
+                                <div className="text-sm text-gray-500">
+                                  → {action.change_data.status}
+                                </div>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <Badge 
+                                variant={
+                                  action.status === 'pending' ? 'secondary' :
+                                  action.status === 'approved' ? 'default' :
+                                  action.status === 'rejected' ? 'destructive' :
+                                  'outline'
+                                }
+                                className={
+                                  action.status === 'pending' ? 'bg-orange-100 text-orange-800' : ''
+                                }
+                              >
+                                {formatApprovalStatus(action.status)}
+                              </Badge>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {getTimeElapsed(action.created_at)}
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="text-sm text-gray-900 max-w-xs truncate">
+                                {action.notes || '-'}
+                              </div>
+                              {action.rejection_reason && (
+                                <div className="text-sm text-red-600 max-w-xs truncate">
+                                  Rejected: {action.rejection_reason}
+                                </div>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                              {action.status === 'pending' && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    // TODO: Implement cancel action
+                                    console.log('Cancel action:', action.id);
+                                  }}
+                                  className="text-red-600 hover:text-red-700"
+                                >
+                                  Cancel
+                                </Button>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* Summary Stats */}
+                <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="bg-orange-50 p-3 rounded-lg">
+                    <div className="text-sm font-medium text-orange-800">Pending</div>
+                    <div className="text-2xl font-bold text-orange-900">
+                      {pendingActions.filter(a => a.status === 'pending').length}
+                    </div>
+                  </div>
+                  <div className="bg-green-50 p-3 rounded-lg">
+                    <div className="text-sm font-medium text-green-800">Approved</div>
+                    <div className="text-2xl font-bold text-green-900">
+                      {pendingActions.filter(a => a.status === 'approved').length}
+                    </div>
+                  </div>
+                  <div className="bg-red-50 p-3 rounded-lg">
+                    <div className="text-sm font-medium text-red-800">Rejected</div>
+                    <div className="text-2xl font-bold text-red-900">
+                      {pendingActions.filter(a => a.status === 'rejected').length}
+                    </div>
+                  </div>
+                  <div className="bg-gray-50 p-3 rounded-lg">
+                    <div className="text-sm font-medium text-gray-800">Total</div>
+                    <div className="text-2xl font-bold text-gray-900">
+                      {pendingActions.length}
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -3374,6 +3973,22 @@ export default function EmployeeDashboard() {
           {activeTab === 'maps' && <MapsTab />}
 
           {activeTab === 'news' && <NewsTab />}
+
+          {activeTab === 'frontpage' && (
+            <FrontPageTab
+              currentEmployeeId={currentEmployeeId || 'employee-mock'}
+              onSubmitForApproval={async (data) => {
+                try {
+                  const response = await submitPendingAction(data, currentEmployeeId!)
+                  if (response.success) {
+                    loadPendingActions()
+                  }
+                } catch (error) {
+                  console.error('Error submitting for approval:', error)
+                }
+              }}
+            />
+          )}
         </Tabs>
       </main>
 
@@ -3886,7 +4501,11 @@ export default function EmployeeDashboard() {
                       </div>
                       <div className="text-right">
                         <p className="text-sm font-medium">₱{formatCurrency(payment.amount)}</p>
-                        <Badge variant={payment.status === "Completed" ? "default" : "secondary"} className="text-xs">
+                        <Badge variant={
+                          payment.status === "Paid" ? "default" : 
+                          payment.status === "Under Payment" ? "secondary" : 
+                          "destructive"
+                        } className="text-xs">
                           {payment.status}
                         </Badge>
                       </div>
@@ -4378,6 +4997,98 @@ export default function EmployeeDashboard() {
                   </Card>
                 ))
               )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment Status Update Dialog */}
+      <Dialog open={isUpdatePaymentStatusOpen} onOpenChange={setIsUpdatePaymentStatusOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Update Payment Status</DialogTitle>
+            <DialogDescription>
+              Change the payment status for this transaction
+            </DialogDescription>
+          </DialogHeader>
+          {selectedPayment && (
+            <div className="space-y-4">
+              <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">Client:</span>
+                  <span className="text-sm font-medium">{selectedPayment.client}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">Amount:</span>
+                  <span className="text-sm font-medium">₱{formatCurrency(selectedPayment.amount)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">Type:</span>
+                  <span className="text-sm font-medium">{selectedPayment.type}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">Current Status:</span>
+                  <Badge variant={
+                    selectedPayment.status === "Paid" ? "default" : 
+                    selectedPayment.status === "Under Payment" ? "secondary" : 
+                    "destructive"
+                  }>
+                    {selectedPayment.status}
+                  </Badge>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="payment-status">New Payment Status</Label>
+                <Select
+                  value={newPaymentStatus}
+                  onValueChange={setNewPaymentStatus}
+                >
+                  <SelectTrigger id="payment-status">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Paid">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                        Paid
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="Under Payment">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                        Under Payment
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="Overdue">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                        Overdue
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsUpdatePaymentStatusOpen(false)
+                    setSelectedPayment(null)
+                    setNewPaymentStatus("")
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleUpdatePaymentStatus}
+                  className="bg-blue-600 hover:bg-blue-700"
+                  disabled={!newPaymentStatus || newPaymentStatus === selectedPayment.status}
+                >
+                  Update Status
+                </Button>
+              </div>
             </div>
           )}
         </DialogContent>

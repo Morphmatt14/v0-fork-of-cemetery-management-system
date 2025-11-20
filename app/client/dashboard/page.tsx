@@ -8,11 +8,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import Link from "next/link"
 import Image from "next/image"
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { AppointmentBookingModal } from "@/components/appointment-booking-modal"
 import LotViewerMap from "@/components/lot-viewer-map"
 import { AIHelpWidget } from '@/components/ai-help-widget'
 import { addClientInquiry, getClientInquiries, onPortalSyncUpdate } from '@/lib/portal-sync'
+import { OverviewTab } from "./components/overview-tab"
+import { MyLotsTab } from "./components/my-lots-tab"
+import { PaymentsTab } from "./components/payments-tab"
+import { NotificationsTab } from "./components/notifications-tab"
+import { RequestsTab } from "./components/requests-tab"
+import { fetchClientDashboardData, submitClientRequest } from '@/lib/api/client-api'
 
 // Helper function to load data from localStorage
 const loadFromLocalStorage = () => {
@@ -130,15 +136,21 @@ const Eye = () => (
 )
 
 export default function ClientDashboard() {
-  const [activeTab, setActiveTab] = useState("overview")
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const activeTab = searchParams.get('tab') || 'overview'  // ✅ URL-based tabs!
+  
   const [selectedLotForDetails, setSelectedLotForDetails] = useState<any>(null)
   const [selectedLotForAppointment, setSelectedLotForAppointment] = useState<any>(null)
   const [inquiries, setInquiries] = useState<any[]>([])
   const [newInquiry, setNewInquiry] = useState({ subject: '', message: '', lotId: '' })
-  const router = useRouter()
+  const [currentClientId, setCurrentClientId] = useState<string | null>(null)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  // Load client data from localStorage or use default
-  const [clientData] = useState({
+  // Client data state - will be populated from API
+  const [clientData, setClientData] = useState<any>({
     name: "Maria Santos",
     email: "maria.santos@email.com",
     phone: "09123456789",
@@ -185,7 +197,91 @@ export default function ClientDashboard() {
     ],
   })
 
-  // Load updated data from localStorage on component mount
+  // Authentication check - Protect dashboard access
+  useEffect(() => {
+    const clientSession = localStorage.getItem('clientSession')
+    const clientUser = localStorage.getItem('clientUser')
+    
+    console.log("[Client Portal] Checking authentication...")
+    console.log("[Client Portal] clientSession:", clientSession)
+    console.log("[Client Portal] clientUser:", clientUser)
+    
+    if (!clientSession && !clientUser) {
+      console.log("[Client Portal] No session found, redirecting to login")
+      router.push('/login')
+      return
+    }
+    
+    // Get client ID from session
+    if (clientSession) {
+      try {
+        const session = JSON.parse(clientSession)
+        setCurrentClientId(session.userId)
+        setIsAuthenticated(true)
+        console.log("[Client Portal] Authenticated - Client ID:", session.userId)
+      } catch (e) {
+        console.error("[Client Portal] Error parsing session:", e)
+        router.push('/login')
+      }
+    } else if (clientUser) {
+      try {
+        const user = JSON.parse(clientUser)
+        setCurrentClientId(user.id)
+        setIsAuthenticated(true)
+        console.log("[Client Portal] Authenticated - Client ID:", user.id)
+      } catch (e) {
+        console.error("[Client Portal] Error parsing user:", e)
+        router.push('/login')
+      }
+    }
+  }, [router])
+
+  // Load client data from API
+  useEffect(() => {
+    async function loadClientData() {
+      if (!currentClientId || !isAuthenticated) {
+        return
+      }
+
+      setIsLoading(true)
+      setError(null)
+
+      try {
+        console.log('[Client Dashboard] Loading data for client:', currentClientId)
+        
+        const data = await fetchClientDashboardData(currentClientId)
+        
+        console.log('[Client Dashboard] Data loaded successfully:', data)
+        
+        // Update client data with API response
+        setClientData({
+          name: data.profile.name || data.profile.full_name || 'Client',
+          email: data.profile.email,
+          phone: data.profile.phone,
+          memberSince: data.profile.created_at,
+          lots: data.lots || [],
+          payments: data.payments || [],
+          notifications: data.notifications || []
+        })
+        
+        // Update inquiries
+        setInquiries(data.requests || [])
+        
+        setIsLoading(false)
+      } catch (err: any) {
+        console.error('[Client Dashboard] Error loading data:', err)
+        setError(err.message || 'Failed to load client data')
+        setIsLoading(false)
+        
+        // Show error to user
+        alert('Failed to load data: ' + (err.message || 'Unknown error'))
+      }
+    }
+
+    loadClientData()
+  }, [currentClientId, isAuthenticated])
+
+  // Load updated data from localStorage on component mount (fallback)
   useEffect(() => {
     const savedData = loadFromLocalStorage()
     if (savedData && savedData.clients) {
@@ -214,17 +310,49 @@ export default function ClientDashboard() {
     return unsubscribe
   }, [])
 
-  const handleSubmitInquiry = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newInquiry.subject || !newInquiry.message) {
+  const handleTabChange = (value: string) => {
+    router.push(`/client/dashboard?tab=${value}`, { scroll: false })
+  }
+
+  const handleLogout = () => {
+    // Clear client session and user data
+    localStorage.removeItem('clientSession')
+    localStorage.removeItem('clientUser')
+    
+    console.log("[Client Portal] Logging out...")
+    
+    // Redirect to login page
+    router.push('/login')
+  }
+
+  const handleSubmitInquiry = async (requestData: any) => {
+    if (!requestData.subject || !requestData.message) {
       alert('Please fill in all fields')
       return
     }
 
-    addClientInquiry('client-001', clientData.name, newInquiry.subject, newInquiry.message, newInquiry.lotId || undefined)
-    
-    setNewInquiry({ subject: '', message: '', lotId: '' })
-    setInquiries(getClientInquiries('client-001'))
+    if (!currentClientId) {
+      alert('Client ID not found. Please log in again.')
+      return
+    }
+
+    try {
+      console.log('[Client Dashboard] Submitting request:', requestData)
+      
+      // Submit request via API
+      await submitClientRequest(currentClientId, requestData)
+      
+      console.log('[Client Dashboard] Request submitted successfully')
+      alert('Request submitted successfully! Cemetery staff will respond soon.')
+      
+      // Reload requests to show the new one
+      const data = await fetchClientDashboardData(currentClientId)
+      setInquiries(data.requests || [])
+      
+    } catch (error: any) {
+      console.error('[Client Dashboard] Error submitting request:', error)
+      alert('Failed to submit request: ' + (error.message || 'Unknown error'))
+    }
   }
 
   return (
@@ -267,10 +395,15 @@ export default function ClientDashboard() {
                   <p className="text-xs text-gray-500">Lot Owner</p>
                 </div>
               </div>
-              <Button variant="ghost" size="sm" asChild>
-                <Link href="/login">
-                  <LogOut className="h-4 w-4" />
-                </Link>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleLogout}
+                title="Logout"
+                className="hover:bg-red-50 hover:text-red-600"
+              >
+                <LogOut className="h-4 w-4" />
+                <span className="ml-2 hidden sm:inline">Logout</span>
               </Button>
             </div>
           </div>
@@ -278,14 +411,37 @@ export default function ClientDashboard() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        <div className="mb-6 sm:mb-8">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Welcome back, {clientData.name}</h2>
-          <p className="text-sm sm:text-base text-gray-600">
-            Manage your lots and stay updated with your memorial park services.
-          </p>
-        </div>
+        {/* Loading State */}
+        {isLoading && (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading your data...</p>
+            </div>
+          </div>
+        )}
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
+        {/* Error State */}
+        {error && !isLoading && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <p className="text-red-800 font-medium">Error loading data</p>
+            <p className="text-red-600 text-sm">{error}</p>
+          </div>
+        )}
+
+        {/* Main Content - Only show when not loading */}
+        {!isLoading && (
+          <>
+            <div className="mb-6 sm:mb-8">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
+                Welcome back, {clientData.name}
+              </h2>
+              <p className="text-sm sm:text-base text-gray-600">
+                Manage your lots and stay updated with your memorial park services.
+              </p>
+            </div>
+
+            <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4 sm:space-y-6">
           <TabsList className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 w-full text-xs sm:text-sm overflow-x-auto">
             <TabsTrigger value="overview" className="px-2 sm:px-4">
               Overview
@@ -310,451 +466,55 @@ export default function ClientDashboard() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-6">
-            {/* Quick Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">Total Lots</p>
-                      <p className="text-2xl font-bold">{clientData.lots.length}</p>
-                    </div>
-                    <MapPin className="h-8 w-8 text-blue-500" />
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">Outstanding Balance</p>
-                      <p className="text-2xl font-bold">
-                        ₱{clientData.lots.reduce((sum, lot) => sum + lot.balance, 0).toLocaleString()}
-                      </p>
-                    </div>
-                    <DollarSign className="h-8 w-8 text-green-500" />
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">Member Since</p>
-                      <p className="text-2xl font-bold">{new Date(clientData.memberSince).getFullYear()}</p>
-                    </div>
-                    <Calendar className="h-8 w-8 text-purple-500" />
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">Unread Notifications</p>
-                      <p className="text-2xl font-bold">{clientData.notifications.filter((n) => !n.read).length}</p>
-                    </div>
-                    <Bell className="h-8 w-8 text-orange-500" />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+          {activeTab === 'overview' && <OverviewTab clientData={clientData} />}
 
-            {/* Recent Activity */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Recent Payments</CardTitle>
-                  <CardDescription>Your latest payment transactions</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {clientData.payments.slice(0, 3).map((payment) => (
-                      <div key={payment.id} className="flex items-center justify-between p-3 border rounded-lg">
-                        <div>
-                          <p className="font-medium">₱{payment.amount.toLocaleString()}</p>
-                          <p className="text-sm text-gray-600">
-                            {payment.type} - Lot {payment.lotId}
-                          </p>
-                          <p className="text-xs text-gray-500">{payment.date}</p>
-                        </div>
-                        <Badge variant={payment.status === "Paid" ? "default" : "destructive"}>{payment.status}</Badge>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Recent Notifications</CardTitle>
-                  <CardDescription>Latest updates and announcements</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {clientData.notifications.slice(0, 3).map((notification) => (
-                      <div key={notification.id} className="flex items-start gap-3 p-3 border rounded-lg">
-                        <div className={`p-1 rounded-full ${notification.read ? "bg-gray-100" : "bg-blue-100"}`}>
-                          <Bell className={`h-4 w-4 ${notification.read ? "text-gray-500" : "text-blue-500"}`} />
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">{notification.message}</p>
-                          <p className="text-xs text-gray-500">{notification.date}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="lots" className="space-y-6">
-            <Card className="bg-blue-50 border-blue-200">
-              <CardContent className="p-4">
-                <p className="text-sm text-blue-900">
-                  ℹ️ <strong>Viewing Only:</strong> Below are your purchased lots. Use the "Book Appointment" button to
-                  schedule a visit. Your balance and payment history are displayed in the Payments tab.
-                </p>
-              </CardContent>
-            </Card>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {clientData.lots.map((lot) => (
-                <Card key={lot.id} className="hover:shadow-md transition-shadow">
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle className="flex items-center gap-2">
-                          <MapPin className="h-5 w-5" />
-                          Lot {lot.id}
-                        </CardTitle>
-                        <CardDescription>{lot.section}</CardDescription>
-                      </div>
-                      <Badge variant={lot.status === "Occupied" ? "default" : "secondary"}>{lot.status}</Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <p className="text-gray-600">Type</p>
-                          <p className="font-medium">{lot.type}</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-600">Purchase Date</p>
-                          <p className="font-medium">{lot.purchaseDate}</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-600">Total Price</p>
-                          <p className="font-medium">₱{lot.price.toLocaleString()}</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-600">Balance</p>
-                          <p className={`font-medium ${lot.balance > 0 ? "text-orange-600" : "text-green-600"}`}>
-                            ₱{lot.balance.toLocaleString()}
-                          </p>
-                        </div>
-                      </div>
-
-                      {lot.occupant && (
-                        <div className="border-t pt-3">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Heart className="h-4 w-4 text-red-500" />
-                            <p className="font-medium text-gray-900">Burial Information</p>
-                          </div>
-                          <div className="grid grid-cols-2 gap-4 text-sm">
-                            <div>
-                              <p className="text-gray-600">Occupant</p>
-                              <p className="font-medium">{lot.occupant}</p>
-                            </div>
-                            <div>
-                              <p className="text-gray-600">Burial Date</p>
-                              <p className="font-medium">{lot.burialDate}</p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="flex gap-2 pt-3">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex-1 bg-transparent"
-                          onClick={() => setSelectedLotForDetails(lot)}
-                          title="View detailed information about this lot"
-                        >
-                          <Eye className="h-4 w-4 mr-2" />
-                          View Details
-                        </Button>
-                        
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            {clientData.lots.length === 0 && (
-              <Card>
-                <CardContent className="p-8 text-center">
-                  <MapPin className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                  <p className="text-gray-600">
-                    You don't have any lots yet. Contact us to purchase your memorial lot.
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-
-          <TabsContent value="map" className="space-y-6">
-            <LotViewerMap
-              userLots={clientData.lots.map((lot) => lot.id)}
-              onAppointmentRequest={(lot) => setSelectedLotForAppointment(lot)}
+          {activeTab === 'lots' && (
+            <MyLotsTab
+              lots={clientData.lots}
+              onViewDetails={(lot) => setSelectedLotForDetails(lot)}
             />
-          </TabsContent>
+          )}
 
-          <TabsContent value="payments" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Payment History</CardTitle>
-                <CardDescription>View your payment records and current balance (Viewing Only)</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">Current Outstanding Balance</p>
-                      <p className="text-2xl font-bold text-blue-900">
-                        ₱{clientData.lots.reduce((sum, lot) => sum + lot.balance, 0).toLocaleString()}
-                      </p>
-                    </div>
-                    <DollarSign className="h-8 w-8 text-blue-600" />
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  {clientData.payments.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
-                      <p>No payment records yet.</p>
-                    </div>
-                  ) : (
-                    clientData.payments.map((payment) => (
-                      <div key={payment.id} className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="flex items-center gap-4">
-                          <div className="bg-green-100 p-2 rounded-lg">
-                            <CreditCard className="h-5 w-5 text-green-600" />
-                          </div>
-                          <div>
-                            <p className="font-medium">₱{payment.amount.toLocaleString()}</p>
-                            <p className="text-sm text-gray-600">{payment.type} Payment</p>
-                            <p className="text-sm text-gray-600">Lot {payment.lotId}</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <Badge variant={payment.status === "Paid" ? "default" : "secondary"}>{payment.status}</Badge>
-                          <p className="text-sm text-gray-500 mt-1">{payment.date}</p>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+          {activeTab === 'map' && (
+            <div className="space-y-6">
+              <LotViewerMap
+                userLots={clientData.lots.map((lot) => lot.id)}
+                onAppointmentRequest={(lot) => setSelectedLotForAppointment(lot)}
+              />
+            </div>
+          )}
 
-          <TabsContent value="requests" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Submit a Request</CardTitle>
-                <CardDescription>Send us your service requests or inquiries</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form className="space-y-4">
-                  <div>
-                    <label htmlFor="request-type" className="block text-sm font-medium text-gray-700 mb-1">
-                      Request Type
-                    </label>
-                    <select
-                      id="request-type"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                    >
-                      <option value="">Select request type</option>
-                      <option value="maintenance">Lot Maintenance</option>
-                      <option value="documentation">Documentation Request</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-1">
-                      Subject
-                    </label>
-                    <input
-                      id="subject"
-                      type="text"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                      placeholder="Brief description of your request"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-1">
-                      Message
-                    </label>
-                    <textarea
-                      id="message"
-                      rows={4}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                      placeholder="Please provide detailed information about your request..."
-                    />
-                  </div>
-                  <Button type="submit" className="bg-green-600 hover:bg-green-700">
-                    <Bell className="h-4 w-4 mr-2" />
-                    Submit Request
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          </TabsContent>
+          {activeTab === 'payments' && (
+            <PaymentsTab
+              payments={clientData.payments}
+              lots={clientData.lots}
+            />
+          )}
 
-          <TabsContent value="notifications" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>All Notifications</CardTitle>
-                <CardDescription>Stay updated with important announcements and reminders</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {clientData.notifications.map((notification) => (
-                    <div
-                      key={notification.id}
-                      className={`p-4 border rounded-lg ${!notification.read ? "bg-blue-50 border-blue-200" : ""}`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className={`p-2 rounded-full ${!notification.read ? "bg-blue-100" : "bg-gray-100"}`}>
-                          <Bell className={`h-4 w-4 ${!notification.read ? "text-blue-500" : "text-gray-500"}`} />
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-medium">{notification.message}</p>
-                          <p className="text-sm text-gray-500 mt-1">{notification.date}</p>
-                          {!notification.read && (
-                            <Badge variant="secondary" className="mt-2">
-                              New
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+          {activeTab === 'requests' && (
+            <RequestsTab
+              inquiries={inquiries}
+              lots={clientData.lots}
+              onSubmitRequest={handleSubmitInquiry}
+            />
+          )}
 
-          <TabsContent value="inquiries" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Submit Inquiry</CardTitle>
-                <CardDescription>Send your questions or requests to the cemetery management</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmitInquiry} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Related to Lot (Optional)
-                    </label>
-                    <select
-                      value={newInquiry.lotId}
-                      onChange={(e) => setNewInquiry({ ...newInquiry, lotId: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                    >
-                      <option value="">-- Select a lot (optional) --</option>
-                      {clientData.lots.map((lot) => (
-                        <option key={lot.id} value={lot.id}>
-                          Lot {lot.id} - {lot.section}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Subject
-                    </label>
-                    <input
-                      type="text"
-                      value={newInquiry.subject}
-                      onChange={(e) => setNewInquiry({ ...newInquiry, subject: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                      placeholder="What is your inquiry about?"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Message
-                    </label>
-                    <textarea
-                      value={newInquiry.message}
-                      onChange={(e) => setNewInquiry({ ...newInquiry, message: e.target.value })}
-                      rows={4}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                      placeholder="Please provide details about your inquiry..."
-                      required
-                    />
-                  </div>
-                  <Button type="submit" className="w-full bg-green-600 hover:bg-green-700">
-                    Send Inquiry
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
+          {activeTab === 'notifications' && (
+            <NotificationsTab
+              notifications={clientData.notifications}
+            />
+          )}
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Your Inquiries</CardTitle>
-                <CardDescription>Track your submitted inquiries and admin responses</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {inquiries.length === 0 ? (
-                    <p className="text-center text-gray-500 py-8">No inquiries yet</p>
-                  ) : (
-                    inquiries.map((inquiry) => (
-                      <div key={inquiry.id} className="border rounded-lg p-4">
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <h4 className="font-semibold text-gray-900">{inquiry.subject}</h4>
-                            <p className="text-sm text-gray-600">{inquiry.message}</p>
-                            {inquiry.lotId && (
-                              <p className="text-xs text-gray-500 mt-1">Related to Lot: {inquiry.lotId}</p>
-                            )}
-                          </div>
-                          <Badge variant={inquiry.status === 'new' ? 'secondary' : 'default'}>
-                            {inquiry.status}
-                          </Badge>
-                        </div>
-                        {inquiry.adminReplies && inquiry.adminReplies.length > 0 && (
-                          <div className="border-t mt-3 pt-3">
-                            <p className="text-sm font-medium text-gray-700 mb-2">Admin Response:</p>
-                            {inquiry.adminReplies.map((reply: any) => (
-                              <div key={reply.id} className="bg-blue-50 rounded p-2 mb-2">
-                                <p className="text-xs text-blue-900">{reply.message}</p>
-                                <p className="text-xs text-blue-600 mt-1">
-                                  From {reply.from} - {new Date(reply.timestamp).toLocaleString()}
-                                </p>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        <p className="text-xs text-gray-500 mt-2">
-                          Submitted: {new Date(inquiry.timestamp).toLocaleString()}
-                        </p>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+          {activeTab === 'inquiries' && (
+            <RequestsTab
+              inquiries={inquiries}
+              lots={clientData.lots}
+              onSubmitRequest={handleSubmitInquiry}
+            />
+          )}
         </Tabs>
+          </>
+        )}
       </main>
 
       <AIHelpWidget portalType="client" />

@@ -75,18 +75,41 @@ export default function LoginPage() {
     setIsLoading(true)
     setError("")
 
-    setTimeout(() => {
-      const user = verifyClientCredentials(formData.email, formData.password)
-      if (user) {
+    try {
+      // Call real authentication API
+      const response = await fetch('/api/auth/client-login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password
+        })
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.success) {
         // Store client session
-        localStorage.setItem("clientUser", JSON.stringify(user))
-        localStorage.setItem("clientSession", JSON.stringify({ userId: user.id, timestamp: Date.now() }))
+        localStorage.setItem("clientUser", JSON.stringify(data.user))
+        localStorage.setItem("clientSession", JSON.stringify({ 
+          userId: data.user.id, 
+          timestamp: Date.now() 
+        }))
+        
+        console.log('[Client Login] Login successful, redirecting...')
         router.push("/client/dashboard")
       } else {
-        setError("Invalid email or password. Try client@example.com/password123")
+        setError(data.error || "Invalid email or password")
+        console.log('[Client Login] Login failed:', data.error)
       }
+    } catch (error: any) {
+      console.error('[Client Login] Error:', error)
+      setError("An error occurred. Please try again.")
+    } finally {
       setIsLoading(false)
-    }, 1000)
+    }
   }
 
   return (
