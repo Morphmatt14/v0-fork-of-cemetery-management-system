@@ -3973,7 +3973,9 @@ export default function EmployeeDashboard() {
                   <Card>
                     <CardContent className="p-4">
                       <div className="text-center">
-                        <p className="text-xl sm:text-2xl font-bold text-blue-600">₱125,000</p>
+                        <p className="text-xl sm:text-2xl font-bold text-blue-600">
+                          ₱{formatCurrency(clients.reduce((sum, client) => sum + (client.balance || 0), 0))}
+                        </p>
                         <p className="text-sm text-gray-600">Total Outstanding Balance</p>
                       </div>
                     </CardContent>

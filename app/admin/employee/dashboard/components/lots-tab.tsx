@@ -299,8 +299,8 @@ export default function LotsTab() {
                       {lot.occupant_name && (
                         <p className="text-xs text-gray-500">Occupant: {lot.occupant_name}</p>
                       )}
-                      {lot.owner_id && (
-                        <p className="text-xs text-gray-500">Owner ID: {lot.owner_id}</p>
+                      {lot.clients?.name && (
+                        <p className="text-xs text-gray-500">Owner: {lot.clients.name}</p>
                       )}
                     </div>
                   </div>
@@ -651,10 +651,13 @@ export default function LotsTab() {
                   <p className="text-base">{selectedLot.occupant_name}</p>
                 </div>
               )}
-              {selectedLot.owner_id && (
+              {selectedLot.clients?.name && (
                 <div>
-                  <Label className="text-sm font-medium text-gray-500">Owner ID</Label>
-                  <p className="text-base">{selectedLot.owner_id}</p>
+                  <Label className="text-sm font-medium text-gray-500">Owner</Label>
+                  <p className="text-base">{selectedLot.clients.name}</p>
+                  {selectedLot.clients.email && (
+                    <p className="text-sm text-gray-500">{selectedLot.clients.email}</p>
+                  )}
                 </div>
               )}
               <div className="col-span-2">
