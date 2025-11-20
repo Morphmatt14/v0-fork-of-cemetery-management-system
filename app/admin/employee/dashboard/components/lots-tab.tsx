@@ -36,6 +36,7 @@ import { MapPin, Edit, Eye, Trash2, Loader2, Search } from 'lucide-react'
 import { fetchLots, updateLot, deleteLot } from '@/lib/api/lots-api'
 import type { Lot } from '@/lib/types/lots'
 import { useToast } from '@/hooks/use-toast'
+import LotOwnerSelector from '@/components/lot-owner-selector'
 
 export default function LotsTab() {
   const { toast } = useToast()
@@ -86,6 +87,31 @@ export default function LotsTab() {
       })
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const handleAssignLotToOwner = async (lotId: string, ownerId: string, ownerName: string) => {
+    try {
+      await updateLot(lotId, {
+        owner_id: ownerId,
+        status: 'Reserved',
+      })
+
+      toast({
+        title: 'Lot Assigned',
+        description: `Lot ${lotId} has been assigned to ${ownerName}.`,
+      })
+
+      setIsAssignOwnerOpen(false)
+      await loadLots()
+    } catch (err: any) {
+      console.error('Error assigning lot owner:', err)
+      toast({
+        title: 'Assignment Failed',
+        description: err.message || 'Unable to assign lot. Please try again.',
+        variant: 'destructive',
+      })
+      throw err
     }
   }
 
@@ -657,6 +683,12 @@ export default function LotsTab() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <LotOwnerSelector
+        isOpen={isAssignOwnerOpen}
+        onClose={() => setIsAssignOwnerOpen(false)}
+        onAssign={handleAssignLotToOwner}
+      />
     </div>
   )
 }

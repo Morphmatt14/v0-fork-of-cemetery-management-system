@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import type { SVGProps } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -41,9 +42,33 @@ import {
   getTimeElapsed 
 } from "@/lib/api/approvals-api"
 import { fetchDashboardData, createClient as createClientInDB, checkClientEmailExists, updatePayment } from "@/lib/api/dashboard-api"
+import { updateLot } from "@/lib/api/lots-api"
 import { FrontPageTab } from "./components/front-page-tab"
-const MapPin = () => (
-  <svg className="h-8 w-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+import { formatCurrency } from "./components/utils"
+
+const mergeClasses = (base: string, extra?: string) => (extra ? `${base} ${extra}` : base)
+
+const createEmptyClientForm = () => ({
+  name: "",
+  email: "",
+  phone: "",
+  address: "",
+  emergencyContact: "",
+  emergencyPhone: "",
+  notes: "",
+  username: "",
+  password: "",
+  confirmPassword: "",
+})
+
+const MapPin = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
+  <svg
+    {...props}
+    className={mergeClasses("h-8 w-8 text-blue-500", className)}
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -54,8 +79,14 @@ const MapPin = () => (
   </svg>
 )
 
-const Users = () => (
-  <svg className="h-8 w-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+const Users = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
+  <svg
+    {...props}
+    className={mergeClasses("h-8 w-8 text-green-500", className)}
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -65,8 +96,14 @@ const Users = () => (
   </svg>
 )
 
-const DollarSign = () => (
-  <svg className="h-8 w-8 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+const DollarSign = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
+  <svg
+    {...props}
+    className={mergeClasses("h-8 w-8 text-purple-500", className)}
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -76,8 +113,14 @@ const DollarSign = () => (
   </svg>
 )
 
-const MessageSquare = () => (
-  <svg className="h-8 w-8 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+const MessageSquare = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
+  <svg
+    {...props}
+    className={mergeClasses("h-8 w-8 text-orange-500", className)}
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -87,8 +130,8 @@ const MessageSquare = () => (
   </svg>
 )
 
-const Eye = () => (
-  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+const Eye = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
+  <svg {...props} className={mergeClasses("h-4 w-4", className)} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
     <path
       strokeLinecap="round"
@@ -99,8 +142,8 @@ const Eye = () => (
   </svg>
 )
 
-const LogOut = () => (
-  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+const LogOut = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
+  <svg {...props} className={mergeClasses("h-4 w-4", className)} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -110,14 +153,14 @@ const LogOut = () => (
   </svg>
 )
 
-const ArrowLeft = () => (
-  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+const ArrowLeft = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
+  <svg {...props} className={mergeClasses("h-4 w-4", className)} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
   </svg>
 )
 
-const Search = () => (
-  <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+const Search = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
+  <svg {...props} className={mergeClasses("h-4 w-4 text-gray-400", className)} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -127,14 +170,14 @@ const Search = () => (
   </svg>
 )
 
-const Plus = () => (
-  <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+const Plus = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
+  <svg {...props} className={mergeClasses("h-4 w-4 mr-2", className)} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
   </svg>
 )
 
-const Edit = () => (
-  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+const Edit = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
+  <svg {...props} className={mergeClasses("h-4 w-4", className)} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -144,8 +187,8 @@ const Edit = () => (
   </svg>
 )
 
-const Trash2 = () => (
-  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+const Trash2 = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
+  <svg {...props} className={mergeClasses("h-4 w-4", className)} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -155,8 +198,14 @@ const Trash2 = () => (
   </svg>
 )
 
-const Calendar = () => (
-  <svg className="h-10 w-10 mb-3 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+const Calendar = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
+  <svg
+    {...props}
+    className={mergeClasses("h-10 w-10 mb-3 text-amber-600", className)}
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -166,8 +215,14 @@ const Calendar = () => (
   </svg>
 )
 
-const FileText = () => (
-  <svg className="h-10 w-10 mb-3 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+const FileText = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
+  <svg
+    {...props}
+    className={mergeClasses("h-10 w-10 mb-3 text-teal-600", className)}
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -177,14 +232,20 @@ const FileText = () => (
   </svg>
 )
 
-const BarChart3 = () => (
-  <svg className="h-10 w-10 mb-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+const BarChart3 = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
+  <svg
+    {...props}
+    className={mergeClasses("h-10 w-10 mb-3 text-blue-600", className)}
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 13h18M3 17h18M3 21h18M4 7h18M7 14V3" />
   </svg>
 )
 
-const Send = () => (
-  <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+const Send = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
+  <svg {...props} className={mergeClasses("h-4 w-4 mr-2", className)} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9-6l-9-6l-9 6 9 6z" />
     <path
       strokeLinecap="round"
@@ -195,8 +256,8 @@ const Send = () => (
   </svg>
 )
 
-const CheckCircle = () => (
-  <svg className="h-4 w-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+const CheckCircle = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
+  <svg {...props} className={mergeClasses("h-4 w-4 text-green-500", className)} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -206,8 +267,8 @@ const CheckCircle = () => (
   </svg>
 )
 
-const Clock = () => (
-  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+const Clock = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
+  <svg {...props} className={mergeClasses("h-4 w-4", className)} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -217,8 +278,14 @@ const Clock = () => (
   </svg>
 )
 
-const AlertCircle = () => (
-  <svg className="h-4 w-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+const AlertCircle = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
+  <svg
+    {...props}
+    className={mergeClasses("h-4 w-4 text-orange-500", className)}
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -228,20 +295,20 @@ const AlertCircle = () => (
   </svg>
 )
 
-const Filter = () => (
-  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+const Filter = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
+  <svg {...props} className={mergeClasses("h-4 w-4", className)} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h16M4 8h16m-4 4h12m-8 4h8m-12 4h16" />
   </svg>
 )
 
-const ChevronDown = () => (
-  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+const ChevronDown = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
+  <svg {...props} className={mergeClasses("h-4 w-4", className)} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
   </svg>
 )
 
-const Download = () => (
-  <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+const Download = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
+  <svg {...props} className={mergeClasses("h-4 w-4 mr-2", className)} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -258,8 +325,14 @@ const Download = () => (
   </svg>
 )
 
-const Loader2 = () => (
-  <svg className="h-4 w-4 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+const Loader2 = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
+  <svg
+    {...props}
+    className={mergeClasses("h-4 w-4 mr-2 animate-spin", className)}
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
     <path d="M12 2v1m0 18v1M4.93 4.93l.707.707m12.728 12.728.707.707M21 12h-1M3 12h-1M12 4.93v.707M17.07 17.07l-.707.707M12 21v-1M4.93 19.07l.707-.707" />
     <path d="M12 18c2.968 0 5.705-1.234 7.727-3.348-.168.022-.34.032-.517.04C14.284 14.855 12.171 15 10.005 15c-2.176 0-4.289-.049-6.404-.154-.177-.008-.35-.018-.517-.04C6.295 16.765 9.032 18 12 18z" />
   </svg>
@@ -335,22 +408,18 @@ const loadFromLocalStorage = (): any => {
     const saved = localStorage.getItem("globalData")
     if (saved) {
       try {
-        return JSON.JSON.parse(saved)
+        return JSON.parse(saved)
       } catch (e) {
-        console.error("Failed to parse stored data:", e)
-        return null
+        console.error("Error parsing saved data from localStorage", e)
       }
     }
   }
   return null
 }
 
-const formatCurrency = (value: number | null | undefined): string => {
-  return value != null ? value.toLocaleString() : '0'
-}
-
 // Default data for initial state
 const defaultDashboardData = {
+  // ... (rest of the code remains the same)
   stats: {
     totalLots: 2500,
     occupiedLots: 1847,
@@ -866,6 +935,7 @@ export default function EmployeeDashboard() {
   const [isEditClientOpen, setIsEditClientOpen] = useState(false)
   const [isViewClientOpen, setIsViewClientOpen] = useState(false)
   const [isViewBurialOpen, setIsViewBurialOpen] = useState(false)
+  const [isAddBurialOpen, setIsAddBurialOpen] = useState(false)
   const [isReplyInquiryOpen, setIsReplyInquiryOpen] = useState(false)
   const [isViewInquiryOpen, setIsViewInquiryOpen] = useState(false)
   const [isMessageClientOpen, setIsMessageClientOpen] = useState(false)
@@ -893,17 +963,20 @@ export default function EmployeeDashboard() {
     features: "",
     mapId: null, // To store the associated map ID if available
   })
-  const [clientFormData, setClientFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    address: "",
-    emergencyContact: "",
-    emergencyPhone: "",
+  const [clientFormData, setClientFormData] = useState(createEmptyClientForm())
+  const [burialFormData, setBurialFormData] = useState({
+    lotId: "",
+    ownerId: "",
+    deceasedName: "",
+    familyName: "",
+    age: "",
+    dateOfDeath: "",
+    burialDate: "",
+    burialTime: "",
+    cause: "",
+    funeralHome: "",
+    attendees: "",
     notes: "",
-    username: "",
-    password: "",
-    confirmPassword: "",
   })
   const [replyFormData, setReplyFormData] = useState({
     subject: "",
@@ -924,6 +997,16 @@ export default function EmployeeDashboard() {
   const [selectedInquiry, setSelectedInquiry] = useState<any>(null)
   const [selectedBurial, setSelectedBurial] = useState<any>(null)
   const [selectedPayment, setSelectedPayment] = useState<any>(null)
+
+  const isCreateClientDisabled =
+    !clientFormData.name.trim() ||
+    !clientFormData.email.trim() ||
+    !clientFormData.password ||
+    !clientFormData.confirmPassword ||
+    clientFormData.password !== clientFormData.confirmPassword ||
+    clientFormData.password.length < 6
+
+  const resetClientForm = () => setClientFormData(createEmptyClientForm())
   const [isUpdatePaymentStatusOpen, setIsUpdatePaymentStatusOpen] = useState(false)
   const [newPaymentStatus, setNewPaymentStatus] = useState<string>("")
 
@@ -1278,6 +1361,15 @@ export default function EmployeeDashboard() {
 
   const handleAddClient = async () => {
     // Validate required fields
+    if (!clientFormData.name.trim()) {
+      toast({
+        title: "Missing Required Fields",
+        description: "Client name is required.",
+        variant: "destructive",
+      })
+      return
+    }
+
     if (!clientFormData.email || !clientFormData.password || !clientFormData.confirmPassword) {
       toast({
         title: "Missing Required Fields",
@@ -1418,19 +1510,8 @@ export default function EmployeeDashboard() {
       }
 
       // Close dialog and reset form
+      resetClientForm()
       setIsAddClientOpen(false)
-      setClientFormData({
-        name: "",
-        email: "",
-        phone: "",
-        address: "",
-        emergencyContact: "",
-        emergencyPhone: "",
-        notes: "",
-        username: "",
-        password: "",
-        confirmPassword: "",
-      })
 
     } catch (error) {
       console.error('[handleAddClient] Error:', error)
@@ -1710,6 +1791,151 @@ export default function EmployeeDashboard() {
         variant: "destructive",
       })
     }
+  }
+
+  const resetBurialForm = () => {
+    setBurialFormData({
+      lotId: "",
+      ownerId: "",
+      deceasedName: "",
+      familyName: "",
+      age: "",
+      dateOfDeath: "",
+      burialDate: "",
+      burialTime: "",
+      cause: "",
+      funeralHome: "",
+      attendees: "",
+      notes: "",
+    })
+  }
+
+  const handleLotSelectForBurial = (lotId: string) => {
+    const ownerByLot = dashboardData?.clients?.find((client: any) => (client.lots || []).includes(lotId))
+    setBurialFormData((prev) => ({
+      ...prev,
+      lotId,
+      ownerId: ownerByLot ? String(ownerByLot.id) : prev.ownerId,
+    }))
+  }
+
+  const handleAddBurial = async () => {
+    if (
+      !burialFormData.lotId ||
+      !burialFormData.ownerId ||
+      !burialFormData.deceasedName ||
+      !burialFormData.burialDate ||
+      !burialFormData.burialTime
+    ) {
+      toast({
+        title: "Missing Information",
+        description: "Lot, owner, deceased name, burial date, and time are required.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    const lot = dashboardData?.lots?.find((l: any) => l.id === burialFormData.lotId)
+    if (!lot) {
+      toast({
+        title: "Lot Not Found",
+        description: "Please select a valid lot for this burial.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (lot.status === "Occupied") {
+      toast({
+        title: "Lot Already Occupied",
+        description: `Lot ${lot.id} already has an occupant. Please choose another lot.`,
+        variant: "destructive",
+      })
+      return
+    }
+
+    const ownerRecord = dashboardData?.clients?.find((client: any) => String(client.id) === burialFormData.ownerId)
+
+    const newBurial = {
+      id: `burial-${Date.now()}`,
+      name: burialFormData.deceasedName,
+      family: burialFormData.familyName || ownerRecord?.name || "Family",
+      lot: lot.id,
+      date: burialFormData.burialDate,
+      burial: burialFormData.burialTime,
+      age: burialFormData.age ? Number(burialFormData.age) : undefined,
+      cause: burialFormData.cause || "N/A",
+      funeral: burialFormData.funeralHome || "N/A",
+      attendees: burialFormData.attendees ? Number(burialFormData.attendees) : 0,
+      notes: burialFormData.notes || "",
+      ownerName: ownerRecord?.name || lot.owner || "",
+    }
+
+    const updatedBurials = [newBurial, ...(dashboardData?.burials || [])]
+    const updatedRecentBurials = [newBurial, ...(dashboardData?.recentBurials || [])].slice(0, 5)
+
+    const updatedLots = (dashboardData?.lots || []).map((existingLot: any) => {
+      if (existingLot.id !== lot.id) return existingLot
+      return {
+        ...existingLot,
+        status: "Occupied",
+        occupant: newBurial.name,
+        occupant_name: newBurial.name,
+        owner: ownerRecord?.name || existingLot.owner,
+        owner_id: ownerRecord?.id ?? existingLot.owner_id,
+      }
+    })
+
+    const updatedStats = { ...(dashboardData?.stats || {}) }
+    if (lot.status !== "Occupied") {
+      if (lot.status === "Available" && typeof updatedStats.availableLots === "number" && updatedStats.availableLots > 0) {
+        updatedStats.availableLots -= 1
+      }
+      if (typeof updatedStats.occupiedLots === "number") {
+        updatedStats.occupiedLots += 1
+      }
+    }
+
+    const updatedClients = (dashboardData?.clients || []).map((client: any) => {
+      if (String(client.id) !== burialFormData.ownerId) return client
+      const ownedLots = client.lots || []
+      if (ownedLots.includes(lot.id)) return client
+      return {
+        ...client,
+        lots: [...ownedLots, lot.id],
+      }
+    })
+
+    const updatedData = {
+      ...(dashboardData || {}),
+      burials: updatedBurials,
+      recentBurials: updatedRecentBurials,
+      lots: updatedLots,
+      clients: updatedClients,
+      stats: updatedStats,
+    }
+
+    setDashboardData(updatedData)
+    setBurials(updatedBurials)
+    setClients(updatedClients)
+    saveToLocalStorage(updatedData)
+
+    try {
+      await updateLot(lot.id, {
+        status: "Occupied",
+        owner_id: ownerRecord ? String(ownerRecord.id) : burialFormData.ownerId,
+        occupant_name: burialFormData.deceasedName,
+      })
+    } catch (error) {
+      console.error("[Burial] Failed syncing lot", error)
+    }
+
+    resetBurialForm()
+    setIsAddBurialOpen(false)
+    toast({
+      title: "Burial Recorded",
+      description: `${newBurial.name} has been scheduled for Lot ${lot.id}.`,
+    })
   }
 
   // Generate report data based on report type
@@ -2391,9 +2617,10 @@ export default function EmployeeDashboard() {
   const openEditClient = (client: any) => {
     setSelectedClient(client)
     setClientFormData({
-      name: client.name,
-      email: client.email,
-      phone: client.phone,
+      ...createEmptyClientForm(),
+      name: client.name || "",
+      email: client.email || "",
+      phone: client.phone || "",
       address: client.address || "",
       emergencyContact: client.emergencyContact || "",
       emergencyPhone: client.emergencyPhone || "",
@@ -2430,6 +2657,7 @@ export default function EmployeeDashboard() {
   }
 
   const openMessageClient = (client: any) => {
+    if (!client) return
     setSelectedClient(client)
     setMessageFormData({
       subject: "",
@@ -2501,6 +2729,16 @@ export default function EmployeeDashboard() {
       default:
         return "outline"
     }
+  }
+
+  const getOwnerDisplay = (lot: any) => {
+    if (!lot) return "Unknown owner"
+    if (lot.owner && lot.owner.email) {
+      return `${lot.owner.name} (${lot.owner.email})`
+    }
+    if (lot.ownerName) return lot.ownerName
+    if (lot.owner_id) return lot.owner_id
+    return "No owner on file"
   }
 
   const handleLogout = () => {
@@ -2926,7 +3164,7 @@ export default function EmployeeDashboard() {
                       <p>No lots found. Create a new lot or add lots from the map editor.</p>
                     </div>
                   ) : (
-                    filteredLots.map((lot) => (
+                    filteredLots.map((lot: any) => (
                       <div
                         key={lot.id}
                         className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
@@ -3011,8 +3249,200 @@ export default function EmployeeDashboard() {
           <TabsContent value="burials" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Burial Records</CardTitle>
-                <CardDescription>Manage and view all burial records</CardDescription>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <div>
+                    <CardTitle>Burial Records</CardTitle>
+                    <CardDescription>Manage and view all burial records</CardDescription>
+                  </div>
+                  <Dialog
+                    open={isAddBurialOpen}
+                    onOpenChange={(open) => {
+                      setIsAddBurialOpen(open)
+                      if (!open) {
+                        resetBurialForm()
+                      }
+                    }}
+                  >
+                    <DialogTrigger asChild>
+                      <Button className="bg-green-600 hover:bg-green-700 mt-4 sm:mt-0">
+                        <Plus />
+                        Add Burial
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl">
+                      <DialogHeader>
+                        <DialogTitle>Add Burial Record</DialogTitle>
+                        <DialogDescription>
+                          Record a burial and link it to a specific lot and its owner.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="deceased-name">Deceased Name</Label>
+                          <Input
+                            id="deceased-name"
+                            value={burialFormData.deceasedName}
+                            onChange={(e) =>
+                              setBurialFormData({ ...burialFormData, deceasedName: e.target.value })
+                            }
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="family-name">Family Name</Label>
+                          <Input
+                            id="family-name"
+                            value={burialFormData.familyName}
+                            onChange={(e) =>
+                              setBurialFormData({ ...burialFormData, familyName: e.target.value })
+                            }
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="age">Age</Label>
+                          <Input
+                            id="age"
+                            type="number"
+                            value={burialFormData.age}
+                            onChange={(e) =>
+                              setBurialFormData({ ...burialFormData, age: e.target.value })
+                            }
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="date-of-death">Date of Death</Label>
+                          <Input
+                            id="date-of-death"
+                            type="date"
+                            value={burialFormData.dateOfDeath}
+                            onChange={(e) =>
+                              setBurialFormData({ ...burialFormData, dateOfDeath: e.target.value })
+                            }
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="burial-date">Burial Date</Label>
+                          <Input
+                            id="burial-date"
+                            type="date"
+                            value={burialFormData.burialDate}
+                            onChange={(e) =>
+                              setBurialFormData({ ...burialFormData, burialDate: e.target.value })
+                            }
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="burial-time">Burial Time</Label>
+                          <Input
+                            id="burial-time"
+                            type="time"
+                            value={burialFormData.burialTime}
+                            onChange={(e) =>
+                              setBurialFormData({ ...burialFormData, burialTime: e.target.value })
+                            }
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="cause">Cause of Death</Label>
+                          <Input
+                            id="cause"
+                            value={burialFormData.cause}
+                            onChange={(e) =>
+                              setBurialFormData({ ...burialFormData, cause: e.target.value })
+                            }
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="funeral-home">Funeral Service</Label>
+                          <Input
+                            id="funeral-home"
+                            value={burialFormData.funeralHome}
+                            onChange={(e) =>
+                              setBurialFormData({ ...burialFormData, funeralHome: e.target.value })
+                            }
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="lot-select">Lot</Label>
+                          <Select
+                            value={burialFormData.lotId}
+                            onValueChange={(value) => handleLotSelectForBurial(value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select lot" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {(dashboardData?.lots || []).map((lot: any) => (
+                                <SelectItem key={lot.id} value={lot.id}>
+                                  {lot.id} • {lot.section} ({lot.status})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="owner-select">Lot Owner</Label>
+                          <Select
+                            value={burialFormData.ownerId}
+                            onValueChange={(value) =>
+                              setBurialFormData({ ...burialFormData, ownerId: value })
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select owner" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {(dashboardData?.clients || []).map((client: any) => (
+                                <SelectItem key={client.id} value={String(client.id)}>
+                                  {client.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="attendees">Attendees</Label>
+                          <Input
+                            id="attendees"
+                            type="number"
+                            value={burialFormData.attendees}
+                            onChange={(e) =>
+                              setBurialFormData({ ...burialFormData, attendees: e.target.value })
+                            }
+                          />
+                        </div>
+                        <div className="col-span-1 sm:col-span-2 space-y-2">
+                          <Label htmlFor="burial-notes">Notes</Label>
+                          <Textarea
+                            id="burial-notes"
+                            value={burialFormData.notes}
+                            onChange={(e) =>
+                              setBurialFormData({ ...burialFormData, notes: e.target.value })
+                            }
+                          />
+                        </div>
+                      </div>
+                      <div className="flex justify-end gap-2 mt-4">
+                        <Button
+                          variant="outline"
+                          type="button"
+                          onClick={() => {
+                            resetBurialForm()
+                            setIsAddBurialOpen(false)
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          type="button"
+                          className="bg-green-600 hover:bg-green-700"
+                          onClick={handleAddBurial}
+                        >
+                          Save Burial
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -3049,7 +3479,15 @@ export default function EmployeeDashboard() {
                 <h3 className="text-lg font-semibold">Client Management</h3>
                 <p className="text-gray-600">Manage lot owners and their information</p>
               </div>
-              <Dialog open={isAddClientOpen} onOpenChange={setIsAddClientOpen}>
+              <Dialog
+                open={isAddClientOpen}
+                onOpenChange={(open) => {
+                  setIsAddClientOpen(open)
+                  if (open) {
+                    resetClientForm()
+                  }
+                }}
+              >
                 <DialogTrigger asChild>
                   <Button className="bg-green-600 hover:bg-green-700 mt-4 sm:mt-0">
                     <Plus />
@@ -3179,19 +3617,19 @@ export default function EmployeeDashboard() {
                     </div>
                   </div>
                   <div className="flex justify-end gap-2">
-                    <Button variant="outline" onClick={() => setIsAddClientOpen(false)}>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        resetClientForm()
+                        setIsAddClientOpen(false)
+                      }}
+                    >
                       Cancel
                     </Button>
                     <Button 
                       onClick={handleAddClient} 
                       className="bg-green-600 hover:bg-green-700"
-                      disabled={
-                        !clientFormData.username || 
-                        !clientFormData.password || 
-                        !clientFormData.confirmPassword ||
-                        clientFormData.password !== clientFormData.confirmPassword ||
-                        clientFormData.password.length < 6
-                      }
+                      disabled={isCreateClientDisabled}
                     >
                       Create Client Account
                     </Button>
@@ -4470,23 +4908,27 @@ export default function EmployeeDashboard() {
                 </div>
                 <div className="col-span-1 sm:col-span-2">
                   <Label className="text-sm font-medium text-gray-500">Address</Label>
-                  <p className="text-sm">{selectedClient.address}</p>
+                  <p className="text-sm">{selectedClient.address || "—"}</p>
                 </div>
                 <div>
                   <Label className="text-sm font-medium text-gray-500">Emergency Contact</Label>
-                  <p className="text-sm">{selectedClient.emergencyContact}</p>
+                  <p className="text-sm">{selectedClient.emergencyContact || "—"}</p>
                 </div>
                 <div>
                   <Label className="text-sm font-medium text-gray-500">Emergency Phone</Label>
-                  <p className="text-sm">{selectedClient.emergencyPhone}</p>
+                  <p className="text-sm">{selectedClient.emergencyPhone || "—"}</p>
                 </div>
                 <div className="col-span-1 sm:col-span-2">
                   <Label className="text-sm font-medium text-gray-500">Owned Lots</Label>
-                  <p className="text-sm">{selectedClient.lots.join(", ")}</p>
+                  <p className="text-sm">
+                    {selectedClient.lots && selectedClient.lots.length > 0
+                      ? selectedClient.lots.join(", ")
+                      : "No lots assigned"}
+                  </p>
                 </div>
                 <div className="col-span-1 sm:col-span-2">
                   <Label className="text-sm font-medium text-gray-500">Notes</Label>
-                  <p className="text-sm">{selectedClient.notes}</p>
+                  <p className="text-sm">{selectedClient.notes || "—"}</p>
                 </div>
               </div>
 

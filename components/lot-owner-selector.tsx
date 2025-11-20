@@ -6,41 +6,89 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
-import { mapStore, type LotBox } from "@/lib/map-store"
 
 interface LotOwnerSelectorProps {
   isOpen: boolean
   onClose: () => void
-  onAssign: (lotId: string, ownerId: string, ownerName: string, ownerEmail: string) => void
+  onAssign: (lotId: string, ownerId: string, ownerName: string, ownerEmail: string) => Promise<void> | void
+}
+
+type ClientOption = {
+  id: string
+  name: string
+  email?: string
+}
+
+type LotOption = {
+  id: string
+  lot_number: string
+  section_id?: string | null
+  lot_type?: string | null
+  status?: string | null
+  price?: number | null
 }
 
 export default function LotOwnerSelector({ isOpen, onClose, onAssign }: LotOwnerSelectorProps) {
-  const [clients, setClients] = useState<any[]>([])
+  const [clients, setClients] = useState<ClientOption[]>([])
   const [selectedClient, setSelectedClient] = useState<string>("")
-  const [availableLots, setAvailableLots] = useState<LotBox[]>([])
+  const [availableLots, setAvailableLots] = useState<LotOption[]>([])
   const [selectedLot, setSelectedLot] = useState<string>("")
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
       loadData()
+    } else {
+      setSelectedClient("")
+      setSelectedLot("")
+      setError(null)
     }
   }, [isOpen])
 
-  const loadData = () => {
-    // Load clients from auth store
-    const authStore = localStorage.getItem("auth_store")
-    if (authStore) {
-      const auth = JSON.parse(authStore)
-      setClients(auth.clientUsers || [])
-    }
+  const loadData = async () => {
+    setIsLoading(true)
+    setError(null)
+    try {
+      const [clientsRes, lotsRes] = await Promise.all([
+        fetch("/api/clients"),
+        fetch("/api/lots?status=Available"),
+      ])
 
-    // Load available lots from all maps
-    const allLots = mapStore.getAllLots()
-    const vacant = allLots.filter((lot) => lot.status === "vacant" || !lot.ownerId)
-    setAvailableLots(vacant)
+      const clientsJson = await clientsRes.json()
+      if (!clientsRes.ok || !clientsJson.success) {
+        throw new Error(clientsJson.error || "Failed to load clients")
+      }
+      setClients(clientsJson.data || [])
+
+      const lotsJson = await lotsRes.json()
+      if (!lotsRes.ok || !lotsJson.success) {
+        throw new Error(lotsJson.error || "Failed to load lots")
+      }
+
+      const available = (lotsJson.data || [])
+        .filter((lot: LotOption) => lot.status === "Available")
+        .map((lot: any) => ({
+          id: lot.id,
+          lot_number: lot.lot_number,
+          section_id: lot.section_id,
+          lot_type: lot.lot_type,
+          status: lot.status,
+          price: lot.price,
+        }))
+      setAvailableLots(available)
+    } catch (err) {
+      console.error("[LotOwnerSelector] loadData error", err)
+      setError(err instanceof Error ? err.message : "Failed to load assignment data")
+      setClients([])
+      setAvailableLots([])
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  const handleAssign = () => {
+  const handleAssign = async () => {
     if (!selectedClient || !selectedLot) {
       alert("Please select both a client and a lot")
       return
@@ -50,8 +98,16 @@ export default function LotOwnerSelector({ isOpen, onClose, onAssign }: LotOwner
     const lot = availableLots.find((l) => l.id === selectedLot)
 
     if (client && lot) {
-      onAssign(lot.id, client.id, client.name, client.email)
-      onClose()
+      try {
+        setIsSubmitting(true)
+        await Promise.resolve(onAssign(lot.id, client.id, client.name, client.email || ""))
+        onClose()
+      } catch (err) {
+        console.error("[LotOwnerSelector] assign error", err)
+        setError(err instanceof Error ? err.message : "Failed to assign lot")
+      } finally {
+        setIsSubmitting(false)
+      }
     }
   }
 
@@ -64,6 +120,8 @@ export default function LotOwnerSelector({ isOpen, onClose, onAssign }: LotOwner
         </DialogHeader>
 
         <div className="space-y-6">
+          {error && <p className="text-sm text-red-600">{error}</p>}
+
           <div>
             <label className="block text-sm font-medium mb-2">Select Client</label>
             <Select value={selectedClient} onValueChange={setSelectedClient}>
@@ -71,9 +129,13 @@ export default function LotOwnerSelector({ isOpen, onClose, onAssign }: LotOwner
                 <SelectValue placeholder="Choose a client" />
               </SelectTrigger>
               <SelectContent>
+                {clients.length === 0 && !isLoading && (
+                  <div className="px-3 py-2 text-sm text-gray-500">No clients available</div>
+                )}
                 {clients.map((client) => (
                   <SelectItem key={client.id} value={client.id}>
-                    {client.name} ({client.email})
+                    {client.name || "Unnamed"}
+                    {client.email ? ` (${client.email})` : ""}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -81,8 +143,14 @@ export default function LotOwnerSelector({ isOpen, onClose, onAssign }: LotOwner
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Select Lot ({availableLots.length} available)</label>
+            <label className="block text-sm font-medium mb-2">
+              Select Lot ({availableLots.length} available)
+            </label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-64 overflow-y-auto border rounded-lg p-3">
+              {isLoading && <p className="text-sm text-gray-500">Loading lots...</p>}
+              {!isLoading && availableLots.length === 0 && (
+                <p className="text-sm text-gray-500">No available lots</p>
+              )}
               {availableLots.map((lot) => (
                 <Card
                   key={lot.id}
@@ -92,15 +160,16 @@ export default function LotOwnerSelector({ isOpen, onClose, onAssign }: LotOwner
                   <CardContent className="p-3">
                     <div className="flex justify-between items-start">
                       <div>
-                        <p className="font-semibold text-sm">{lot.id}</p>
-                        <p className="text-xs text-gray-600">{lot.section || "No section"}</p>
-                        <p className="text-xs text-gray-600">{lot.lotType}</p>
+                        <p className="font-semibold text-sm">Lot {lot.lot_number}</p>
+                        <p className="text-xs text-gray-600">
+                          {lot.section_id || "No section"} • {lot.lot_type || "Unknown type"}
+                        </p>
                       </div>
-                      <Badge variant="secondary" className="text-xs">
-                        {lot.status}
+                      <Badge variant="secondary" className="text-xs capitalize">
+                        {lot.status || "n/a"}
                       </Badge>
                     </div>
-                    {lot.price && (
+                    {typeof lot.price === "number" && (
                       <p className="text-xs font-medium text-green-600 mt-1">₱{lot.price.toLocaleString()}</p>
                     )}
                   </CardContent>
@@ -116,9 +185,9 @@ export default function LotOwnerSelector({ isOpen, onClose, onAssign }: LotOwner
             <Button
               onClick={handleAssign}
               className="bg-blue-600 hover:bg-blue-700"
-              disabled={!selectedClient || !selectedLot}
+              disabled={!selectedClient || !selectedLot || isSubmitting}
             >
-              Assign Lot
+              {isSubmitting ? "Assigning..." : "Assign Lot"}
             </Button>
           </div>
         </div>
