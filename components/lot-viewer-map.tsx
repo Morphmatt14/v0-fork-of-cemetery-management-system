@@ -6,7 +6,8 @@ import { useState, useRef, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { mapStore, type CemeteryMap } from "@/lib/map-store"
+import { mapStoreApi, type CemeteryMap } from "@/lib/map-store-api"
+import { supabase } from "@/lib/supabase-client"
 import { MapPin, Navigation, Eye, Calendar } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
@@ -16,11 +17,66 @@ interface LotViewerMapProps {
 }
 
 export default function LotViewerMap({ userLots = [], onAppointmentRequest }: LotViewerMapProps) {
-  const [maps, setMaps] = useState<CemeteryMap[]>(mapStore.getMaps())
-  const [selectedMap, setSelectedMap] = useState<CemeteryMap | null>(maps[0] || null)
+  const [maps, setMaps] = useState<CemeteryMap[]>([])
+  const [selectedMap, setSelectedMap] = useState<CemeteryMap | null>(null)
   const [selectedLot, setSelectedLot] = useState<any>(null)
   const [showLotDetails, setShowLotDetails] = useState(false)
   const canvasRef = useRef<HTMLCanvasElement>(null)
+
+  const loadMaps = async () => {
+    const fetchedMaps = await mapStoreApi.getMaps()
+    setMaps(fetchedMaps)
+  }
+
+  useEffect(() => {
+    let isMounted = true
+
+    loadMaps().then(() => {
+      if (!isMounted) return
+    })
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  useEffect(() => {
+    // Subscribe to realtime changes on maps and lots so the viewer stays in sync
+    const channel = supabase
+      .channel("lot-viewer-map-updates")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "cemetery_maps" },
+        () => {
+          loadMaps()
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "map_lot_positions" },
+        () => {
+          loadMaps()
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "lots" },
+        () => {
+          loadMaps()
+        },
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!selectedMap && maps.length > 0) {
+      setSelectedMap(maps[0])
+    }
+  }, [maps, selectedMap])
 
   useEffect(() => {
     if (selectedMap) {
@@ -265,11 +321,6 @@ export default function LotViewerMap({ userLots = [], onAppointmentRequest }: Lo
                   </div>
                 </div>
               )}
-
-              <Button className="w-full bg-teal-600 hover:bg-teal-700">
-                <Navigation className="h-4 w-4 mr-2" />
-                Get Directions
-              </Button>
             </div>
           </CardContent>
         </Card>
