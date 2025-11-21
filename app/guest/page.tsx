@@ -153,7 +153,7 @@ export default function GuestModePage() {
           <div className="mt-12 text-center">
             <div className="inline-flex items-center gap-4 bg-white/10 backdrop-blur-sm rounded-full px-6 py-3">
               <Shield />
-              <span className="text-white/80 text-sm">Administrator Access:</span>
+              <span className="text-white/80 text-sm">Employee Access:</span>
               <Button
                 asChild
                 variant="ghost"
