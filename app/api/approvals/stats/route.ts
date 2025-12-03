@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseServer } from '@/lib/supabase-server'
 import { ApprovalStats, ApprovalStatsResponse } from '@/lib/types/approvals'
 
+export const dynamic = 'force-dynamic'
+
 // ============================================================================
 // GET /api/approvals/stats - Get approval workflow statistics
 // ============================================================================

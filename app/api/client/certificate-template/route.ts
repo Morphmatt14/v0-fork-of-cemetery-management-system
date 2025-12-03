@@ -4,6 +4,8 @@ import { readFile } from 'node:fs/promises'
 import { supabaseServer } from '@/lib/supabase-server'
 import { generateOwnershipCertificatePdfBuffer } from '@/lib/services/contract'
 
+export const dynamic = 'force-dynamic'
+
 const CERTIFICATE_TEMPLATE_PATH =
   process.env.CERTIFICATE_TEMPLATE_PATH ||
   path.join(process.cwd(), 'documents', 'CertificateofOwnershipSurigaoMemorialPark.pdf')
