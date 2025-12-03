@@ -52,25 +52,35 @@ export default function EmployeePortalLoginPage() {
       if (result.success && result.user) {
         console.log("[Auth] ✅ Employee logged in successfully:", result.user.username)
         console.log("[Auth] User data:", result.user)
-        
-        // Store session in localStorage
-        localStorage.setItem('employeeSession', 'true')
-        localStorage.setItem('employeeUser', result.user.username)
-        localStorage.setItem('currentUser', JSON.stringify({
+
+        const resolvedRole = result.role === 'cashier' ? 'cashier' : 'employee'
+        const sessionKey = resolvedRole === 'cashier' ? 'cashierSession' : 'employeeSession'
+        const userKey = resolvedRole === 'cashier' ? 'cashierUser' : 'employeeUser'
+        const roleUserKey = resolvedRole === 'cashier' ? 'currentCashierUser' : 'currentEmployeeUser'
+
+        const rolePayload = {
           id: result.user.id,
           username: result.user.username,
           name: result.user.name,
           email: result.user.email,
-          role: 'employee'
-        }))
+          role: resolvedRole,
+          employeeRole: result.user.employeeRole || result.user.role
+        }
+
+        // Store session in localStorage without removing other role sessions
+        localStorage.setItem(sessionKey, 'true')
+        localStorage.setItem(userKey, result.user.username)
+        localStorage.setItem(roleUserKey, JSON.stringify(rolePayload))
+        localStorage.setItem('currentUser', JSON.stringify(rolePayload))
         
-        // Redirect to employee dashboard
-        console.log("[Auth] Redirecting to dashboard...")
-        router.push("/admin/employee/dashboard")
+        // Redirect to appropriate dashboard
+        const redirectPath = resolvedRole === 'cashier' ? '/cashier/dashboard' : '/admin/employee/dashboard'
+        console.log("[Auth] Redirecting to dashboard:", redirectPath)
+        router.push(redirectPath)
         
         // Force refresh to ensure new session is loaded
         setTimeout(() => {
-          window.location.href = "/admin/employee/dashboard"
+          window.location.href = redirectPath
         }, 100)
       } else {
         // Login failed

@@ -83,6 +83,11 @@ export async function POST(request: NextRequest) {
         timestamp: new Date().toISOString()
       })
 
+    const employeeRole = userType === 'employee' ? (user.role || 'staff') : undefined
+    const resolvedRole = userType === 'employee'
+      ? (employeeRole === 'cashier' ? 'cashier' : 'employee')
+      : userType
+
     // Return user data (without password hash)
     const userData = {
       id: user.id,
@@ -91,7 +96,8 @@ export async function POST(request: NextRequest) {
       name: user.name,
       status: user.status,
       created_at: user.created_at,
-      last_login: user.last_login
+      last_login: user.last_login,
+      employeeRole
     }
 
     console.log('[API] ✅ Login successful')
@@ -99,7 +105,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       user: userData,
-      role: userType
+      role: resolvedRole
     })
 
   } catch (error: any) {

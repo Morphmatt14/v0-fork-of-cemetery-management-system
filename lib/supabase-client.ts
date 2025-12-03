@@ -23,7 +23,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
  * Must be called after successful login to enable proper data access
  */
 export async function setUserContext(
-  role: 'admin' | 'employee' | 'client',
+  role: 'admin' | 'employee' | 'cashier' | 'client',
   userId: string
 ): Promise<{ success: boolean; error?: string }> {
   try {

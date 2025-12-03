@@ -318,22 +318,30 @@ export async function checkApprovalRequired(
   actionType: string
 ): Promise<{ required: boolean; config?: ApprovalConfig }> {
   try {
+    const actionsRequiringApproval = new Set<string>([
+      'lot_create',
+      'map_create',
+      'content_update',
+    ])
+
+    if (!actionsRequiringApproval.has(actionType)) {
+      return { required: false }
+    }
+
     const configResponse = await getApprovalConfig()
-    
+
     if (!configResponse.success || !configResponse.data) {
-      // Default to requiring approval if config fetch fails
       return { required: true }
     }
 
-    const config = configResponse.data.find(c => c.action_type === actionType)
-    
+    const config = configResponse.data.find((c) => c.action_type === actionType)
+
     return {
-      required: config ? config.requires_approval : true,
-      config
+      required: true,
+      config,
     }
   } catch (error) {
     console.error('[Approvals API Client] checkApprovalRequired error:', error)
-    // Default to requiring approval on error
     return { required: true }
   }
 }

@@ -17,6 +17,16 @@ import {
   type CemeteryMap as ApiCemeteryMap 
 } from '@/lib/api/maps-api'
 import { createLot, updateLot, deleteLot as apiDeleteLot } from '@/lib/api/lots-api'
+import {
+  deriveBlockId,
+  deriveSectionLabelFromMap,
+  mapNormalizedLotTypeToDb,
+  normalizeLotTypeLabel,
+  type NormalizedLotType,
+} from '@/lib/utils/lot-normalizer'
+import { emitMapLotsUpdated } from '@/lib/map-events'
+
+type UILotType = NormalizedLotType | 'Lawn' | 'Garden'
 
 // Re-export types for compatibility
 export interface CemeteryMap {
@@ -24,6 +34,7 @@ export interface CemeteryMap {
   name: string
   description: string
   imageUrl: string
+  googleMapsUrl?: string
   createdAt: string
   updatedAt: string
   sections: CemeterySection[]
@@ -48,7 +59,7 @@ export interface LotBox {
   width: number
   height: number
   ownerName: string
-  lotType: "Lawn" | "Garden" | "Family State"
+  lotType: UILotType
   status: "vacant" | "still_on_payment" | "occupied"
   price?: number
   rotation?: number
@@ -61,35 +72,50 @@ export interface LotBox {
 
 export interface LotTemplate {
   count: number
-  lotType: "Lawn" | "Garden" | "Family State"
+  lotType: UILotType
   basePrice: number
 }
 
 // Helper function to convert API map to UI format
+const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/
+
 function convertApiMapToUI(apiMap: ApiCemeteryMap): CemeteryMap {
-  // Convert lot positions to LotBox format
-  const lots: LotBox[] = (apiMap.lot_positions || []).map(pos => ({
-    id: pos.lot_id,
-    x: pos.x_position,
-    y: pos.y_position,
-    width: pos.width,
-    height: pos.height,
-    rotation: pos.rotation || 0,
-    ownerName: pos.lots?.occupant_name || "[Available]",
-    lotType: convertLotTypeToUI(pos.lots?.lot_type),
-    status: convertStatusToUI(pos.lots?.status),
-    price: pos.lots?.price,
-    dimensions: pos.lots?.dimensions,
-    mapId: apiMap.id,
-    section: apiMap.cemetery_sections?.name,
-    ownerId: pos.lots?.owner_id,
-  }))
+  // API may return map_lot_positions (list view) or lot_positions (detail view)
+  const lotPositions = (apiMap as any).map_lot_positions || apiMap.lot_positions || []
+
+  // Convert lot positions to LotBox format (skip positions without a real DB lot)
+  const lots: LotBox[] = lotPositions.flatMap((pos: any) => {
+    const dbLot = pos.lots
+    const lotId = typeof pos.lot_id === 'string' ? pos.lot_id.trim() : ''
+
+    if (!dbLot || !lotId || !UUID_REGEX.test(lotId)) {
+      return []
+    }
+
+    return [{
+      id: lotId,
+      x: pos.x_position,
+      y: pos.y_position,
+      width: pos.width,
+      height: pos.height,
+      rotation: pos.rotation || 0,
+      ownerName: dbLot.occupant_name || "[Available]",
+      lotType: convertLotTypeToUI(dbLot.lot_type),
+      status: convertStatusToUI(dbLot.status),
+      price: dbLot.price,
+      dimensions: dbLot.dimensions,
+      mapId: apiMap.id,
+      section: apiMap.cemetery_sections?.name,
+      ownerId: dbLot.owner_id,
+    }]
+  })
 
   return {
     id: apiMap.id,
     name: apiMap.name,
     description: apiMap.description || "",
     imageUrl: apiMap.image_url,
+    googleMapsUrl: (apiMap as any).google_maps_url || "",
     createdAt: apiMap.created_at,
     updatedAt: apiMap.updated_at,
     sections: [], // Sections not used in current UI
@@ -97,11 +123,8 @@ function convertApiMapToUI(apiMap: ApiCemeteryMap): CemeteryMap {
   }
 }
 
-function convertLotTypeToUI(apiType?: string): "Lawn" | "Garden" | "Family State" {
-  if (apiType === "Standard") return "Lawn"
-  if (apiType === "Premium") return "Garden"
-  if (apiType === "Family") return "Family State"
-  return "Lawn"
+function convertLotTypeToUI(apiType?: string): UILotType {
+  return normalizeLotTypeLabel(apiType)
 }
 
 function convertStatusToUI(apiStatus?: string): "vacant" | "still_on_payment" | "occupied" {
@@ -111,11 +134,8 @@ function convertStatusToUI(apiStatus?: string): "vacant" | "still_on_payment" | 
   return "vacant"
 }
 
-function convertLotTypeToAPI(uiType: string): string {
-  if (uiType === "Lawn") return "Standard"
-  if (uiType === "Garden") return "Premium"
-  if (uiType === "Family State") return "Family"
-  return "Standard"
+function convertLotTypeToAPI(uiType?: string): 'Standard' | 'Premium' | 'Family' {
+  return mapNormalizedLotTypeToDb(normalizeLotTypeLabel(uiType))
 }
 
 function convertStatusToAPI(uiStatus: string): string {
@@ -161,6 +181,7 @@ export const mapStoreApi = {
         name: map.name,
         description: map.description,
         image_url: map.imageUrl,
+        google_maps_url: map.googleMapsUrl,
         width: 1200,
         height: 800,
         status: 'active',
@@ -184,6 +205,7 @@ export const mapStoreApi = {
       if (updates.name) updateData.name = updates.name
       if (updates.description) updateData.description = updates.description
       if (updates.imageUrl) updateData.image_url = updates.imageUrl
+      if (updates.googleMapsUrl !== undefined) updateData.google_maps_url = updates.googleMapsUrl
 
       const result = await apiUpdateMap(id, updateData)
       
@@ -211,18 +233,18 @@ export const mapStoreApi = {
   // Add lot with visual position
   async addLot(mapId: string, lot: Omit<LotBox, "id">): Promise<CemeteryMap | null> {
     try {
-      // Get the map to check if it has a section_id
+      // First, create the lot in the lots table. For lots created from the map editor
+      // we don't require a cemetery section_id – they are linked to the map via map_id.
       const currentMap = await this.getMapById(mapId)
-      
-      // First, create the lot in the lots table
+      const mapName = currentMap?.name
+      const normalizedLotType = normalizeLotTypeLabel(lot.lotType)
       const lotResult = await createLot({
         lot_number: `LOT-${Date.now()}`,
-        section_id: lot.section || undefined,  // Optional - will be null in database if not provided
-        lot_type: convertLotTypeToAPI(lot.lotType) as any,
+        lot_type: mapNormalizedLotTypeToDb(normalizedLotType),
         status: convertStatusToAPI(lot.status) as any,
         price: lot.price || 75000,
         dimensions: lot.dimensions || "2m x 1m",
-        description: `Lot created from map`,
+        description: `Lot created from map${mapName ? `: ${mapName}` : ''}`,
         map_id: mapId,
       })
 
@@ -243,7 +265,9 @@ export const mapStoreApi = {
       })
 
       // Return updated map
-      return await this.getMapById(mapId)
+      const updatedMap = await this.getMapById(mapId)
+      emitMapLotsUpdated()
+      return updatedMap
     } catch (error) {
       console.error('addLot error:', error)
       return null
@@ -257,7 +281,10 @@ export const mapStoreApi = {
       if (updates.status || updates.lotType || updates.price || updates.ownerName) {
         const lotUpdates: any = {}
         if (updates.status) lotUpdates.status = convertStatusToAPI(updates.status) as any
-        if (updates.lotType) lotUpdates.lot_type = convertLotTypeToAPI(updates.lotType) as any
+        if (updates.lotType) {
+          const normalizedLotType = normalizeLotTypeLabel(updates.lotType)
+          lotUpdates.lot_type = mapNormalizedLotTypeToDb(normalizedLotType)
+        }
         if (updates.price) lotUpdates.price = updates.price
         if (updates.ownerName && updates.ownerName !== "[Available]") {
           lotUpdates.occupant_name = updates.ownerName
@@ -285,7 +312,9 @@ export const mapStoreApi = {
         })
       }
 
-      return await this.getMapById(mapId)
+      const updatedMap = await this.getMapById(mapId)
+      emitMapLotsUpdated()
+      return updatedMap
     } catch (error) {
       console.error('updateLot error:', error)
       return null
@@ -301,7 +330,9 @@ export const mapStoreApi = {
       // Soft delete the lot
       await apiDeleteLot(lotId)
 
-      return await this.getMapById(mapId)
+      const updatedMap = await this.getMapById(mapId)
+      emitMapLotsUpdated()
+      return updatedMap
     } catch (error) {
       console.error('deleteLot error:', error)
       return null

@@ -8,10 +8,12 @@ import bcrypt from 'bcryptjs'
 // Create a new employee account
 // ============================================================================
 
+const ALLOWED_ROLES = ['staff', 'supervisor', 'cashier']
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { username, password, name, email, phone, createdBy } = body
+    const { username, password, name, email, phone, role = 'staff', createdBy } = body
 
     console.log('[Create Employee API] Creating employee:', { username, name, email })
 
@@ -19,6 +21,13 @@ export async function POST(request: NextRequest) {
     if (!username || !password) {
       return NextResponse.json(
         { success: false, error: 'Username and password are required' },
+        { status: 400 }
+      )
+    }
+
+    if (!ALLOWED_ROLES.includes(role)) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid role specified' },
         { status: 400 }
       )
     }
@@ -69,6 +78,7 @@ export async function POST(request: NextRequest) {
         email: email || null,
         phone: phone || null,
         status: 'active',
+        role,
         created_by: createdBy || null
       })
       .select()

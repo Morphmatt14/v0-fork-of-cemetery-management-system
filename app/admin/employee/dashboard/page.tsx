@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import type { SVGProps } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -32,6 +32,9 @@ import {
 } from "@/components/ui/alert-dialog"
 import { toast } from "@/hooks/use-toast"
 import { mapStore } from "@/lib/map-store"
+import { mapStoreApi } from "@/lib/map-store-api"
+import { MAP_LOTS_UPDATED_EVENT } from "@/lib/map-events"
+import { deriveBlockId, normalizeLotTypeLabel } from "@/lib/utils/lot-normalizer"
 import {
   submitPendingAction,
   checkApprovalRequired,
@@ -41,12 +44,21 @@ import {
   getStatusColor,
   getTimeElapsed
 } from "@/lib/api/approvals-api"
-import { fetchDashboardData, createClient as createClientInDB, checkClientEmailExists, updatePayment } from "@/lib/api/dashboard-api"
+import { fetchDashboardData, createClient as createClientInDB, checkClientEmailExists, updatePayment, deleteClient as deleteClientInDB } from "@/lib/api/dashboard-api"
 import { updateLot } from "@/lib/api/lots-api"
 import { FrontPageTab } from "./components/front-page-tab"
 import { formatCurrency } from "./components/utils"
 
 const mergeClasses = (base: string, extra?: string) => (extra ? `${base} ${extra}` : base)
+
+const saveToLocalStorage = (data: any) => {
+  if (typeof window === "undefined") return
+  try {
+    localStorage.setItem("cemeteryData", JSON.stringify(data))
+  } catch (error) {
+    console.error("[Employee Dashboard] Failed to save dashboard data to localStorage", error)
+  }
+}
 
 const createEmptyClientForm = () => ({
   name: "",
@@ -59,7 +71,190 @@ const createEmptyClientForm = () => ({
   username: "",
   password: "",
   confirmPassword: "",
+  contractSection: "",
+  contractBlock: "",
+  contractLotNumber: "",
+  contractLotType: "",
+  selectedLotId: "",
+  contractSignedAt: "",
+  contractAuthorizedBy: "",
+  contractAuthorizedPosition: "",
+  preferredPaymentMethod: "cash",
+  preferredPaymentSchedule: "monthly",
 })
+
+const paymentMethodOptions = [
+  { value: "cash", label: "Cash" },
+  { value: "check", label: "Check" },
+  { value: "bank_transfer", label: "Bank Transfer" },
+  { value: "online", label: "Online Payment" },
+]
+
+const paymentScheduleOptions = [
+  { value: "demo_1min", label: "Every 1 Minute (Demo)" },
+  { value: "demo_5min", label: "Every 5 Minutes (Demo)" },
+  { value: "monthly", label: "Monthly" },
+  { value: "quarterly", label: "Quarterly" },
+  { value: "yearly", label: "Yearly" },
+  { value: "full", label: "Full Payment" },
+]
+
+const CLEAR_SELECTION_VALUE = '__clear_selection__'
+const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/
+
+const isValidUUID = (value?: string | null) => (typeof value === 'string' && UUID_REGEX.test(value))
+
+type EmployeeInfo = {
+  id: string
+  name?: string
+  username?: string
+  role?: string
+  employeeRole?: string
+}
+
+const EMPLOYEE_ROLE_TITLES: Record<string, string> = {
+  admin: "Administrator",
+  manager: "Operations Manager",
+  supervisor: "Supervisor",
+  cashier: "Cashier",
+  staff: "Staff",
+}
+
+const formatEmployeeRoleTitle = (role?: string): string => {
+  if (!role) return "Authorized Signatory"
+  const normalized = role.toLowerCase()
+  if (EMPLOYEE_ROLE_TITLES[normalized]) {
+    return EMPLOYEE_ROLE_TITLES[normalized]
+  }
+
+  return normalized
+    .replace(/_/g, ' ')
+    .split(' ')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+}
+
+const normalizeClientStatus = (status?: string | null) => {
+  if (!status || typeof status !== 'string') return 'unknown'
+  const normalized = status.trim().toLowerCase()
+  return normalized || 'unknown'
+}
+
+type ClientStatusMeta = {
+  label: string
+  variant: 'default' | 'secondary' | 'destructive' | 'outline'
+  description?: string
+}
+
+const CLIENT_STATUS_META: Record<string, ClientStatusMeta> = {
+  active: {
+    label: 'Active',
+    variant: 'default',
+  },
+  pending: {
+    label: 'Pending Activation',
+    variant: 'secondary',
+    description: 'Awaiting cashier payment to activate.',
+  },
+  inactive: {
+    label: 'Pending Activation',
+    variant: 'secondary',
+    description: 'Awaiting cashier payment to activate.',
+  },
+  suspended: {
+    label: 'Suspended',
+    variant: 'destructive',
+    description: 'Access temporarily restricted by administration.',
+  },
+  archived: {
+    label: 'Archived',
+    variant: 'outline',
+  },
+  deleted: {
+    label: 'Deleted',
+    variant: 'outline',
+  },
+}
+
+const getClientStatusMeta = (status?: string | null): ClientStatusMeta => {
+  const normalized = normalizeClientStatus(status)
+  if (CLIENT_STATUS_META[normalized]) {
+    return CLIENT_STATUS_META[normalized]
+  }
+
+  return {
+    label: status && status.trim() ? status : 'Unknown',
+    variant: 'outline',
+  }
+}
+
+type AvailableLotOption = {
+  id: string
+  section?: string
+  block?: string
+  lotNumber: string
+  lotType?: string
+  raw: any
+}
+
+const getLotSectionLabel = (lot: any): string | undefined => {
+  const candidates = [
+    lot?.section,
+    lot?.section_name,
+    lot?.sectionName,
+    lot?.cemetery_sections?.name,
+    lot?.section_label,
+  ].filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+
+  return candidates[0]?.trim()
+}
+
+const getLotBlockLabel = (lot: any): string | undefined => {
+  const candidates = [
+    lot?.block,
+    lot?.block_label,
+    lot?.blockLabel,
+    lot?.block_number,
+    lot?.blockNumber,
+    lot?.section_block,
+  ].filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+
+  if (candidates[0]) return candidates[0].trim()
+
+  const lotIdentifier = typeof lot?.lot_number === 'string' ? lot.lot_number : typeof lot?.id === 'string' ? lot.id : undefined
+  if (lotIdentifier && lotIdentifier.includes('-')) {
+    return lotIdentifier.split('-')[0]?.trim()
+  }
+
+  return undefined
+}
+
+const getLotNumberLabel = (lot: any): string | undefined => {
+  const candidates = [lot?.lot_number, lot?.lotNumber, lot?.label]
+    .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+  if (candidates[0]) return candidates[0].trim()
+  if (typeof lot?.id === 'string' && lot.id.trim().length > 0) return lot.id.trim()
+  return undefined
+}
+
+const getLotTypeLabel = (lot: any): string | undefined => {
+  const candidates = [lot?.type, lot?.lot_type, lot?.lotType]
+    .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+  return candidates[0]?.trim()
+}
+
+const lotIsAvailable = (lot: any): boolean => {
+  const status = (lot?.status || lot?.lot_status || lot?.state || '').toString().toLowerCase()
+  return status === 'available' || status === 'vacant'
+}
+
+const formatLotNumberLabel = (option: AvailableLotOption) => {
+  const parts: string[] = [`Lot ${option.lotNumber}`]
+  if (option.section) parts.push(option.section)
+  if (option.block) parts.push(`Block ${option.block}`)
+  if (option.lotType) parts.push(option.lotType)
+  return parts.join(' • ')
+}
 
 const MapPin = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
   <svg
@@ -391,523 +586,6 @@ import { logout } from '@/lib/dashboard-api'
 // Import tab components
 import { OverviewTab, LotsTab, MapsTab, NewsTab } from './components'
 
-// Global state management (in a real app, this would be Redux, Zustand, or Context API)
-// Moved to useEffect to ensure client-side execution
-// let globalData = { ... }
-
-// Helper function to save data to localStorage
-const saveToLocalStorage = (data: any) => {
-  if (typeof window !== "undefined") {
-    localStorage.setItem("globalData", JSON.stringify(data))
-  }
-}
-
-// Helper function to load data from localStorage (used in useEffect)
-const loadFromLocalStorage = (): any => {
-  if (typeof window !== "undefined") {
-    const saved = localStorage.getItem("globalData")
-    if (saved) {
-      try {
-        return JSON.parse(saved)
-      } catch (e) {
-        console.error("Error parsing saved data from localStorage", e)
-      }
-    }
-  }
-  return null
-}
-
-// Default data for initial state
-const defaultDashboardData = {
-  // ... (rest of the code remains the same)
-  stats: {
-    totalLots: 2500,
-    occupiedLots: 1847,
-    availableLots: 653,
-    totalClients: 1200,
-    monthlyRevenue: 450000,
-    pendingInquiries: 12,
-    overduePayments: 8,
-  },
-  recentBurials: [
-    {
-      id: 1,
-      name: "Juan Santos",
-      date: "2024-01-15",
-      lot: "A-123",
-      family: "Santos Family",
-      age: 78,
-      cause: "Natural causes",
-      funeral: "St. Mary's Church",
-      burial: "10:00 AM",
-      attendees: 45,
-      notes: "Peaceful ceremony with family and friends",
-    },
-    {
-      id: 2,
-      name: "Maria Cruz",
-      date: "2024-01-18",
-      lot: "B-456",
-      family: "Cruz Family",
-      age: 65,
-      cause: "Heart failure",
-      funeral: "Sacred Heart Chapel",
-      burial: "2:00 PM",
-      attendees: 32,
-      notes: "Memorial service held prior to burial",
-    },
-    {
-      id: 3,
-      name: "Pedro Reyes",
-      date: "2024-01-20",
-      lot: "C-789",
-      family: "Reyes Family",
-      age: 82,
-      cause: "Old age",
-      funeral: "Family residence",
-      burial: "9:00 AM",
-      attendees: 28,
-      notes: "Traditional Filipino burial customs observed",
-    },
-  ],
-  pendingInquiries: [
-    {
-      id: 1,
-      name: "Ana Garcia",
-      email: "ana@email.com",
-      phone: "09123456789",
-      type: "Lot Availability",
-      date: "2024-01-20",
-      time: "10:30 AM",
-      status: "New",
-      message:
-        "I'm interested in purchasing a family lot in the Garden of Peace section. Could you please provide information about available lots and pricing? I would also like to know about payment plans and maintenance fees. My family is looking for a peaceful location with good accessibility for elderly visitors.",
-      priority: "high",
-      source: "Website Contact Form",
-      preferredContact: "Email",
-      budget: "₱150,000 - ₱200,000",
-      timeline: "Within 2 months",
-      responses: [],
-      assignedTo: "Admin",
-      tags: ["lot-inquiry", "family-lot", "garden-of-peace"],
-      followUpDate: "2024-01-22",
-    },
-    {
-      id: 2,
-      name: "Carlos Lopez",
-      email: "carlos@email.com",
-      phone: "09987654321",
-      type: "Payment Plans",
-      date: "2024-01-19",
-      time: "2:15 PM",
-      status: "In Progress",
-      message:
-        "I would like to know about installment payment options for lot B-234. What are the available payment terms? Can I pay monthly or quarterly? Also, are there any additional fees for installment plans? I'm currently employed and can provide proof of income if needed.",
-      priority: "normal",
-      source: "Phone Call",
-      preferredContact: "Phone",
-      budget: "₱5,000 - ₱10,000 monthly",
-      timeline: "Immediate",
-      responses: [
-        {
-          id: 1,
-          date: "2024-01-19",
-          time: "4:30 PM",
-          respondent: "Admin",
-          message:
-            "Thank you for your inquiry. We offer flexible payment plans including monthly and quarterly options. I'll send you detailed information via email.",
-          method: "Email",
-        },
-      ],
-      assignedTo: "Admin",
-      tags: ["payment-plan", "installment", "lot-b234"],
-      followUpDate: "2024-01-21",
-    },
-    {
-      id: 3,
-      name: "Rosa Martinez",
-      email: "rosa@email.com",
-      phone: "09555666777",
-      type: "Maintenance",
-      date: "2024-01-18",
-      time: "9:45 AM",
-      status: "New",
-      message:
-        "The landscaping around lot D-567 needs attention. Some plants are overgrown and the pathway needs cleaning. There are also some weeds growing around the headstone. Could someone please schedule maintenance for this area? This is for my late husband's grave and I visit regularly.",
-      priority: "low",
-      source: "In-Person Visit",
-      preferredContact: "Phone",
-      budget: "N/A",
-      timeline: "Within 1 week",
-      responses: [],
-      assignedTo: "Maintenance Team",
-      tags: ["maintenance", "landscaping", "lot-d567"],
-      followUpDate: "2024-01-20",
-    },
-    {
-      id: 4,
-      name: "Miguel Santos",
-      email: "miguel@email.com",
-      phone: "09444555666",
-      type: "Documentation",
-      date: "2024-01-17",
-      time: "11:20 AM",
-      status: "Resolved",
-      message:
-        "I need a copy of the burial certificate for my mother, Maria Santos, who was buried in lot A-002 last month. This is for insurance purposes. Can you please provide this document?",
-      priority: "normal",
-      source: "Email",
-      preferredContact: "Email",
-      budget: "N/A",
-      timeline: "ASAP",
-      responses: [
-        {
-          id: 1,
-          date: "2024-01-17",
-          time: "2:00 PM",
-          respondent: "Admin",
-          message: "I've located your mother's burial certificate. I'll email you a certified copy within 24 hours.",
-          method: "Email",
-        },
-        {
-          id: 2,
-          date: "2024-01-18",
-          time: "9:00 AM",
-          respondent: "Admin",
-          message: "Burial certificate has been sent to your email address. Please confirm receipt.",
-          method: "Email",
-        },
-      ],
-      assignedTo: "Admin",
-      tags: ["documentation", "burial-certificate", "insurance"],
-      followUpDate: null,
-      resolvedDate: "2024-01-18",
-      resolvedBy: "Admin",
-    },
-    {
-      id: 5,
-      name: "Elena Rodriguez",
-      email: "elena@email.com",
-      phone: "09777888999",
-      type: "General Information",
-      date: "2024-01-16",
-      time: "3:30 PM",
-      status: "New",
-      message:
-        "What are your visiting hours? Are there any restrictions on bringing flowers or decorations? Also, do you have any upcoming memorial events or services that families can participate in?",
-      priority: "low",
-      source: "Website Chat",
-      preferredContact: "Email",
-      budget: "N/A",
-      timeline: "No rush",
-      responses: [],
-      assignedTo: "Customer Service",
-      tags: ["general-info", "visiting-hours", "memorial-events"],
-      followUpDate: "2024-01-19",
-    },
-  ],
-  lots: [
-    {
-      id: "A-001",
-      section: "Garden of Peace",
-      type: "Standard",
-      status: "Available",
-      price: 75000,
-      dimensions: "2m x 1m",
-      features: "Concrete headstone, garden border",
-      description: "Beautiful standard lot with garden view",
-      dateAdded: "2023-06-15",
-    },
-    {
-      id: "A-002",
-      section: "Garden of Peace",
-      type: "Standard",
-      status: "Occupied",
-      price: 75000,
-      occupant: "Juan Santos",
-      owner: "Maria Santos",
-      dimensions: "2m x 1m",
-      features: "Concrete headstone, garden border, memorial plaque",
-      description: "Standard lot with peaceful garden setting",
-      dateAdded: "2023-06-15",
-      dateOccupied: "2024-01-15",
-    },
-    {
-      id: "B-001",
-      section: "Garden of Serenity",
-      type: "Premium",
-      status: "Reserved",
-      price: 120000,
-      owner: "Carlos Mendez",
-      dimensions: "3m x 2m",
-      features: "Marble headstone, landscaped garden, bench",
-      description: "Premium lot with enhanced features and larger space",
-      dateAdded: "2023-07-20",
-      dateReserved: "2024-01-10",
-    },
-    {
-      id: "C-001",
-      section: "Garden of Tranquility",
-      type: "Family",
-      status: "Available",
-      price: 200000,
-      dimensions: "4m x 3m",
-      features: "Family monument, landscaped area, multiple burial spaces",
-      description: "Spacious family lot accommodating multiple burials",
-      dateAdded: "2023-08-05",
-    },
-    {
-      id: "D-001",
-      section: "Memorial Gardens",
-      type: "Standard",
-      status: "Available",
-      price: 80000,
-      dimensions: "2m x 1m",
-      features: "Granite headstone, flower bed",
-      description: "Standard lot in memorial gardens section",
-      dateAdded: "2023-09-10",
-    },
-    {
-      id: "E-001",
-      section: "Garden of Peace",
-      type: "Premium",
-      status: "Maintenance",
-      price: 150000,
-      dimensions: "3m x 2m",
-      features: "Premium headstone, landscaping, memorial bench",
-      description: "Premium lot currently under maintenance",
-      dateAdded: "2023-05-20",
-    },
-  ],
-  clients: [
-    {
-      id: 1,
-      name: "Maria Santos",
-      email: "maria@email.com",
-      phone: "09123456789",
-      address: "123 Main St, Surigao City",
-      lots: ["A-002"],
-      balance: 0,
-      status: "Active",
-      joinDate: "2023-06-20",
-      emergencyContact: "Juan Santos Jr.",
-      emergencyPhone: "09111222333",
-      notes: "Preferred contact via phone. Widow of Juan Santos.",
-      paymentHistory: [{ date: "2023-06-20", amount: 75000, type: "Full Payment", status: "Paid" }],
-    },
-    {
-      id: 2,
-      name: "Carlos Mendez",
-      email: "carlos@email.com",
-      phone: "09987654321",
-      address: "456 Oak Ave, Surigao City",
-      lots: ["B-001"],
-      balance: 45000,
-      status: "Active",
-      joinDate: "2024-01-10",
-      emergencyContact: "Elena Mendez",
-      emergencyPhone: "09444555666",
-      notes: "Prefers email communication. On installment plan.",
-      paymentHistory: [{ date: "2024-01-10", amount: 75000, type: "Down Payment", status: "Paid" }],
-    },
-    {
-      id: 3,
-      name: "Ana Rodriguez",
-      email: "ana@email.com",
-      phone: "09555666777",
-      address: "789 Pine St, Surigao City",
-      lots: ["C-003"],
-      balance: 15000,
-      status: "Active",
-      joinDate: "2023-12-15",
-      emergencyContact: "Miguel Rodriguez",
-      emergencyPhone: "09777888999",
-      notes: "Regular client. Prefers monthly installments.",
-      paymentHistory: [
-        { date: "2023-12-15", amount: 100000, type: "Down Payment", status: "Paid" },
-        { date: "2024-01-15", amount: 85000, type: "Installment", status: "Paid" },
-      ],
-    },
-    {
-      id: 4,
-      name: "Roberto Cruz",
-      email: "roberto@email.com",
-      phone: "09888999000",
-      address: "321 Elm St, Surigao City",
-      lots: ["D-001"],
-      balance: 25000,
-      status: "Active",
-      joinDate: "2023-11-05",
-      emergencyContact: "Carmen Cruz",
-      emergencyPhone: "09777666555",
-      notes: "Businessman. Prefers bank transfers.",
-      paymentHistory: [{ date: "2023-11-05", amount: 55000, type: "Down Payment", status: "Paid" }],
-    },
-    {
-      id: 5,
-      name: "Luz Fernandez",
-      email: "luz@email.com",
-      phone: "09666777888",
-      address: "654 Maple Ave, Surigao City",
-      lots: ["E-001"],
-      balance: 0,
-      status: "Inactive",
-      joinDate: "2023-08-12",
-      emergencyContact: "Pedro Fernandez",
-      emergencyPhone: "09555444333",
-      notes: "Account suspended due to non-payment.",
-      paymentHistory: [{ date: "2023-08-12", amount: 50000, type: "Partial Payment", status: "Overdue" }],
-    },
-  ],
-  payments: [
-    {
-      id: 1,
-      client: "Maria Santos",
-      date: "2023-06-20",
-      amount: 75000,
-      type: "Full Payment",
-      status: "Paid",
-      method: "Bank Transfer",
-      reference: "BT-20230620-001",
-      lot: "A-002",
-    },
-    {
-      id: 2,
-      client: "Carlos Mendez",
-      date: "2024-01-10",
-      amount: 75000,
-      type: "Down Payment",
-      status: "Paid",
-      method: "Credit Card",
-      reference: "CC-20240110-002",
-      lot: "B-001",
-    },
-    {
-      id: 3,
-      client: "Ana Rodriguez",
-      date: "2023-12-15",
-      amount: 100000,
-      type: "Down Payment",
-      status: "Paid",
-      method: "Cash",
-      reference: "CA-20231215-003",
-      lot: "C-003",
-    },
-    {
-      id: 4,
-      client: "Ana Rodriguez",
-      date: "2024-01-15",
-      amount: 85000,
-      type: "Installment",
-      status: "Paid",
-      method: "Bank Transfer",
-      reference: "BT-20240115-004",
-      lot: "C-003",
-    },
-    {
-      id: 5,
-      client: "Carlos Mendez",
-      date: "2024-02-10",
-      amount: 15000,
-      type: "Installment",
-      status: "Under Payment",
-      method: "Online Banking",
-      reference: "OB-20240210-005",
-      lot: "B-001",
-    },
-    {
-      id: 6,
-      client: "Roberto Cruz",
-      date: "2023-11-05",
-      amount: 55000,
-      type: "Down Payment",
-      status: "Paid",
-      method: "Bank Transfer",
-      reference: "BT-20231105-006",
-      lot: "D-001",
-    },
-    {
-      id: 7,
-      client: "Luz Fernandez",
-      date: "2023-08-12",
-      amount: 50000,
-      type: "Partial Payment",
-      status: "Overdue",
-      method: "Cash",
-      reference: "CA-20230812-007",
-      lot: "E-001",
-    },
-  ],
-  burials: [
-    {
-      id: 1,
-      name: "Juan Santos",
-      date: "2024-01-15",
-      lot: "A-123",
-      family: "Santos Family",
-      age: 78,
-      cause: "Natural causes",
-      funeral: "St. Mary's Church",
-      burial: "10:00 AM",
-      attendees: 45,
-      notes: "Peaceful ceremony with family and friends",
-    },
-    {
-      id: 2,
-      name: "Maria Cruz",
-      date: "2024-01-18",
-      lot: "B-456",
-      family: "Cruz Family",
-      age: 65,
-      cause: "Heart failure",
-      funeral: "Sacred Heart Chapel",
-      burial: "2:00 PM",
-      attendees: 32,
-      notes: "Memorial service held prior to burial",
-    },
-    {
-      id: 3,
-      name: "Pedro Reyes",
-      date: "2024-01-20",
-      lot: "C-789",
-      family: "Reyes Family",
-      age: 82,
-      cause: "Old age",
-      funeral: "Family residence",
-      burial: "9:00 AM",
-      attendees: 28,
-      notes: "Traditional Filipino burial customs observed",
-    },
-    {
-      id: 4,
-      name: "Lucia Fernandez",
-      date: "2024-01-22",
-      lot: "D-234",
-      family: "Fernandez Family",
-      age: 71,
-      cause: "Stroke",
-      funeral: "City Cathedral",
-      burial: "3:00 PM",
-      attendees: 52,
-      notes: "Large family gathering with extended relatives",
-    },
-    {
-      id: 5,
-      name: "Antonio Gonzales",
-      date: "2024-01-25",
-      lot: "A-345",
-      family: "Gonzales Family",
-      age: 68,
-      cause: "Cancer",
-      funeral: "Memorial Chapel",
-      burial: "11:00 AM",
-      attendees: 40,
-      notes: "Military honors provided for the veteran",
-    },
-  ],
-}
-
-
 // CHANGE Renamed function from AdminDashboard to EmployeeDashboard
 export default function EmployeeDashboard() {
   const router = useRouter()
@@ -922,6 +600,45 @@ export default function EmployeeDashboard() {
   const [clients, setClients] = useState<any[]>([])
   const [payments, setPayments] = useState<any[]>([])
   const [burials, setBurials] = useState<any[]>([])
+
+  const clientStatusCounts = useMemo(() => {
+    const counts = {
+      total: clients.length,
+      active: 0,
+      pending: 0,
+      suspended: 0,
+      archived: 0,
+      deleted: 0,
+      unknown: 0,
+    }
+
+    clients.forEach((client: any) => {
+      const normalized = normalizeClientStatus(client?.status)
+      switch (normalized) {
+        case 'active':
+          counts.active += 1
+          break
+        case 'pending':
+        case 'inactive':
+          counts.pending += 1
+          break
+        case 'suspended':
+          counts.suspended += 1
+          break
+        case 'archived':
+          counts.archived += 1
+          break
+        case 'deleted':
+          counts.deleted += 1
+          break
+        default:
+          counts.unknown += 1
+          break
+      }
+    })
+
+    return counts
+  }, [clients])
 
   // UI States (activeTab removed - now using URL params)
   const [searchTerm, setSearchTerm] = useState("")
@@ -964,6 +681,9 @@ export default function EmployeeDashboard() {
     mapId: null, // To store the associated map ID if available
   })
   const [clientFormData, setClientFormData] = useState(createEmptyClientForm())
+  const [mapSectionOptions, setMapSectionOptions] = useState<string[]>([])
+  const [mapLotOptions, setMapLotOptions] = useState<AvailableLotOption[]>([])
+  const [isLoadingMapLots, setIsLoadingMapLots] = useState(false)
   const [burialFormData, setBurialFormData] = useState({
     lotId: "",
     ownerId: "",
@@ -1002,11 +722,60 @@ export default function EmployeeDashboard() {
     !clientFormData.name.trim() ||
     !clientFormData.email.trim() ||
     !clientFormData.password ||
-    !clientFormData.confirmPassword ||
     clientFormData.password !== clientFormData.confirmPassword ||
-    clientFormData.password.length < 6
+    clientFormData.password.length < 6 ||
+    !clientFormData.contractSection.trim() ||
+    !clientFormData.contractBlock.trim() ||
+    !clientFormData.contractLotNumber.trim() ||
+    !clientFormData.contractLotType.trim() ||
+    !clientFormData.selectedLotId.trim() ||
+    !clientFormData.contractSignedAt ||
+    !clientFormData.contractAuthorizedBy.trim() ||
+    !clientFormData.contractAuthorizedPosition.trim()
 
-  const resetClientForm = () => setClientFormData(createEmptyClientForm())
+  // Get real employee ID from authenticated user
+  const getCurrentEmployeeInfo = (): EmployeeInfo | null => {
+    if (typeof window === 'undefined') return null
+
+    const currentUser = localStorage.getItem('currentUser')
+    if (currentUser) {
+      try {
+        const user = JSON.parse(currentUser)
+        if (user.role !== 'employee') return null
+        return {
+          id: user.id,
+          name: user.name,
+          username: user.username,
+          role: user.role,
+          employeeRole: user.employeeRole,
+        }
+      } catch (e) {
+        console.error('Error parsing currentUser:', e)
+      }
+    }
+    return null
+  }
+
+  const currentEmployeeInfo = useMemo(() => getCurrentEmployeeInfo(), [])
+  const currentEmployeeId = currentEmployeeInfo?.id || null
+
+  const resetClientForm = useCallback(() => {
+    const baseForm = createEmptyClientForm()
+    const authorizedName = (currentEmployeeInfo?.name && currentEmployeeInfo.name.trim())
+      || (currentEmployeeInfo?.username && currentEmployeeInfo.username.trim())
+      || "Authorized Employee"
+    const authorizedPosition = formatEmployeeRoleTitle(currentEmployeeInfo?.employeeRole || currentEmployeeInfo?.role)
+
+    setClientFormData({
+      ...baseForm,
+      contractAuthorizedBy: authorizedName,
+      contractAuthorizedPosition: authorizedPosition,
+    })
+  }, [currentEmployeeInfo])
+
+  useEffect(() => {
+    resetClientForm()
+  }, [resetClientForm])
   const [isUpdatePaymentStatusOpen, setIsUpdatePaymentStatusOpen] = useState(false)
   const [newPaymentStatus, setNewPaymentStatus] = useState<string>("")
 
@@ -1015,23 +784,109 @@ export default function EmployeeDashboard() {
   const [isLoadingPendingActions, setIsLoadingPendingActions] = useState(false)
   const [showPendingActions, setShowPendingActions] = useState(false)
 
-  // Get real employee ID from authenticated user
-  const getCurrentEmployeeId = () => {
-    if (typeof window === 'undefined') return null;
+  const refreshMapLotOptions = useCallback(async () => {
+    setIsLoadingMapLots(true)
+    try {
+      const maps = await mapStoreApi.getMaps()
 
-    const currentUser = localStorage.getItem('currentUser');
-    if (currentUser) {
-      try {
-        const user = JSON.parse(currentUser);
-        return user.id; // This is the real UUID from the database
-      } catch (e) {
-        console.error('Error parsing currentUser:', e);
-      }
+      const sections = new Set<string>()
+      const options: AvailableLotOption[] = []
+
+      maps.forEach((map) => {
+        const mapName = map?.name?.trim()
+        if (mapName) sections.add(mapName)
+
+        map?.lots?.forEach((lot) => {
+          if (!lot) return
+          const status = (lot.status || "").toString().toLowerCase()
+          if (status !== "vacant") return
+          const lotId = typeof lot.id === "string" ? lot.id.trim() : ""
+          if (!isValidUUID(lotId)) {
+            return
+          }
+
+          const lotNumber =
+            (typeof (lot as any).lot_number === "string" && (lot as any).lot_number.trim()) ||
+            (typeof (lot as any).lotNumber === "string" && (lot as any).lotNumber.trim()) ||
+            lotId
+          if (!lotNumber) return
+
+          const normalizedLotType = normalizeLotTypeLabel((lot as any).lotType)
+          const blockId = deriveBlockId(mapName, normalizedLotType)
+
+          options.push({
+            id: lotId,
+            section: mapName,
+            block: (lot as any).block || (lot as any).blockLabel || blockId,
+            lotNumber,
+            lotType: normalizedLotType,
+            raw: { ...lot, mapName },
+          })
+        })
+      })
+
+      setMapSectionOptions(Array.from(sections).sort((a, b) => a.localeCompare(b)))
+      setMapLotOptions(options)
+    } catch (error) {
+      console.error("[EmployeeDashboard] Failed to load map sections", error)
+    } finally {
+      setIsLoadingMapLots(false)
     }
-    return null;
-  };
+  }, [])
 
-  const currentEmployeeId = getCurrentEmployeeId()
+  const handleDeleteClient = async (client: any) => {
+    try {
+      const response = await deleteClientInDB(client.id)
+
+      if (!response.success) {
+        toast({
+          title: "Delete Failed",
+          description: response.error || "Unable to delete client. They may have existing payments.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      const updatedClients = clients.filter((c: any) => c.id !== client.id)
+      setClients(updatedClients)
+
+      const updatedDashboardData = {
+        ...dashboardData,
+        clients: updatedClients,
+        stats: {
+          ...dashboardData.stats,
+          totalClients: updatedClients.length,
+        },
+      }
+      setDashboardData(updatedDashboardData)
+
+      toast({
+        title: "Client Deleted",
+        description: `${client.name} has been removed from the active client list.`,
+        variant: "destructive",
+      })
+    } catch (error: any) {
+      console.error('[Employee Dashboard] Failed to delete client:', error)
+      toast({
+        title: "Delete Failed",
+        description: error?.message || "Unable to delete client. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  useEffect(() => {
+    refreshMapLotOptions()
+  }, [refreshMapLotOptions])
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const handler = () => refreshMapLotOptions()
+    window.addEventListener(MAP_LOTS_UPDATED_EVENT, handler)
+    return () => {
+      window.removeEventListener(MAP_LOTS_UPDATED_EVENT, handler)
+    }
+  }, [refreshMapLotOptions])
 
   // Load pending actions for current employee
   const loadPendingActions = async () => {
@@ -1263,16 +1118,90 @@ export default function EmployeeDashboard() {
     return () => clearInterval(interval)
   }, []) // Empty dependency array - runs only once and sets up interval
 
-  if (!isMounted || isLoading || !dashboardData) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading dashboard...</p>
-        </div>
-      </div>
-    )
-  }
+  useEffect(() => {
+    if (typeof window === "undefined") return
+
+    let isRunning = false
+
+    const tick = async () => {
+      if (isRunning) return
+      isRunning = true
+      try {
+        const response = await fetch('/api/notifications/demo-reminders?intervalMinutes=5&lookaheadDays=7', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({}),
+        })
+        await response.json().catch(() => ({}))
+      } catch (error) {
+        console.error('[Employee Dashboard] Auto demo reminder tick failed:', error)
+      } finally {
+        isRunning = false
+      }
+    }
+
+    const intervalMs = 5 * 60 * 1000
+    const intervalId = window.setInterval(tick, intervalMs)
+
+    tick()
+
+    return () => {
+      window.clearInterval(intervalId)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+
+    const demoClients = (clients || []).filter((client: any) => {
+      const schedule = client?.preferred_payment_schedule || client?.preferredPaymentSchedule
+      return schedule === 'demo_1min'
+    })
+
+    if (demoClients.length === 0) return
+
+    let isRunning = false
+
+    const tick = async () => {
+      if (isRunning) return
+      isRunning = true
+      try {
+        await Promise.all(
+          demoClients.map(async (client: any) => {
+            if (!client?.id) return
+            const response = await fetch('/api/notifications/demo-reminders', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                clientId: client.id,
+                intervalMinutes: 1,
+                limit: 1,
+                lookaheadDays: 7,
+              }),
+            })
+            await response.json().catch(() => ({}))
+          })
+        )
+      } catch (error) {
+        console.error('[Employee Dashboard] Auto 1-min demo reminder tick failed:', error)
+      } finally {
+        isRunning = false
+      }
+    }
+
+    const intervalMs = 1 * 60 * 1000
+    const intervalId = window.setInterval(tick, intervalMs)
+
+    tick()
+
+    return () => {
+      window.clearInterval(intervalId)
+    }
+  }, [clients])
 
   const handleViewMessage = (msg: Message) => {
     setSelectedMessage(msg)
@@ -1319,7 +1248,6 @@ export default function EmployeeDashboard() {
     }
 
     setDashboardData(updatedData)
-    saveToLocalStorage(updatedData)
 
     toast({
       title: "Lot Added Successfully",
@@ -1384,7 +1312,6 @@ export default function EmployeeDashboard() {
       }
 
       setDashboardData(updatedData)
-      saveToLocalStorage(updatedData)
     }
 
     toast({
@@ -1487,6 +1414,25 @@ export default function EmployeeDashboard() {
       return
     }
 
+    const requiredContractFields = [
+      { value: clientFormData.contractSection.trim(), label: 'Section' },
+      { value: clientFormData.contractBlock.trim(), label: 'Block' },
+      { value: clientFormData.contractLotNumber.trim(), label: 'Lot Number' },
+      { value: clientFormData.contractLotType.trim(), label: 'Lot Type' },
+      { value: clientFormData.contractSignedAt, label: 'Contract Signed Date' },
+      { value: clientFormData.contractAuthorizedBy.trim(), label: 'Authorized Signatory' },
+      { value: clientFormData.contractAuthorizedPosition.trim(), label: 'Authorized Position' }
+    ]
+
+    const missingContractField = requiredContractFields.find((field) => !field.value)
+    if (missingContractField) {
+      toast({
+        title: 'Missing Contract Detail',
+        description: `${missingContractField.label} is required for the ownership certificate.`,
+        variant: 'destructive'
+      })
+      return
+    }
     try {
       // Prepare client data for database (only use fields that exist in schema)
       // Note: clients table uses email for login, not username
@@ -1495,9 +1441,28 @@ export default function EmployeeDashboard() {
         email: clientFormData.email,
         phone: clientFormData.phone,
         address: clientFormData.address,
-        status: "active", // Lowercase required by DB constraint
+        status: "inactive", // Start as inactive until cashier processes first payment
         password_hash: clientFormData.password, // Will be hashed in API
         balance: 0,
+        contract_section: clientFormData.contractSection,
+        contract_block: clientFormData.contractBlock,
+        contract_lot_number: clientFormData.contractLotNumber,
+        contract_lot_type: clientFormData.contractLotType,
+        contract_signed_at: clientFormData.contractSignedAt,
+        contract_authorized_by: clientFormData.contractAuthorizedBy,
+        contract_authorized_pos: clientFormData.contractAuthorizedPosition,
+        lot_id: clientFormData.selectedLotId,
+        preferred_payment_method: clientFormData.preferredPaymentMethod,
+        preferred_payment_schedule: clientFormData.preferredPaymentSchedule,
+      }
+
+      if (process.env.NODE_ENV !== 'production') {
+        const { password_hash: ignored, ...safeClientData } = clientData
+        console.log('[handleAddClient] Submitting client payload:', {
+          ...safeClientData,
+          lot_id_present: Boolean(clientData.lot_id),
+          contractLotNumber: clientFormData.contractLotNumber,
+        })
       }
 
       // Add optional fields only if they have values (match database schema)
@@ -1563,7 +1528,7 @@ export default function EmployeeDashboard() {
 
           toast({
             title: "Client Account Created ✅",
-            description: `${clientFormData.name} has been added. They can log in to the Client Portal using their email: ${clientFormData.email}`,
+            description: `${clientFormData.name} has been added as a pending client. Their portal access will be activated after the cashier records their first payment.`,
           })
         } else {
           toast({
@@ -1602,6 +1567,15 @@ export default function EmployeeDashboard() {
       emergencyContact: clientFormData.emergencyContact,
       emergencyPhone: clientFormData.emergencyPhone,
       notes: clientFormData.notes,
+      contractSection: clientFormData.contractSection,
+      contractBlock: clientFormData.contractBlock,
+      contractLotNumber: clientFormData.contractLotNumber,
+      contractLotType: clientFormData.contractLotType,
+      contractSignedAt: clientFormData.contractSignedAt,
+      contractAuthorizedBy: clientFormData.contractAuthorizedBy,
+      contractAuthorizedPosition: clientFormData.contractAuthorizedPosition,
+      preferredPaymentMethod: clientFormData.preferredPaymentMethod,
+      preferredPaymentSchedule: clientFormData.preferredPaymentSchedule,
     }
 
     try {
@@ -1623,6 +1597,13 @@ export default function EmployeeDashboard() {
             emergencyContact: selectedClient.emergencyContact,
             emergencyPhone: selectedClient.emergencyPhone,
             notes: selectedClient.notes,
+            contractSection: selectedClient.contractSection,
+            contractBlock: selectedClient.contractBlock,
+            contractLotNumber: selectedClient.contractLotNumber,
+            contractLotType: selectedClient.contractLotType,
+            contractSignedAt: selectedClient.contractSignedAt,
+            contractAuthorizedBy: selectedClient.contractAuthorizedBy,
+            contractAuthorizedPosition: selectedClient.contractAuthorizedPosition,
           },
           notes: `Update client ${selectedClient.name}`,
           priority: 'normal' as const
@@ -1663,7 +1644,6 @@ export default function EmployeeDashboard() {
           }
 
           setDashboardData(updatedData)
-          saveToLocalStorage(updatedData)
         }
 
         toast({
@@ -1728,7 +1708,6 @@ export default function EmployeeDashboard() {
 
       setInquiries(updatedInquiries)
       setDashboardData(updatedGlobalData)
-      saveToLocalStorage(updatedGlobalData)
     }
 
     toast({
@@ -1880,6 +1859,100 @@ export default function EmployeeDashboard() {
     })
   }
 
+  const handleResendClientDocuments = async () => {
+    if (!selectedClient?.id) {
+      toast({
+        title: "No client selected",
+        description: "Please select a client first.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      const response = await fetch('/api/client/email-documents', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ clientId: selectedClient.id }),
+      })
+
+      const data = await response.json().catch(() => ({}))
+
+      if (!response.ok || data?.success === false) {
+        toast({
+          title: "Email Failed",
+          description: data?.error || "Unable to send documents. Please try again.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      toast({
+        title: "Documents Sent",
+        description: `Contract and invoices have been emailed to ${selectedClient.email}.`,
+      })
+    } catch (error: any) {
+      console.error('[Employee Dashboard] Failed to email client documents:', error)
+      toast({
+        title: "Email Failed",
+        description: error?.message || "Unable to send documents. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleSendDemoReminder = async () => {
+    if (!selectedClient?.id) {
+      toast({
+        title: "No client selected",
+        description: "Please select a client first.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      const response = await fetch('/api/notifications/demo-reminders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          clientId: selectedClient.id,
+          intervalMinutes: 1,
+          limit: 1,
+          lookaheadDays: 7,
+        }),
+      })
+
+      const data = await response.json().catch(() => ({}))
+
+      if (!response.ok || data?.success === false) {
+        toast({
+          title: "Reminder Failed",
+          description: data?.error || "Unable to send reminder. Please try again.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      const count = typeof data?.remindersSent === 'number' ? data.remindersSent : 1
+      toast({
+        title: "Reminder Sent",
+        description: `Demo reminder email sent to ${selectedClient.email}. (${count} reminder${count === 1 ? '' : 's'} queued)`,
+      })
+    } catch (error: any) {
+      console.error('[Employee Dashboard] Failed to send demo reminder:', error)
+      toast({
+        title: "Reminder Failed",
+        description: error?.message || "Unable to send reminder. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
   const handleAssignLotToOwner = (lotId: string, ownerId: string, ownerName: string, ownerEmail: string) => {
     // Find which map this lot belongs to
     const maps = typeof window !== "undefined" ? JSON.parse(localStorage.getItem("cemeteryMaps") || "[]") : []
@@ -1911,7 +1984,6 @@ export default function EmployeeDashboard() {
 
     if (lotFound) {
       setDashboardData(updatedData)
-      saveToLocalStorage(updatedData)
 
       toast({
         title: "Lot Assigned Successfully",
@@ -2105,7 +2177,6 @@ export default function EmployeeDashboard() {
     setDashboardData(updatedData)
     setBurials(updatedBurials)
     setClients(updatedClients)
-    saveToLocalStorage(updatedData)
 
     try {
       await updateLot(lot.id, {
@@ -2812,6 +2883,15 @@ export default function EmployeeDashboard() {
       emergencyContact: client.emergencyContact || "",
       emergencyPhone: client.emergencyPhone || "",
       notes: client.notes || "",
+      contractSection: client.contract_section || client.contractSection || "",
+      contractBlock: client.contract_block || client.contractBlock || "",
+      contractLotNumber: client.contract_lot_number || client.contractLotNumber || "",
+      contractLotType: client.contract_lot_type || client.contractLotType || "",
+      contractSignedAt: client.contract_signed_at || client.contractSignedAt || "",
+      contractAuthorizedBy: client.contract_authorized_by || client.contractAuthorizedBy || "",
+      contractAuthorizedPosition: client.contract_authorized_pos || client.contractAuthorizedPosition || "",
+      preferredPaymentMethod: client.preferred_payment_method || client.preferredPaymentMethod || "cash",
+      preferredPaymentSchedule: client.preferred_payment_schedule || client.preferredPaymentSchedule || "monthly",
     })
     setIsEditClientOpen(true)
   }
@@ -2854,16 +2934,240 @@ export default function EmployeeDashboard() {
     setIsMessageClientOpen(true)
   }
 
+  const dashboardLots: any[] = Array.isArray(dashboardData?.lots) ? dashboardData!.lots : []
+
   // Filter functions for search bars
-  const filteredLots = dashboardData.lots.filter(
+  const filteredLots = dashboardLots.filter(
     (lot: any) =>
-      lot.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lot.section.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lot.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lot.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      lot.id?.toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
+      lot.section?.toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
+      lot.type?.toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
+      lot.status?.toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
       (lot.owner && lot.owner.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (lot.occupant && lot.occupant.toLowerCase().includes(searchTerm.toLowerCase())),
+      (lot.occupant && lot.occupant.toLowerCase().includes(searchTerm.toLowerCase()))
   )
+
+  const availableLotOptions = useMemo<AvailableLotOption[]>(() => {
+    const options: AvailableLotOption[] = []
+    const seen = new Set<string>()
+
+    const pushOption = (option: AvailableLotOption) => {
+      const key = option.id || `${option.section}-${option.block}-${option.lotNumber}`
+      if (!key || seen.has(key)) return
+      seen.add(key)
+      options.push(option)
+    }
+
+    dashboardLots
+      .filter(lotIsAvailable)
+      .forEach((lot: any) => {
+        const lotNumber = getLotNumberLabel(lot)
+        if (!lotNumber) return
+        pushOption({
+          id: lot.id || lot.lot_id || lotNumber,
+          section: getLotSectionLabel(lot),
+          block: getLotBlockLabel(lot),
+          lotNumber,
+          lotType: getLotTypeLabel(lot),
+          raw: lot,
+        })
+      })
+
+    mapLotOptions.forEach((option) => {
+      pushOption(option)
+    })
+
+    return options
+  }, [dashboardLots, mapLotOptions])
+
+  const lotsFilteredBySection = useMemo(() => {
+    if (!clientFormData.contractSection) return availableLotOptions
+    return availableLotOptions.filter((option) => option.section === clientFormData.contractSection)
+  }, [availableLotOptions, clientFormData.contractSection])
+
+  const lotsFilteredByBlock = useMemo(() => {
+    if (!clientFormData.contractBlock) return lotsFilteredBySection
+    return lotsFilteredBySection.filter((option) => option.block === clientFormData.contractBlock)
+  }, [lotsFilteredBySection, clientFormData.contractBlock])
+
+  const selectedClientPayments = useMemo(() => {
+    if (!selectedClient) return []
+    return payments.filter((payment: any) => payment.client_id === selectedClient.id)
+  }, [selectedClient, payments])
+
+  const selectedClientHasDocuments = useMemo(() => {
+    if (!selectedClient) return false
+    if (selectedClient.contract_pdf_url) return true
+    return selectedClientPayments.some((payment: any) => payment.invoice_pdf_url)
+  }, [selectedClient, selectedClientPayments])
+
+  const sectionOptions = useMemo(() => {
+    const sections = new Set<string>(mapSectionOptions)
+    availableLotOptions.forEach((option) => {
+      if (option.section) sections.add(option.section)
+    })
+    if (clientFormData.contractSection?.trim()) {
+      sections.add(clientFormData.contractSection.trim())
+    }
+    return Array.from(sections).sort((a, b) => a.localeCompare(b))
+  }, [availableLotOptions, clientFormData.contractSection, mapSectionOptions])
+
+  const blockOptions = useMemo(() => {
+    const blocks = new Set<string>()
+    lotsFilteredBySection.forEach((option) => {
+      if (option.block) blocks.add(option.block)
+    })
+    if (clientFormData.contractBlock?.trim()) {
+      blocks.add(clientFormData.contractBlock.trim())
+    }
+    return Array.from(blocks).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }))
+  }, [lotsFilteredBySection, clientFormData.contractBlock])
+
+  const lotTypeOptions = useMemo(() => {
+    const lotTypes = new Set<string>()
+    lotsFilteredBySection.forEach((option) => {
+      if (option.lotType) lotTypes.add(option.lotType)
+    })
+    if (clientFormData.contractLotType?.trim()) {
+      lotTypes.add(clientFormData.contractLotType.trim())
+    }
+    return Array.from(lotTypes).sort((a, b) => a.localeCompare(b))
+  }, [lotsFilteredBySection, clientFormData.contractLotType])
+
+  const lotNumberOptions = useMemo<AvailableLotOption[]>(() => {
+    const baseOptions = [...lotsFilteredByBlock]
+    if (clientFormData.contractLotNumber?.trim()) {
+      const exists = baseOptions.some((option) => option.lotNumber === clientFormData.contractLotNumber)
+      if (!exists) {
+        return [
+          {
+            id: `existing-${clientFormData.contractLotNumber}`,
+            section: clientFormData.contractSection || undefined,
+            block: clientFormData.contractBlock || undefined,
+            lotNumber: clientFormData.contractLotNumber,
+            lotType: clientFormData.contractLotType || undefined,
+            raw: null,
+          },
+          ...baseOptions,
+        ]
+      }
+    }
+    return baseOptions
+  }, [
+    lotsFilteredByBlock,
+    clientFormData.contractLotNumber,
+    clientFormData.contractSection,
+    clientFormData.contractBlock,
+    clientFormData.contractLotType,
+  ])
+
+  const selectedLotOptionValue = useMemo(() => {
+    if (clientFormData.selectedLotId) {
+      const matchById = lotNumberOptions.find((option) => option.id === clientFormData.selectedLotId)
+      if (matchById) return matchById.id
+    }
+    if (clientFormData.contractLotNumber) {
+      const fallback = lotNumberOptions.find((option) => option.lotNumber === clientFormData.contractLotNumber)
+      if (fallback) return fallback.id
+    }
+    return ''
+  }, [lotNumberOptions, clientFormData.selectedLotId, clientFormData.contractLotNumber])
+
+  const handleSelectContractSection = (value: string) => {
+    if (value === CLEAR_SELECTION_VALUE) {
+      setClientFormData((prev) => ({
+        ...prev,
+        contractSection: "",
+        contractBlock: "",
+        contractLotNumber: "",
+        contractLotType: "",
+        selectedLotId: "",
+      }))
+      return
+    }
+    const lotsInSection = availableLotOptions.filter((option) => option.section === value)
+    const firstLot = lotsInSection[0]
+    setClientFormData((prev) => ({
+      ...prev,
+      contractSection: value,
+      contractBlock: firstLot?.block || "",
+      contractLotNumber: firstLot?.lotNumber || "",
+      contractLotType: firstLot?.lotType || "",
+      selectedLotId: firstLot?.id || "",
+    }))
+  }
+
+  const handleSelectContractBlock = (value: string) => {
+    if (value === CLEAR_SELECTION_VALUE) {
+      setClientFormData((prev) => ({
+        ...prev,
+        contractBlock: "",
+        contractLotNumber: "",
+        contractLotType: prev.contractLotType,
+        selectedLotId: "",
+      }))
+      return
+    }
+    setClientFormData((prev) => {
+      const lotsInBlock = availableLotOptions.filter(
+        (option) => option.section === prev.contractSection && option.block === value
+      )
+      const firstLot = lotsInBlock[0]
+      return {
+        ...prev,
+        contractBlock: value,
+        contractLotNumber: firstLot?.lotNumber || "",
+        contractLotType: firstLot?.lotType || prev.contractLotType,
+        selectedLotId: firstLot?.id || "",
+      }
+    })
+  }
+
+  const handleSelectContractLotType = (value: string) => {
+    if (value === CLEAR_SELECTION_VALUE) {
+      setClientFormData((prev) => ({
+        ...prev,
+        contractLotType: "",
+      }))
+      return
+    }
+    setClientFormData((prev) => ({
+      ...prev,
+      contractLotType: value,
+    }))
+  }
+
+  const handleSelectContractLotNumber = (value: string) => {
+    if (value === CLEAR_SELECTION_VALUE) {
+      setClientFormData((prev) => ({
+        ...prev,
+        contractLotNumber: "",
+        selectedLotId: "",
+      }))
+      return
+    }
+    const selected = lotNumberOptions.find((option) => option.id === value)
+    if (!selected) return
+    setClientFormData((prev) => ({
+      ...prev,
+      contractSection: selected.section || prev.contractSection,
+      contractBlock: selected.block || prev.contractBlock,
+      contractLotNumber: selected.lotNumber,
+      contractLotType: selected.lotType || prev.contractLotType,
+      selectedLotId: selected.id,
+    }))
+  }
+
+  if (!isMounted || isLoading || !dashboardData) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    )
+  }
 
   const filteredClients = dashboardData.clients.filter(
     (client: any) =>
@@ -2948,7 +3252,6 @@ export default function EmployeeDashboard() {
 
     // Update the global state and save to local storage
     setDashboardData(updatedData);
-    saveToLocalStorage(updatedData);
 
     toast({
       title: "Payment Status Updated",
@@ -3138,7 +3441,7 @@ export default function EmployeeDashboard() {
         </div>
 
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4 sm:space-y-6">
-          <TabsList className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-11 w-full text-xs sm:text-sm overflow-x-auto">
+          <TabsList className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-10 w-full text-xs sm:text-sm overflow-x-auto">
             <TabsTrigger value="overview" className="px-2 sm:px-4">
               Overview
             </TabsTrigger>
@@ -3150,9 +3453,6 @@ export default function EmployeeDashboard() {
             </TabsTrigger>
             <TabsTrigger value="clients" className="px-2 sm:px-4">
               Clients
-            </TabsTrigger>
-            <TabsTrigger value="payments" className="px-2 sm:px-4">
-              Payments
             </TabsTrigger>
             <TabsTrigger value="approvals" className="px-2 sm:px-4 relative">
               Approvals
@@ -3690,7 +3990,7 @@ export default function EmployeeDashboard() {
                     Add New Client
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-2xl">
+                <DialogContent className="max-w-2xl max-h-[90vh] sm:max-h-[85vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Add New Client</DialogTitle>
                     <DialogDescription>
@@ -3811,6 +4111,184 @@ export default function EmployeeDashboard() {
                         onChange={(e) => setClientFormData({ ...clientFormData, notes: e.target.value })}
                       />
                     </div>
+
+                    {/* Ownership / Contract Details */}
+                    <div className="col-span-1 sm:col-span-2 mt-4">
+                      <h3 className="text-sm font-semibold text-gray-700 mb-3">Ownership & Contract Details</h3>
+                      <p className="text-xs text-gray-500 mb-2">
+                        These fields populate the Contract of Ownership PDF.
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="contract-section">Section <span className="text-red-500">*</span></Label>
+                      <Select
+                        value={clientFormData.contractSection || ''}
+                        onValueChange={handleSelectContractSection}
+                        disabled={sectionOptions.length === 0}
+                      >
+                        <SelectTrigger id="contract-section">
+                          <SelectValue placeholder={sectionOptions.length ? "Select section" : "No available sections"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {sectionOptions.length === 0 && (
+                            <div className="px-3 py-2 text-sm text-gray-500">No available sections</div>
+                          )}
+                          {sectionOptions.map((section) => (
+                            <SelectItem key={section} value={section}>
+                              {section}
+                            </SelectItem>
+                          ))}
+                          {sectionOptions.length > 0 && (
+                            <SelectItem value={CLEAR_SELECTION_VALUE}>Clear selection</SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="contract-block">Block <span className="text-red-500">*</span></Label>
+                      <Select
+                        value={clientFormData.contractBlock || ''}
+                        onValueChange={handleSelectContractBlock}
+                        disabled={blockOptions.length === 0}
+                      >
+                        <SelectTrigger id="contract-block">
+                          <SelectValue placeholder={blockOptions.length ? "Select block" : "Select section first"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {blockOptions.length === 0 && (
+                            <div className="px-3 py-2 text-sm text-gray-500">No blocks for this section</div>
+                          )}
+                          {blockOptions.map((block) => (
+                            <SelectItem key={block} value={block}>
+                              Block {block}
+                            </SelectItem>
+                          ))}
+                          {blockOptions.length > 0 && (
+                            <SelectItem value={CLEAR_SELECTION_VALUE}>Clear selection</SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="contract-lot-number">Lot Number <span className="text-red-500">*</span></Label>
+                      <Select
+                        value={selectedLotOptionValue || ''}
+                        onValueChange={handleSelectContractLotNumber}
+                        disabled={lotNumberOptions.length === 0}
+                      >
+                        <SelectTrigger id="contract-lot-number">
+                          <SelectValue placeholder={lotNumberOptions.length ? "Select lot" : "Select block first"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {lotNumberOptions.length === 0 && (
+                            <div className="px-3 py-2 text-sm text-gray-500">No lots available for this block</div>
+                          )}
+                          {lotNumberOptions.map((lot) => (
+                            <SelectItem key={lot.id} value={lot.id}>
+                              {formatLotNumberLabel(lot)}
+                            </SelectItem>
+                          ))}
+                          {lotNumberOptions.length > 0 && (
+                            <SelectItem value={CLEAR_SELECTION_VALUE}>Clear selection</SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="contract-lot-type">Lot Type <span className="text-red-500">*</span></Label>
+                      <Select
+                        value={clientFormData.contractLotType || ''}
+                        onValueChange={handleSelectContractLotType}
+                        disabled={lotTypeOptions.length === 0}
+                      >
+                        <SelectTrigger id="contract-lot-type">
+                          <SelectValue placeholder={lotTypeOptions.length ? "Select lot type" : "Select section first"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {lotTypeOptions.length === 0 && (
+                            <div className="px-3 py-2 text-sm text-gray-500">No lot types available</div>
+                          )}
+                          {lotTypeOptions.map((type) => (
+                            <SelectItem key={type} value={type}>
+                              {type}
+                            </SelectItem>
+                          ))}
+                          {lotTypeOptions.length > 0 && (
+                            <SelectItem value={CLEAR_SELECTION_VALUE}>Clear selection</SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="col-span-1 sm:col-span-2 mt-6">
+                      <h3 className="text-sm font-semibold text-gray-700 mb-3">Payment Preferences</h3>
+                      <p className="text-xs text-gray-500 mb-2">
+                        Set the preferred method and schedule so the cashier portal knows how to process this client.
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Preferred Payment Method</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {paymentMethodOptions.map((option) => (
+                          <Button
+                            key={option.value}
+                            type="button"
+                            variant={clientFormData.preferredPaymentMethod === option.value ? "default" : "outline"}
+                            onClick={() => setClientFormData((prev) => ({ ...prev, preferredPaymentMethod: option.value }))}
+                          >
+                            {option.label}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Payment Schedule</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {paymentScheduleOptions.map((option) => (
+                          <Button
+                            key={option.value}
+                            type="button"
+                            variant={clientFormData.preferredPaymentSchedule === option.value ? "default" : "outline"}
+                            onClick={() => setClientFormData((prev) => ({ ...prev, preferredPaymentSchedule: option.value }))}
+                          >
+                            {option.label}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="contract-signed-at">Contract Signed Date <span className="text-red-500">*</span></Label>
+                      <Input
+                        id="contract-signed-at"
+                        type="date"
+                        value={clientFormData.contractSignedAt}
+                        onChange={(e) => setClientFormData({ ...clientFormData, contractSignedAt: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="contract-authorized-by">Authorized Signatory <span className="text-red-500">*</span></Label>
+                      <Input
+                        id="contract-authorized-by"
+                        placeholder="e.g., Maria Santos"
+                        value={clientFormData.contractAuthorizedBy}
+                        readOnly
+                        disabled
+                        className="bg-gray-50 text-gray-600"
+                      />
+                      <p className="text-xs text-gray-500">Locked to the employee currently logged in.</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="contract-authorized-position">Position <span className="text-red-500">*</span></Label>
+                      <Input
+                        id="contract-authorized-position"
+                        placeholder="Authorized Signatory Position"
+                        value={clientFormData.contractAuthorizedPosition}
+                        readOnly
+                        disabled
+                        className="bg-gray-50 text-gray-600"
+                      />
+                      <p className="text-xs text-gray-500">Matches the role assigned to your employee account.</p>
+                    </div>
                   </div>
                   <div className="flex justify-end gap-2">
                     <Button
@@ -3854,46 +4332,82 @@ export default function EmployeeDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {filteredClients.map((client: any) => (
-                    <div
-                      key={client.id}
-                      className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border rounded-lg"
-                    >
-                      <div className="flex items-center gap-4 mb-4 sm:mb-0">
-                        <Avatar>
-                          <AvatarImage src={`/generic-placeholder-graphic.png?height=40&width=40`} />
-                          <AvatarFallback>
-                            {client.name
-                              .split(" ")
-                              .map((n: any) => n[0])
-                              .join("")}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-medium">{client.name}</p>
-                          <p className="text-sm text-gray-600">{client.email}</p>
-                          <p className="text-sm text-gray-600">{client.phone}</p>
-                          <p className="text-xs text-gray-500">
-                            Lots: {(client.lots || []).join(", ") || 'None'} • Balance: ₱{formatCurrency(client.balance)}
-                          </p>
+                  {filteredClients.map((client: any) => {
+                    const statusMeta = getClientStatusMeta(client.status)
+                    return (
+                      <div
+                        key={client.id}
+                        className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border rounded-lg"
+                      >
+                        <div className="flex items-center gap-4 mb-4 sm:mb-0">
+                          <Avatar>
+                            <AvatarImage src={`/generic-placeholder-graphic.png?height=40&width=40`} />
+                            <AvatarFallback>
+                              {client.name
+                                .split(" ")
+                                .map((n: any) => n[0])
+                                .join("")}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-medium">{client.name}</p>
+                            <p className="text-sm text-gray-600">{client.email}</p>
+                            <p className="text-sm text-gray-600">{client.phone}</p>
+                            <p className="text-xs text-gray-500">
+                              Lots: {(client.lots || []).join(", ") || 'None'} • Balance: ₱{formatCurrency(client.balance)}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Badge variant={statusMeta.variant} title={statusMeta.description}>
+                            {statusMeta.label}
+                          </Badge>
+                          <div className="flex gap-1">
+                            <Button variant="outline" size="sm" onClick={() => openEditClient(client)}>
+                              <Edit />
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => openViewClient(client)}>
+                              <Eye />
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => openMessageClient(client)}>
+                              <MessageSquare />
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-red-600 hover:text-red-700 bg-transparent"
+                                  title="Delete this client"
+                                >
+                                  <Trash2 />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Client</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete client {client.name}? This will deactivate their
+                                    account and hide them from the active client list. Clients with existing payments
+                                    cannot be fully removed.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleDeleteClient(client)}
+                                    className="bg-red-600 hover:bg-red-700"
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <Badge variant={client.status === "Active" ? "default" : "secondary"}>{client.status}</Badge>
-                        <div className="flex gap-1">
-                          <Button variant="outline" size="sm" onClick={() => openEditClient(client)}>
-                            <Edit />
-                          </Button>
-                          <Button variant="outline" size="sm" onClick={() => openViewClient(client)}>
-                            <Eye />
-                          </Button>
-                          <Button variant="outline" size="sm" onClick={() => openMessageClient(client)}>
-                            <MessageSquare />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </CardContent>
             </Card>
@@ -5111,6 +5625,176 @@ export default function EmployeeDashboard() {
                 onChange={(e) => setClientFormData({ ...clientFormData, notes: e.target.value })}
               />
             </div>
+
+            {/* Ownership / Contract Details */}
+            <div className="col-span-1 sm:col-span-2 mt-4">
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">Ownership & Contract Details</h3>
+              <p className="text-xs text-gray-500 mb-2">
+                Update the values that populate the Contract of Ownership PDF.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-contract-section">Section</Label>
+              <Select
+                value={clientFormData.contractSection || undefined}
+                onValueChange={handleSelectContractSection}
+                disabled={sectionOptions.length === 0}
+              >
+                <SelectTrigger id="edit-contract-section">
+                  <SelectValue placeholder={sectionOptions.length ? "Select section" : "No available sections"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {sectionOptions.length === 0 && (
+                    <div className="px-3 py-2 text-sm text-gray-500">No available sections</div>
+                  )}
+                  {sectionOptions.map((section) => (
+                    <SelectItem key={`edit-section-${section}`} value={section}>
+                      {section}
+                    </SelectItem>
+                  ))}
+                  {sectionOptions.length > 0 && (
+                    <SelectItem value={CLEAR_SELECTION_VALUE}>Clear selection</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-contract-block">Block</Label>
+              <Select
+                value={clientFormData.contractBlock || undefined}
+                onValueChange={handleSelectContractBlock}
+                disabled={blockOptions.length === 0}
+              >
+                <SelectTrigger id="edit-contract-block">
+                  <SelectValue placeholder={blockOptions.length ? "Select block" : "Select section first"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {blockOptions.length === 0 && (
+                    <div className="px-3 py-2 text-sm text-gray-500">No blocks for this section</div>
+                  )}
+                  {blockOptions.map((block) => (
+                    <SelectItem key={`edit-block-${block}`} value={block}>
+                      Block {block}
+                    </SelectItem>
+                  ))}
+                  {blockOptions.length > 0 && (
+                    <SelectItem value={CLEAR_SELECTION_VALUE}>Clear selection</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-contract-lot-number">Lot Number</Label>
+              <Select
+                value={selectedLotOptionValue}
+                onValueChange={handleSelectContractLotNumber}
+                disabled={lotNumberOptions.length === 0}
+              >
+                <SelectTrigger id="edit-contract-lot-number">
+                  <SelectValue placeholder={lotNumberOptions.length ? "Select lot" : "Select block first"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {lotNumberOptions.length === 0 && (
+                    <div className="px-3 py-2 text-sm text-gray-500">No lots available for this block</div>
+                  )}
+                  {lotNumberOptions.map((lot) => (
+                    <SelectItem key={`edit-lot-${lot.id}`} value={lot.id}>
+                      {formatLotNumberLabel(lot)}
+                    </SelectItem>
+                  ))}
+                  {lotNumberOptions.length > 0 && (
+                    <SelectItem value={CLEAR_SELECTION_VALUE}>Clear selection</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-contract-lot-type">Lot Type</Label>
+              <Select
+                value={clientFormData.contractLotType || undefined}
+                onValueChange={handleSelectContractLotType}
+                disabled={lotTypeOptions.length === 0}
+              >
+                <SelectTrigger id="edit-contract-lot-type">
+                  <SelectValue placeholder={lotTypeOptions.length ? "Select lot type" : "Select section first"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {lotTypeOptions.length === 0 && (
+                    <div className="px-3 py-2 text-sm text-gray-500">No lot types available</div>
+                  )}
+                  {lotTypeOptions.map((type) => (
+                    <SelectItem key={`edit-type-${type}`} value={type}>
+                      {type}
+                    </SelectItem>
+                  ))}
+                  {lotTypeOptions.length > 0 && (
+                    <SelectItem value={CLEAR_SELECTION_VALUE}>Clear selection</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="col-span-1 sm:col-span-2 mt-6">
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">Payment Preferences</h3>
+              <p className="text-xs text-gray-500 mb-2">
+                Adjust how this client prefers to settle their dues so the cashier can follow the plan.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Preferred Payment Method</Label>
+              <div className="flex flex-wrap gap-2">
+                {paymentMethodOptions.map((option) => (
+                  <Button
+                    key={option.value}
+                    type="button"
+                    variant={clientFormData.preferredPaymentMethod === option.value ? "default" : "outline"}
+                    onClick={() => setClientFormData((prev) => ({ ...prev, preferredPaymentMethod: option.value }))}
+                  >
+                    {option.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Payment Schedule</Label>
+              <div className="flex flex-wrap gap-2">
+                {paymentScheduleOptions.map((option) => (
+                  <Button
+                    key={option.value}
+                    type="button"
+                    variant={clientFormData.preferredPaymentSchedule === option.value ? "default" : "outline"}
+                    onClick={() => setClientFormData((prev) => ({ ...prev, preferredPaymentSchedule: option.value }))}
+                  >
+                    {option.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-contract-signed-at">Contract Signed Date</Label>
+              <Input
+                id="edit-contract-signed-at"
+                type="date"
+                value={clientFormData.contractSignedAt}
+                onChange={(e) => setClientFormData({ ...clientFormData, contractSignedAt: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-contract-authorized-by">Authorized Signatory</Label>
+              <Input
+                id="edit-contract-authorized-by"
+                value={clientFormData.contractAuthorizedBy}
+                onChange={(e) => setClientFormData({ ...clientFormData, contractAuthorizedBy: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-contract-authorized-position">Position</Label>
+              <Input
+                id="edit-contract-authorized-position"
+                value={clientFormData.contractAuthorizedPosition}
+                onChange={(e) => setClientFormData({ ...clientFormData, contractAuthorizedPosition: e.target.value })}
+              />
+            </div>
           </div>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setIsEditClientOpen(false)}>
@@ -5153,7 +5837,7 @@ export default function EmployeeDashboard() {
                 </div>
                 <div>
                   <Label className="text-sm font-medium text-gray-500">Join Date</Label>
-                  <p className="text-sm">{selectedClient.joinDate}</p>
+                  <p className="text-sm">{selectedClient.join_date || selectedClient.joinDate || "—"}</p>
                 </div>
                 <div>
                   <Label className="text-sm font-medium text-gray-500">Outstanding Balance</Label>
@@ -5187,30 +5871,82 @@ export default function EmployeeDashboard() {
 
               <div>
                 <Label className="text-sm font-medium text-gray-500 mb-2 block">Payment History</Label>
-                <div className="space-y-2">
-                  {selectedClient.paymentHistory?.map((payment: any, index: any) => (
-                    <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                      <div>
-                        <p className="text-sm font-medium">{payment.type}</p>
-                        <p className="text-xs text-gray-500">{payment.date}</p>
+                {selectedClientPayments.length === 0 ? (
+                  <p className="text-sm text-gray-500">No payments recorded yet.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {selectedClientPayments.map((payment: any) => (
+                      <div key={payment.id} className="p-3 bg-gray-50 rounded flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-medium">{payment.type}</p>
+                          <p className="text-xs text-gray-500">
+                            {payment.payment_date ? new Date(payment.payment_date).toLocaleDateString() : payment.created_at ? new Date(payment.created_at).toLocaleDateString() : '—'}
+                          </p>
+                        </div>
+                        <div className="flex flex-col sm:items-end gap-1">
+                          <p className="text-sm font-medium">₱{formatCurrency(payment.amount)}</p>
+                          <Badge variant={
+                            payment.status === "Paid" || payment.status === "Completed" ? "default" :
+                              payment.status === "Pending" || payment.status === "Under Payment" ? "secondary" :
+                                "destructive"
+                          } className="w-fit text-xs">
+                            {payment.status}
+                          </Badge>
+                          {payment.invoice_pdf_url && (
+                            <Button variant="outline" size="sm" asChild className="w-full sm:w-auto">
+                              <a href={payment.invoice_pdf_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1">
+                                <Download className="h-4 w-4" />
+                                Invoice PDF
+                              </a>
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm font-medium">₱{formatCurrency(payment.amount)}</p>
-                        <Badge variant={
-                          payment.status === "Paid" ? "default" :
-                            payment.status === "Under Payment" ? "secondary" :
-                              "destructive"
-                        } className="text-xs">
-                          {payment.status}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
+
+              {selectedClientHasDocuments && (
+                <div className="border-t pt-4">
+                  <Label className="text-sm font-medium text-gray-500 mb-2 block">Documents</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedClient.contract_pdf_url && (
+                      <Button variant="outline" size="sm" asChild>
+                        <a href={selectedClient.contract_pdf_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                          <Download className="h-4 w-4" />
+                          Ownership Contract
+                        </a>
+                      </Button>
+                    )}
+                    {selectedClientPayments.filter((payment: any) => payment.invoice_pdf_url).map((payment: any) => (
+                      <Button key={`invoice-${payment.id}`} variant="outline" size="sm" asChild>
+                        <a href={payment.invoice_pdf_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                          <Download className="h-4 w-4" />
+                          Invoice {payment.reference}
+                        </a>
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
           <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={handleResendClientDocuments}
+              disabled={!selectedClientHasDocuments}
+            >
+              Email Documents
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleSendDemoReminder}
+              disabled={!selectedClient}
+            >
+              Send 1 min reminder sample
+            </Button>
             <Button variant="outline" onClick={() => openMessageClient(selectedClient)}>
               <MessageSquare />
               Send Message

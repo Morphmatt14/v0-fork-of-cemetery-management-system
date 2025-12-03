@@ -21,6 +21,27 @@ export async function GET(request: NextRequest) {
           id,
           name,
           description
+        ),
+        map_lot_positions (
+          id,
+          lot_id,
+          x_position,
+          y_position,
+          width,
+          height,
+          rotation,
+          color,
+          label,
+          lots (
+            id,
+            lot_number,
+            lot_type,
+            status,
+            price,
+            dimensions,
+            occupant_name,
+            owner_id
+          )
         )
       `)
       .is('deleted_at', null)
@@ -78,6 +99,7 @@ export async function POST(request: NextRequest) {
         section_id: body.section_id || null,
         image_url: body.image_url,
         image_public_id: body.image_public_id || null,
+        google_maps_url: body.google_maps_url || null,
         width: body.width || 1200,
         height: body.height || 800,
         status: body.status || 'active',

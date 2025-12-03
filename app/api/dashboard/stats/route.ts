@@ -45,9 +45,7 @@ export async function GET(request: NextRequest) {
       supabaseServer
         .from('payments')
         .select('id, payment_status', { count: 'exact', head: false })
-        .is('deleted_at', null)
-        .order('created_at', { ascending: false })
-        .limit(100),
+        .is('deleted_at', null),
       
       // Open inquiries
       supabaseServer
@@ -86,9 +84,9 @@ export async function GET(request: NextRequest) {
     const inquiries = inquiriesResult.data || []
     const inquiryStats = {
       total: inquiriesResult.count || 0,
-      open: inquiries.filter(i => i.status === 'Open').length,
+      open: inquiries.filter(i => i.status === 'New' || i.status === 'Pending' || i.status === 'Open').length,
       inProgress: inquiries.filter(i => i.status === 'In Progress').length,
-      resolved: inquiries.filter(i => i.status === 'Resolved').length
+      resolved: inquiries.filter(i => i.status === 'Resolved' || i.status === 'Closed').length
     }
 
     const stats = {

@@ -77,6 +77,32 @@ export async function fetchDashboardData() {
   }
 }
 
+export async function deleteClient(clientId: string, deletedBy?: string) {
+  try {
+    const query = deletedBy ? `?deletedBy=${encodeURIComponent(deletedBy)}` : ''
+    const response = await fetch(`/api/clients/${clientId}${query}`, {
+      method: 'DELETE',
+    })
+
+    const result = await response.json().catch(() => ({}))
+
+    if (!response.ok || result?.success === false) {
+      return {
+        success: false,
+        error: result?.error || `HTTP error ${response.status}`,
+      }
+    }
+
+    return { success: true }
+  } catch (error: any) {
+    console.error('[Dashboard API] Error deleting client:', error)
+    return {
+      success: false,
+      error: error?.message || 'Failed to delete client',
+    }
+  }
+}
+
 /**
  * Fetch lots from Supabase
  */

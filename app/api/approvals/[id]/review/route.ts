@@ -431,6 +431,31 @@ async function executeBurialCreate(burialData: any) {
     .select('*')
     .single()
 
+  if (!error && data?.lot_id) {
+    const lotUpdates: any = {
+      status: 'Occupied',
+      updated_at: new Date().toISOString()
+    }
+
+    if (data.burial_date) {
+      lotUpdates.date_occupied = data.burial_date
+    }
+
+    if (data.deceased_name) {
+      lotUpdates.occupant_name = data.deceased_name
+    }
+
+    const { error: lotError } = await supabaseServer
+      .from('lots')
+      .update(lotUpdates)
+      .eq('id', data.lot_id)
+      .is('deleted_at', null)
+
+    if (lotError) {
+      console.error('[Approvals API] Failed to update lot status to Occupied for burial', lotError)
+    }
+  }
+
   return {
     success: !error,
     data: error ? undefined : data,
@@ -449,6 +474,31 @@ async function executeBurialUpdate(burialId: string, changes: any) {
     .eq('id', burialId)
     .select('*')
     .single()
+
+  if (!error && data?.lot_id) {
+    const lotUpdates: any = {
+      status: 'Occupied',
+      updated_at: new Date().toISOString()
+    }
+
+    if (data.burial_date) {
+      lotUpdates.date_occupied = data.burial_date
+    }
+
+    if (data.deceased_name) {
+      lotUpdates.occupant_name = data.deceased_name
+    }
+
+    const { error: lotError } = await supabaseServer
+      .from('lots')
+      .update(lotUpdates)
+      .eq('id', data.lot_id)
+      .is('deleted_at', null)
+
+    if (lotError) {
+      console.error('[Approvals API] Failed to update lot status to Occupied for burial update', lotError)
+    }
+  }
 
   return {
     success: !error,

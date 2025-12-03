@@ -83,6 +83,46 @@ export async function fetchClientRequests(clientId: string) {
   }
 }
 
+export async function fetchClientPaymentPlans(clientId: string) {
+  try {
+    const response = await fetch(`/api/client/payment-plans?clientId=${clientId}`)
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.error || 'Failed to fetch payment plans')
+    }
+
+    const data = await response.json()
+    return data.data
+  } catch (error: any) {
+    console.error('[Client API] Error fetching payment plans:', error)
+    throw error
+  }
+}
+
+export async function resendClientDocuments(clientId: string) {
+  try {
+    const response = await fetch('/api/client/email-documents', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ clientId })
+    })
+
+    const data = await response.json()
+
+    if (!response.ok || data.success === false) {
+      throw new Error(data.error || 'Failed to send documents')
+    }
+
+    return data
+  } catch (error: any) {
+    console.error('[Client API] Error resending documents:', error)
+    throw error
+  }
+}
+
 /**
  * Submit a new request/inquiry
  */
@@ -125,11 +165,12 @@ export async function submitClientRequest(
  */
 export async function fetchClientDashboardData(clientId: string) {
   try {
-    const [profile, lots, payments, requests] = await Promise.all([
+    const [profile, lots, payments, requests, paymentPlans] = await Promise.all([
       fetchClientProfile(clientId),
       fetchClientLots(clientId),
       fetchClientPayments(clientId),
-      fetchClientRequests(clientId)
+      fetchClientRequests(clientId),
+      fetchClientPaymentPlans(clientId)
     ])
 
     // Normalize profile field names
@@ -144,6 +185,7 @@ export async function fetchClientDashboardData(clientId: string) {
       lots,
       payments,
       requests,
+      paymentPlans,
       // Mock notifications for now
       notifications: [
         {

@@ -1,9 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 interface OverviewTabProps {
   clientData: any
@@ -63,15 +65,86 @@ export function OverviewTab({ clientData }: OverviewTabProps) {
     upcomingPayments: 0,
     unreadNotifications: 0,
   })
+  const [isDocumentViewerOpen, setIsDocumentViewerOpen] = useState(false)
+
+  const lots = clientData?.lots || []
+  const payments = clientData?.payments || []
+
+  const lotSummaries = useMemo(() => {
+    const summaries: Record<string, { price: number; totalPaid: number; outstanding: number }> = {}
+
+    lots.forEach((lot: any) => {
+      const key = String(lot.id)
+      const price = Number(lot.price) || 0
+      summaries[key] = {
+        price,
+        totalPaid: 0,
+        outstanding: price,
+      }
+    })
+
+    payments.forEach((payment: any) => {
+      const lotKey = String(payment.lotId ?? "")
+      if (!lotKey) return
+
+      const matchingLot = lots.find((lot: any) => String(lot.id) === lotKey)
+      if (!matchingLot) return
+
+      const isCompleted =
+        payment.status && (payment.status === "Paid" || payment.status === "Completed")
+
+      if (!isCompleted) return
+
+      const price = Number(matchingLot.price) || 0
+      const previous = summaries[lotKey] || {
+        price,
+        totalPaid: 0,
+        outstanding: price,
+      }
+
+      const amount = Number(payment.amount) || 0
+      const newTotalPaid = previous.totalPaid + amount
+
+      summaries[lotKey] = {
+        price,
+        totalPaid: newTotalPaid,
+        outstanding: Math.max(0, price - newTotalPaid),
+      }
+    })
+
+    return summaries
+  }, [lots, payments])
+
+  const totalOutstanding = useMemo(
+    () =>
+      lots.reduce((sum: number, lot: any) => {
+        const key = String(lot.id)
+        const summary = lotSummaries[key]
+
+        if (summary) {
+          return sum + summary.outstanding
+        }
+
+        const price = Number(lot.price) || 0
+        const balance = typeof lot.balance === "number" ? lot.balance : price
+
+        return sum + balance
+      }, 0),
+    [lots, lotSummaries]
+  )
 
   useEffect(() => {
-    if (clientData && clientData.lots) {
+    if (clientData && lots) {
       // Calculate statistics from client data
-      const totalLots = clientData.lots.length
-      const occupiedLots = clientData.lots.filter((lot: any) => lot.status === "Occupied").length
-      const vacantLots = clientData.lots.filter((lot: any) => lot.status === "Reserved").length
-      const totalBalance = clientData.lots.reduce((sum: number, lot: any) => sum + (lot.balance || 0), 0)
-      const upcomingPayments = clientData.payments?.filter((p: any) => p.status === "Due").length || 0
+      const totalLots = lots.length
+      const occupiedLots = lots.filter((lot: any) => lot.status === "Occupied").length
+      const vacantLots = lots.filter((lot: any) => lot.status === "Reserved").length
+      const totalBalance = totalOutstanding
+      const upcomingPayments = payments?.filter(
+        (p: any) =>
+          p.status &&
+          (p.status === "Due" || p.status === "Pending" || p.status === "Under Payment"),
+      ).length || 0
       const unreadNotifications = clientData.notifications?.filter((n: any) => !n.read).length || 0
 
       setStats({
@@ -83,7 +156,26 @@ export function OverviewTab({ clientData }: OverviewTabProps) {
         unreadNotifications,
       })
     }
-  }, [clientData])
+  }, [clientData, lots, payments, totalOutstanding])
+
+  const allPayments = clientData?.payments || []
+
+  const latestInvoiceUrl = useMemo(() => {
+    if (!allPayments.length) return null
+    const sorted = [...allPayments].sort(
+      (a: any, b: any) => new Date(b.date || b.payment_date || '').getTime() - new Date(a.date || a.payment_date || '').getTime()
+    )
+    const firstWithInvoice = sorted.find((payment) => Boolean(payment.invoice_pdf_url))
+    return firstWithInvoice?.invoice_pdf_url || null
+  }, [allPayments])
+
+  const contractUrl = useMemo(() => {
+    if (!allPayments.length) return null
+    const firstWithContract = allPayments.find((payment: any) => Boolean(payment.contract_pdf_url))
+    return firstWithContract?.contract_pdf_url || null
+  }, [allPayments])
+
+  const hasDocuments = Boolean(contractUrl || latestInvoiceUrl)
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-PH", {
@@ -115,11 +207,24 @@ export function OverviewTab({ clientData }: OverviewTabProps) {
               <h3 className="text-2xl font-bold text-gray-900">{clientData.name}</h3>
               <p className="text-sm text-gray-600">{clientData.email}</p>
               <p className="text-sm text-gray-600">{clientData.phone}</p>
-              <div className="mt-2">
+              <div className="mt-2 flex flex-col sm:flex-row sm:items-center sm:gap-3">
                 <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                   Member since {new Date(clientData.memberSince).getFullYear()}
                 </Badge>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setIsDocumentViewerOpen(true)}
+                  disabled={!hasDocuments}
+                >
+                  View Documents
+                </Button>
               </div>
+              {!hasDocuments && (
+                <p className="mt-2 text-xs text-gray-500">
+                  Your invoice and certificate will be available once your first payment is processed.
+                </p>
+              )}
             </div>
           </div>
         </CardContent>
@@ -273,6 +378,51 @@ export function OverviewTab({ clientData }: OverviewTabProps) {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={isDocumentViewerOpen} onOpenChange={setIsDocumentViewerOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Your Documents</DialogTitle>
+            <DialogDescription>Access the latest certificate of ownership and invoices available for your account.</DialogDescription>
+          </DialogHeader>
+          {hasDocuments ? (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Certificate of Ownership</p>
+                  <p className="text-sm text-gray-500">PDF generated from your latest contract details.</p>
+                </div>
+                <Button asChild variant="outline" disabled={!contractUrl}>
+                  {contractUrl ? (
+                    <a href={contractUrl} target="_blank" rel="noopener noreferrer">
+                      View Certificate
+                    </a>
+                  ) : (
+                    <span>No certificate yet</span>
+                  )}
+                </Button>
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Latest Invoice</p>
+                  <p className="text-sm text-gray-500">The most recent payment invoice saved on file.</p>
+                </div>
+                <Button asChild variant="outline" disabled={!latestInvoiceUrl}>
+                  {latestInvoiceUrl ? (
+                    <a href={latestInvoiceUrl} target="_blank" rel="noopener noreferrer">
+                      Download Invoice
+                    </a>
+                  ) : (
+                    <span>No invoice yet</span>
+                  )}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-600">Documents will appear here once your first payment and contract are processed.</p>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

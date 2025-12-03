@@ -14,17 +14,58 @@ export async function PATCH(
 
     console.log('[Payments API] Updating payment:', paymentId)
 
+    const actorRole = body.actorRole as 'admin' | 'employee' | 'cashier' | undefined
+    const actorId = body.actorId as string | undefined
+
     // Validate required fields
-    if (!body.status && !body.amount && !body.balance) {
+    if (!body.status && !body.amount && !body.balance && !body.payment_date && !body.payment_type && !body.payment_method) {
       return NextResponse.json({
         success: false,
-        error: 'At least one field (status, amount, or balance) must be provided'
+        error: 'At least one field (status, amount, balance, payment_date, payment_type, or payment_method) must be provided'
       }, { status: 400 })
+    }
+
+    if (actorRole === 'cashier' && !actorId) {
+      return NextResponse.json({
+        success: false,
+        error: 'Cashier updates require actorId'
+      }, { status: 403 })
+    }
+
+    let existingPayment: { processed_by: string | null } | null = null
+
+    if (actorRole === 'cashier') {
+      const { data, error: existingError } = await supabaseServer
+        .from('payments')
+        .select('processed_by')
+        .eq('id', paymentId)
+        .single()
+
+      if (existingError || !data) {
+        console.error('[Payments API] Unable to verify cashier payment ownership:', existingError)
+        return NextResponse.json({
+          success: false,
+          error: 'Payment not found or inaccessible'
+        }, { status: 404 })
+      }
+
+      existingPayment = data
+
+      if (existingPayment.processed_by && existingPayment.processed_by !== actorId) {
+        return NextResponse.json({
+          success: false,
+          error: 'Cashiers can only update payments they processed'
+        }, { status: 403 })
+      }
     }
 
     // Prepare update data
     const updateData: any = {
       updated_at: new Date().toISOString()
+    }
+
+    if (actorRole === 'cashier' && actorId && existingPayment && !existingPayment.processed_by) {
+      updateData.processed_by = actorId
     }
 
     // Map status to payment_status (database column name)

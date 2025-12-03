@@ -32,38 +32,11 @@ export async function GET(request: NextRequest) {
 
     console.log('[Client Payments API] Fetching payments for client:', clientId)
 
-    // First, get client's lots
-    const { data: lots, error: lotsError } = await supabase
-      .from('lots')
-      .select('id, lot_number')
-      .eq('owner_id', clientId)
-
-    if (lotsError) {
-      console.error('[Client Payments API] Error fetching lots:', lotsError)
-      return NextResponse.json({
-        success: true,
-        data: [],
-        count: 0
-      })
-    }
-
-    // If client has no lots, return empty array
-    if (!lots || lots.length === 0) {
-      console.log('[Client Payments API] Client has no lots, returning empty payments')
-      return NextResponse.json({
-        success: true,
-        data: [],
-        count: 0
-      })
-    }
-
-    const lotIds = lots.map(lot => lot.id)
-
-    // Fetch payments for these lots
+    // Fetch payments for this client (including lot + contract metadata)
     const { data: payments, error } = await supabase
       .from('payments')
-      .select('*')
-      .in('lot_id', lotIds)
+      .select(`*, lots:lot_id(id, lot_number), clients:client_id(contract_pdf_url)`)
+      .eq('client_id', clientId)
       .order('payment_date', { ascending: false })
 
     if (error) {
@@ -76,18 +49,22 @@ export async function GET(request: NextRequest) {
     }
 
     // Transform data to match client portal format
-    const transformedPayments = (payments || []).map(payment => {
-      const lot = lots.find(l => l.id === payment.lot_id)
-      return {
-        id: payment.id,
-        date: payment.payment_date,
-        amount: payment.amount,
-        type: payment.payment_type || 'Installment',
-        status: payment.payment_status || payment.status || 'Pending', // Fix: Use payment_status from DB
-        lotId: lot?.lot_number || payment.lot_id,
-        ...payment
-      }
-    })
+    const transformedPayments = (payments || []).map(payment => ({
+      id: payment.id,
+      date: payment.payment_date || payment.created_at,
+      amount: payment.amount,
+      type: payment.payment_type || 'Installment',
+      status: payment.payment_status || payment.status || 'Pending',
+      // Use the database lot_id for joins/calculations
+      lotId: payment.lot_id,
+      // Provide a friendly label (lot number) for display
+      lotLabel: payment.lots?.lot_number || payment.lot_id,
+      reference: payment.reference_number || payment.id,
+      invoice_pdf_url: payment.invoice_pdf_url || payment.receipt_pdf_url || null,
+      contract_pdf_url: payment.contract_pdf_url || payment.clients?.contract_pdf_url || null,
+      receipt_pdf_url: payment.receipt_pdf_url || null,
+      agreement_text: payment.agreement_text || null
+    }))
 
     console.log('[Client Payments API] Found', transformedPayments.length, 'payments')
 

@@ -158,9 +158,10 @@ export function isAuthenticated(): boolean {
   
   const adminSession = localStorage.getItem('adminSession')
   const employeeSession = localStorage.getItem('employeeSession')
+  const cashierSession = localStorage.getItem('cashierSession')
   const currentUser = localStorage.getItem('currentUser')
   
-  return !!(adminSession || employeeSession || currentUser)
+  return !!(adminSession || employeeSession || cashierSession || currentUser)
 }
 
 /**
@@ -175,6 +176,8 @@ export function logout(router?: any, redirectPath: string = '/admin/login') {
   localStorage.removeItem('adminUser')
   localStorage.removeItem('employeeSession')
   localStorage.removeItem('employeeUser')
+  localStorage.removeItem('cashierSession')
+  localStorage.removeItem('cashierUser')
   localStorage.removeItem('currentUser')
   
   if (router) {

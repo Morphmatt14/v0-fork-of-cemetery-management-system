@@ -11,7 +11,8 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { mapStoreApi, type CemeteryMap, type LotBox } from "@/lib/map-store-api"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2 } from "lucide-react"
+import { Loader2, Navigation } from "lucide-react"
+import { GoogleMapsBackground } from "./google-maps-background"
 
 const ZoomIn = () => (
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -77,6 +78,7 @@ export default function AdvancedMapEditor({ mapId }: { mapId: string }) {
   const [editMode, setEditMode] = useState<"draw" | "edit" | "bulk">("draw")
   const [fabricLoaded, setFabricLoaded] = useState(false)
   const [zoom, setZoom] = useState(1)
+  const [isMapInteractive, setIsMapInteractive] = useState(false)
 
   // Load map data
   useEffect(() => {
@@ -161,7 +163,7 @@ export default function AdvancedMapEditor({ mapId }: { mapId: string }) {
     const canvas = new fabric.Canvas(canvasRef.current, {
       width: 1200,
       height: 800,
-      backgroundColor: "#f3f4f6",
+      backgroundColor: map?.googleMapsUrl && !mapImage ? "transparent" : "#f3f4f6",
     })
 
     fabricCanvasRef.current = canvas
@@ -360,6 +362,17 @@ export default function AdvancedMapEditor({ mapId }: { mapId: string }) {
 
     fabricCanvasRef.current.off("mouse:down")
 
+    if (isMapInteractive) {
+      fabricCanvasRef.current.selection = false
+      fabricCanvasRef.current.forEachObject((obj: any) => {
+        obj.selectable = false
+        obj.hasControls = false
+        obj.hasBorders = false
+      })
+      fabricCanvasRef.current.renderAll()
+      return
+    }
+
     if (editMode === "draw") {
       fabricCanvasRef.current.selection = false
       fabricCanvasRef.current.forEachObject((obj: any) => {
@@ -388,7 +401,7 @@ export default function AdvancedMapEditor({ mapId }: { mapId: string }) {
     }
 
     fabricCanvasRef.current.renderAll()
-  }, [editMode])
+  }, [editMode, isMapInteractive])
 
   const handleZoomIn = () => {
     if (!fabricCanvasRef.current) return
@@ -596,15 +609,27 @@ export default function AdvancedMapEditor({ mapId }: { mapId: string }) {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg sm:text-xl">Cemetery Map Editor</CardTitle>
-          <CardDescription className="text-sm">
-            {editMode === "draw" && "Click on the map to add a new lot"}
-            {editMode === "edit" && "Click to select, drag to move, use handles to resize and rotate"}
-            {editMode === "bulk" && "Use the form below to create multiple lots at once"}
-          </CardDescription>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div>
+              <CardTitle className="text-lg sm:text-xl">Cemetery Map Editor</CardTitle>
+              <CardDescription className="text-sm">
+                {editMode === "draw" && "Click on the map to add a new lot"}
+                {editMode === "edit" && "Click to select, drag to move, use handles to resize and rotate"}
+                {editMode === "bulk" && "Use the form below to create multiple lots at once"}
+              </CardDescription>
+            </div>
+            {map.googleMapsUrl && (
+              <Button asChild variant="outline" size="sm">
+                <a href={map.googleMapsUrl} target="_blank" rel="noopener noreferrer">
+                  <Navigation className="h-4 w-4 mr-1" />
+                  Open in Google Maps
+                </a>
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-2 mb-4">
+          <div className="flex gap-2 mb-4 flex-wrap items-center">
             <Button onClick={handleZoomIn} variant="outline" size="sm" title="Zoom In">
               <ZoomIn />
             </Button>
@@ -615,11 +640,44 @@ export default function AdvancedMapEditor({ mapId }: { mapId: string }) {
               <ResetZoom />
             </Button>
             <span className="text-sm text-gray-600 flex items-center ml-2">Zoom: {Math.round(zoom * 100)}%</span>
+            <Button
+              onClick={() => setIsMapInteractive((prev) => !prev)}
+              variant={isMapInteractive ? "default" : "outline"}
+              size="sm"
+              title="Toggle map pan mode"
+              className="ml-auto"
+            >
+              {isMapInteractive ? "Pan Map: On" : "Pan Map: Off"}
+            </Button>
           </div>
 
           <div className="relative w-full overflow-auto">
-            <canvas ref={canvasRef} className="w-full max-w-full border-2 border-gray-300 rounded-lg" />
+            <div className="relative w-full max-w-full border-2 border-gray-300 rounded-lg overflow-hidden h-[600px]">
+              {map.googleMapsUrl && !mapImage && (
+                <GoogleMapsBackground
+                  googleMapsUrl={map.googleMapsUrl}
+                  zoom={zoom}
+                  interactive={isMapInteractive}
+                />
+              )}
+              <canvas
+                ref={canvasRef}
+                className={`absolute inset-0 w-full h-full ${isMapInteractive ? "pointer-events-none" : ""}`}
+              />
+            </div>
             {!fabricLoaded && <p className="text-sm text-gray-500 mt-2">Loading editor...</p>}
+            {!mapImage && !map.googleMapsUrl && (
+              <p className="mt-3 text-sm text-gray-500">
+                No map image has been uploaded for this cemetery map yet. You can upload one in the "Upload Cemetery
+                Map Image" section below, or start drawing lots directly on this blank canvas.
+              </p>
+            )}
+            {!mapImage && map.googleMapsUrl && (
+              <p className="mt-3 text-sm text-gray-500">
+                Showing your Google Maps link as the background for this editor. Lots you draw here are only saved in
+                this system, not inside Google Maps.
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>

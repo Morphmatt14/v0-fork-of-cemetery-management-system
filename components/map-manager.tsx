@@ -32,6 +32,7 @@ export default function MapManager() {
     name: "",
     description: "",
     imageUrl: "",
+    googleMapsUrl: "",
   })
   const [imagePreview, setImagePreview] = useState<string>("")
 
@@ -71,10 +72,10 @@ export default function MapManager() {
   }
 
   const handleAddMap = async () => {
-    if (!formData.name || !formData.imageUrl) {
+    if (!formData.name) {
       toast({
         title: "Validation Error",
-        description: "Please fill in all required fields and upload an image",
+        description: "Please enter a map name.",
         variant: "destructive",
       })
       return
@@ -86,13 +87,14 @@ export default function MapManager() {
         name: formData.name,
         description: formData.description,
         imageUrl: formData.imageUrl,
+        googleMapsUrl: formData.googleMapsUrl,
         sections: [],
         lots: [],
       })
 
       if (newMap) {
         await loadMaps()
-        setFormData({ name: "", description: "", imageUrl: "" })
+        setFormData({ name: "", description: "", imageUrl: "", googleMapsUrl: "" })
         setImagePreview("")
         setIsAddOpen(false)
         toast({
@@ -185,6 +187,17 @@ export default function MapManager() {
                   placeholder="Describe the cemetery section..."
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                />
+              </div>
+              <div>
+                <label htmlFor="map-google-url" className="block text-sm font-medium text-gray-700 mb-1">
+                  Google Maps Link (optional)
+                </label>
+                <Input
+                  id="map-google-url"
+                  placeholder="Paste Google Maps URL for this cemetery section"
+                  value={formData.googleMapsUrl}
+                  onChange={(e) => setFormData({ ...formData, googleMapsUrl: e.target.value })}
                 />
               </div>
               <div>
@@ -303,6 +316,21 @@ export default function MapManager() {
                     Delete
                   </Button>
                 </div>
+                {map.googleMapsUrl && (
+                  <div className="mt-3">
+                    <Button
+                      asChild
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                    >
+                      <a href={map.googleMapsUrl} target="_blank" rel="noopener noreferrer">
+                        <MapPin className="h-4 w-4 mr-2" />
+                        Open in Google Maps
+                      </a>
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}

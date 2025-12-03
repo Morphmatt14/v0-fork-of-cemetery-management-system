@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { mapStore, type CemeteryMap, type LotBox } from "@/lib/map-store"
+import { mapStoreApi, type CemeteryMap, type LotBox } from "@/lib/map-store-api"
 import { Trash2 } from "lucide-react"
 
 interface InteractiveMapEditorProps {
@@ -17,7 +17,7 @@ interface InteractiveMapEditorProps {
 }
 
 export default function InteractiveMapEditor({ mapId }: InteractiveMapEditorProps) {
-  const [map, setMap] = useState<CemeteryMap | null>(mapStore.getMapById(mapId))
+  const [map, setMap] = useState<CemeteryMap | null>(null)
   const [isDrawing, setIsDrawing] = useState(false)
   const [startPos, setStartPos] = useState({ x: 0, y: 0 })
   const [currentBox, setCurrentBox] = useState<Partial<LotBox> | null>(null)
@@ -33,16 +33,27 @@ export default function InteractiveMapEditor({ mapId }: InteractiveMapEditorProp
   }, [map, selectedLot])
 
   useEffect(() => {
-    const refreshMap = () => {
-      const updatedMap = mapStore.getMapById(mapId)
-      if (updatedMap) {
-        setMap(updatedMap)
+    let isMounted = true
+    const refreshMap = async () => {
+      try {
+        const updatedMap = await mapStoreApi.getMapById(mapId)
+        if (updatedMap && isMounted) {
+          setMap(updatedMap)
+        }
+      } catch (error) {
+        console.error("[InteractiveMapEditor] Failed to refresh map", error)
       }
     }
 
     refreshMap()
-    const interval = setInterval(refreshMap, 2000) // Refresh every 2 seconds
-    return () => clearInterval(interval)
+    const interval = setInterval(() => {
+      refreshMap()
+    }, 2000)
+
+    return () => {
+      isMounted = false
+      clearInterval(interval)
+    }
   }, [mapId])
 
   const drawMap = () => {
@@ -148,23 +159,23 @@ export default function InteractiveMapEditor({ mapId }: InteractiveMapEditorProp
     setCurrentBox(null)
   }
 
-  const handleSaveLot = () => {
-    if (!map || !editForm.ownerName || !editForm.x || !editForm.y || !editForm.width || !editForm.height) {
-      alert("Please fill in all fields")
+  const handleSaveLot = async () => {
+    if (!map || !editForm.x || !editForm.y || !editForm.width || !editForm.height) {
+      alert("Please fill in all required lot details")
       return
     }
 
-    const updatedMap = mapStore.addLot(map.id, {
+    const ownerName = editForm.ownerName?.trim() || "[Available]"
+    const updatedMap = await mapStoreApi.addLot(map.id, {
       x: editForm.x,
       y: editForm.y,
       width: editForm.width,
       height: editForm.height,
-      ownerName: editForm.ownerName,
+      ownerName,
       lotType: (editForm.lotType as "Lawn" | "Garden" | "Family State") || "Lawn",
       status: (editForm.status as "vacant" | "still_on_payment" | "occupied") || "vacant",
       dimensions: editForm.dimensions,
       price: editForm.price || 75000,
-      section: map.name,
     })
 
     if (updatedMap) {
@@ -172,16 +183,22 @@ export default function InteractiveMapEditor({ mapId }: InteractiveMapEditorProp
       setIsEditDialogOpen(false)
       setEditForm({})
 
-      alert(`✓ Lot "${editForm.ownerName}" added successfully!\nIt has been automatically synced to the Lots section.`)
+      alert(
+        `✓ Lot "${ownerName}" added successfully!\nIt has been automatically synced to the Lots section and client form.`
+      )
+    } else {
+      alert("Failed to create lot. Please try again.")
     }
   }
 
-  const handleDeleteLot = (lotId: string) => {
+  const handleDeleteLot = async (lotId: string) => {
     if (map && confirm("Delete this lot?")) {
-      const updatedMap = mapStore.deleteLot(map.id, lotId)
+      const updatedMap = await mapStoreApi.deleteLot(map.id, lotId)
       if (updatedMap) {
         setMap(updatedMap)
         setSelectedLot(null)
+      } else {
+        alert("Failed to delete lot. Please try again.")
       }
     }
   }

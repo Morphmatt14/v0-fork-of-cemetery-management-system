@@ -197,6 +197,7 @@ function ClientDashboardContent() {
       },
       { id: 3, type: "announcement", message: "New payment options now available", date: "2024-01-15", read: true },
     ],
+    paymentPlans: [],
   })
 
   // Authentication check - Protect dashboard access
@@ -289,7 +290,8 @@ function ClientDashboardContent() {
           memberSince: data.profile.created_at,
           lots: data.lots || [],
           payments: data.payments || [],
-          notifications: data.notifications || []
+          notifications: data.notifications || [],
+          paymentPlans: data.paymentPlans || []
         })
 
         // Update inquiries
@@ -517,6 +519,7 @@ function ClientDashboardContent() {
                   payments={clientData.payments}
                   lots={clientData.lots}
                   clientId={currentClientId || ''}
+                  paymentPlans={clientData.paymentPlans}
                   onRefresh={refreshClientData}
                 />
               )}

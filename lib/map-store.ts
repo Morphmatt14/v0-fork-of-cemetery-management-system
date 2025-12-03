@@ -1,5 +1,14 @@
 "use client"
 
+import {
+  deriveBlockId,
+  deriveSectionLabelFromMap,
+  normalizeLotTypeLabel,
+  type NormalizedLotType,
+} from "@/lib/utils/lot-normalizer"
+
+type UILotType = NormalizedLotType | "Lawn" | "Garden"
+
 // Map Store - Manages cemetery maps and lot locations using localStorage
 export interface CemeteryMap {
   id: string
@@ -30,27 +39,28 @@ export interface LotBox {
   width: number
   height: number
   ownerName: string
-  lotType: "Lawn" | "Garden" | "Family State"
+  lotType: UILotType
   status: "vacant" | "still_on_payment" | "occupied"
   price?: number
   rotation?: number
   dimensions?: string
   mapId?: string // Which map this lot belongs to
   section?: string // Section name from admin lot system
+  block?: string
   ownerEmail?: string // Email of the owner for linking
   ownerId?: string // Client ID for direct linking
 }
 
 export interface LotTemplate {
   count: number
-  lotType: "Lawn" | "Garden" | "Family State"
+  lotType: UILotType
   basePrice: number
 }
 
 export interface AvailableLot {
   id: string
   mapId: string
-  lotType: "Lawn" | "Garden" | "Family State"
+  lotType: UILotType
   status: "vacant" | "still_on_payment" | "occupied"
   price: number
   ownerEmail?: string
@@ -136,10 +146,17 @@ export const mapStore = {
   addLot(mapId: string, lot: Omit<LotBox, "id">): CemeteryMap | null {
     const map = this.getMapById(mapId)
     if (!map) return null
+    const mapName = map.name
+    const normalizedLotType = normalizeLotTypeLabel(lot.lotType)
+    const normalizedSection = deriveSectionLabelFromMap(mapName)
+    const blockId = deriveBlockId(mapName, normalizedLotType)
     const newLot: LotBox = {
       ...lot,
       id: `lot-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       mapId: mapId,
+      lotType: normalizedLotType,
+      section: normalizedSection,
+      block: blockId,
     }
     if (!map.lots) map.lots = []
     map.lots.push(newLot)
@@ -156,10 +173,14 @@ export const mapStore = {
       const data = JSON.parse(globalData)
 
       // Convert map lot to global lot format
+      const normalizedLotType = normalizeLotTypeLabel(lot.lotType)
+      const normalizedSection = lot.section || deriveSectionLabelFromMap(mapName) || mapName
+      const blockId = lot.block || deriveBlockId(mapName, normalizedLotType)
       const globalLot = {
         id: lot.id,
-        section: lot.section || mapName,
-        type: lot.lotType === "Lawn" ? "Standard" : lot.lotType === "Garden" ? "Premium" : "Family",
+        section: normalizedSection,
+        block: blockId,
+        type: normalizedLotType === "Lawn Lot" ? "Standard" : normalizedLotType === "Garden Lot" ? "Premium" : "Family",
         status: lot.status === "vacant" ? "Available" : lot.status === "occupied" ? "Occupied" : "Reserved",
         price: lot.price || 75000,
         dimensions: lot.dimensions || "2m x 1m",
@@ -203,7 +224,16 @@ export const mapStore = {
     if (!map || !map.lots) return null
     const lotIndex = map.lots.findIndex((l) => l.id === lotId)
     if (lotIndex === -1) return null
-    map.lots[lotIndex] = { ...map.lots[lotIndex], ...updates }
+    const current = map.lots[lotIndex]
+    const normalizedLotType = updates.lotType ? normalizeLotTypeLabel(updates.lotType) : normalizeLotTypeLabel(current.lotType)
+    const section = updates.section || current.section || deriveSectionLabelFromMap(map.name)
+    map.lots[lotIndex] = {
+      ...current,
+      ...updates,
+      lotType: normalizedLotType,
+      section,
+      block: deriveBlockId(map.name, normalizedLotType),
+    }
 
     this.syncLotToGlobalSystem(map.lots[lotIndex], map.name)
 

@@ -28,6 +28,7 @@ export interface Employee {
   status: string
   created_at: string
   last_login?: string
+  role?: 'staff' | 'supervisor' | 'cashier'
 }
 
 export interface Client {
@@ -45,7 +46,7 @@ export interface Client {
 export interface AuthResponse {
   success: boolean
   user?: Admin | Employee | Client
-  role?: 'admin' | 'employee' | 'client'
+  role?: 'admin' | 'employee' | 'cashier' | 'client'
   error?: string
 }
 
@@ -161,24 +162,36 @@ export async function loginEmployee(username: string, password: string): Promise
       .update({ last_login: new Date().toISOString() })
       .eq('id', employee.id)
 
+    const employeeRole = (employee.role as Employee['role']) || 'staff'
+    const userRole: 'employee' | 'cashier' = employeeRole === 'cashier' ? 'cashier' : 'employee'
+
     // Set RLS context
-    await setUserContext('employee', employee.id)
+    await setUserContext(userRole, employee.id)
 
     // Store session in localStorage (for client-side persistence)
     if (typeof window !== 'undefined') {
-      localStorage.setItem('employeeSession', 'true')
-      localStorage.setItem('employeeUser', employee.username)
+      const sessionKey = userRole === 'cashier' ? 'cashierSession' : 'employeeSession'
+      const userKey = userRole === 'cashier' ? 'cashierUser' : 'employeeUser'
+      const otherSessionKey = userRole === 'cashier' ? 'employeeSession' : 'cashierSession'
+      const otherUserKey = userRole === 'cashier' ? 'employeeUser' : 'cashierUser'
+
+      localStorage.setItem(sessionKey, 'true')
+      localStorage.setItem(userKey, employee.username)
+      localStorage.removeItem(otherSessionKey)
+      localStorage.removeItem(otherUserKey)
       localStorage.setItem('currentUser', JSON.stringify({
         id: employee.id,
         username: employee.username,
         name: employee.name,
         email: employee.email,
-        role: 'employee'
+        role: userRole,
+        employeeRole
       }))
     }
 
     // Log activity
-    await logActivity('employee', employee.id, employee.username, 'login', 'Employee logged in successfully', 'system')
+    const loginDescriptor = userRole === 'cashier' ? 'Cashier' : 'Employee'
+    await logActivity('employee', employee.id, employee.username, 'login', `${loginDescriptor} logged in successfully`, 'system')
 
     return {
       success: true,
@@ -189,9 +202,10 @@ export async function loginEmployee(username: string, password: string): Promise
         email: employee.email,
         status: employee.status,
         created_at: employee.created_at,
-        last_login: employee.last_login
+        last_login: employee.last_login,
+        role: employeeRole
       },
-      role: 'employee'
+      role: userRole
     }
   } catch (error: any) {
     console.error('Employee login error:', error)
@@ -360,6 +374,8 @@ export async function logout(): Promise<void> {
       localStorage.removeItem('adminUser')
       localStorage.removeItem('employeeSession')
       localStorage.removeItem('employeeUser')
+      localStorage.removeItem('cashierSession')
+      localStorage.removeItem('cashierUser')
       localStorage.removeItem('clientSession')
       localStorage.removeItem('clientEmail')
       localStorage.removeItem('currentUser')
@@ -378,7 +394,7 @@ export async function logout(): Promise<void> {
  */
 export function checkSession(): {
   hasSession: boolean
-  role?: 'admin' | 'employee' | 'client'
+  role?: 'admin' | 'employee' | 'cashier' | 'client'
   user?: any
 } {
   if (typeof window === 'undefined') {
@@ -388,6 +404,7 @@ export function checkSession(): {
   const currentUser = localStorage.getItem('currentUser')
   const adminSession = localStorage.getItem('adminSession')
   const employeeSession = localStorage.getItem('employeeSession')
+  const cashierSession = localStorage.getItem('cashierSession')
   const clientSession = localStorage.getItem('clientSession')
 
   if (!currentUser) {
@@ -403,6 +420,10 @@ export function checkSession(): {
     
     if (employeeSession && user.role === 'employee') {
       return { hasSession: true, role: 'employee', user }
+    }
+
+    if (cashierSession && user.role === 'cashier') {
+      return { hasSession: true, role: 'cashier', user }
     }
     
     if (clientSession && user.role === 'client') {

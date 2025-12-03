@@ -10,6 +10,7 @@ export interface CemeteryMap {
   description?: string
   section_id?: string
   image_url: string
+  google_maps_url?: string
   image_public_id?: string
   width?: number
   height?: number
@@ -60,6 +61,7 @@ export interface CreateMapInput {
   description?: string
   section_id?: string
   image_url: string
+  google_maps_url?: string
   image_public_id?: string
   width?: number
   height?: number
@@ -74,6 +76,7 @@ export interface UpdateMapInput {
   description?: string
   section_id?: string
   image_url?: string
+  google_maps_url?: string
   image_public_id?: string
   width?: number
   height?: number

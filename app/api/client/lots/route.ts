@@ -69,19 +69,28 @@ export async function GET(request: NextRequest) {
     const transformedLots = lots.map(lot => {
       const lotBurials = burials?.filter(b => b.lot_id === lot.id) || []
       const firstBurial = lotBurials[0]
-      
+
+      const dbId = lot.id
+      const lotLabel = lot.lot_number || dbId
+      const price = Number(lot.price) || 0
+      const balance = typeof lot.balance === 'number' ? lot.balance : price
+
       return {
-        id: lot.lot_number || lot.id,
+        // include all raw lot fields first
+        ...lot,
+        // stable UUID id used for joins and calculations
+        id: dbId,
+        // friendly label for UI display
+        lotLabel,
         section: lot.section,
         type: lot.lot_type,
         status: lot.status,
         occupant: firstBurial?.deceased_name || null,
         burialDate: firstBurial?.burial_date || null,
         purchaseDate: lot.created_at,
-        price: lot.price || 0,
-        balance: lot.balance || 0,
+        price,
+        balance,
         size: lot.dimensions || 'N/A',
-        ...lot
       }
     })
 

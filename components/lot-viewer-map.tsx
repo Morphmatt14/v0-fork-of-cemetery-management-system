@@ -100,7 +100,11 @@ export default function LotViewerMap({ userLots = [], onAppointmentRequest }: Lo
 
       // Draw lot boxes
       if (selectedMap.lots) {
-        selectedMap.lots.forEach((lot) => {
+        const lotsToDraw = selectedMap.lots.filter(
+          (lot) => lot.status === "vacant" || userLots.includes(lot.id),
+        )
+
+        lotsToDraw.forEach((lot) => {
           const statusColors = {
             occupied: "#4ade80",
             still_on_payment: "#fbbf24",
@@ -145,7 +149,11 @@ export default function LotViewerMap({ userLots = [], onAppointmentRequest }: Lo
     const x = (e.clientX - rect.left) * scaleX
     const y = (e.clientY - rect.top) * scaleY
 
-    const clickedLot = selectedMap.lots.find(
+    const clickableLots = selectedMap.lots.filter(
+      (lot) => lot.status === "vacant" || userLots.includes(lot.id),
+    )
+
+    const clickedLot = clickableLots.find(
       (lot) => x >= lot.x && x <= lot.x + lot.width && y >= lot.y && y <= lot.y + lot.height,
     )
 
@@ -175,6 +183,7 @@ export default function LotViewerMap({ userLots = [], onAppointmentRequest }: Lo
   }
 
   const myLots = selectedMap?.lots?.filter((lot) => userLots.includes(lot.id)) || []
+  const availableLots = selectedMap?.lots?.filter((lot) => lot.status === "vacant") || []
 
   return (
     <div className="space-y-6">
@@ -260,11 +269,23 @@ export default function LotViewerMap({ userLots = [], onAppointmentRequest }: Lo
       {selectedMap && (
         <Card className="overflow-hidden">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MapPin className="h-5 w-5" />
-              {selectedMap.name}
-            </CardTitle>
-            <CardDescription>Click on any lot to view details</CardDescription>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <MapPin className="h-5 w-5" />
+                  {selectedMap.name}
+                </CardTitle>
+                <CardDescription>Click on any lot to view details</CardDescription>
+              </div>
+              {selectedMap.googleMapsUrl && (
+                <Button asChild variant="outline" size="sm">
+                  <a href={selectedMap.googleMapsUrl} target="_blank" rel="noopener noreferrer">
+                    <Navigation className="h-4 w-4 mr-1" />
+                    Open in Google Maps
+                  </a>
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -274,11 +295,11 @@ export default function LotViewerMap({ userLots = [], onAppointmentRequest }: Lo
                 className="w-full border border-gray-300 rounded-lg bg-gray-100 cursor-pointer hover:border-teal-500 transition-colors"
               />
 
-              {selectedMap.lots && selectedMap.lots.length > 0 && (
+              {availableLots.length > 0 && (
                 <div>
                   <h4 className="font-semibold mb-3">All Lots</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {selectedMap.lots.map((lot) => (
+                    {availableLots.map((lot) => (
                       <Card
                         key={lot.id}
                         className="p-4 cursor-pointer hover:shadow-md transition-shadow"

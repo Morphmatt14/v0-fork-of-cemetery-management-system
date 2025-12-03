@@ -70,7 +70,7 @@ export default function HomePage() {
           {/* Description */}
           <div className="mb-8 sm:mb-12 px-4">
             <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-white font-medium leading-relaxed max-w-3xl mx-auto drop-shadow-lg">
-              A respectful and modern way to locate graves, explore memorial services, and honor your loved ones.
+              A respectful and modern way to explore memorial services, and honor your loved ones.
             </p>
           </div>
         </div>

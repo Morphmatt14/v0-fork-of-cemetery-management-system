@@ -95,27 +95,32 @@ export default function LotsTab({ currentEmployeeId }: LotsTabProps = {}) {
     }
   }
 
-  const handleAssignLotToOwner = async (lotId: string, ownerId: string, ownerName: string) => {
+  const handleAssignLotToOwner = async (lotId: string, ownerId: string, ownerName: string, ownerEmail: string) => {
     try {
-      // Get the lot details to set initial balance
-      const lot = lots.find(l => l.id === lotId)
-      
-      if (!lot) {
-        throw new Error('Lot not found')
+      const response = await fetch('/api/lots/assign-owner', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          lotId,
+          clientId: ownerId,
+          assignedBy: currentEmployeeId || undefined
+        })
+      })
+
+      const payload = await response.json().catch(() => ({}))
+
+      if (!response.ok || payload?.success === false) {
+        throw new Error(payload?.error || 'Unable to assign lot. Please try again.')
       }
 
-      // Set balance to the lot's price when assigning
-      const initialBalance = lot.price || 0
-
-      await updateLot(lotId, {
-        owner_id: ownerId,
-        status: 'Reserved',
-        balance: initialBalance, // Initialize balance to lot price
-      })
+      const assignedLotNumber = payload?.data?.lot?.lot_number || lotId
+      const balance = payload?.data?.lot?.balance ?? 0
 
       toast({
         title: 'Lot Assigned',
-        description: `Lot ${lotId} has been assigned to ${ownerName}. Balance: ₱${initialBalance.toLocaleString()}`,
+        description: `Lot ${assignedLotNumber} is now reserved for ${ownerName}. Outstanding balance set to ₱${Number(balance).toLocaleString()}.`,
       })
 
       setIsAssignOwnerOpen(false)

@@ -109,6 +109,7 @@ export async function PUT(
         section_id: body.section_id,
         image_url: body.image_url,
         image_public_id: body.image_public_id,
+        google_maps_url: body.google_maps_url,
         width: body.width,
         height: body.height,
         status: body.status,
@@ -171,11 +172,35 @@ export async function DELETE(
       )
     }
 
-    console.log('[Maps API] DELETE - Success: Map deleted')
+    try {
+      const now = new Date().toISOString()
+
+      const { error: lotsError } = await supabaseServer
+        .from('lots')
+        .update({ deleted_at: now })
+        .eq('map_id', id)
+
+      if (lotsError) {
+        console.error('[Maps API] DELETE - Failed to soft-delete lots for map:', lotsError)
+      }
+
+      const { error: positionsError } = await supabaseServer
+        .from('map_lot_positions')
+        .delete()
+        .eq('map_id', id)
+
+      if (positionsError) {
+        console.error('[Maps API] DELETE - Failed to delete map_lot_positions for map:', positionsError)
+      }
+    } catch (cleanupError) {
+      console.error('[Maps API] DELETE - Cleanup error while deleting map lots/positions:', cleanupError)
+    }
+
+    console.log('[Maps API] DELETE - Success: Map deleted and related lots/positions cleaned up')
 
     return NextResponse.json({
       success: true,
-      message: 'Map deleted successfully',
+      message: 'Map and related lots deleted successfully',
     })
   } catch (error: any) {
     console.error('[Maps API] DELETE - Error:', error)
