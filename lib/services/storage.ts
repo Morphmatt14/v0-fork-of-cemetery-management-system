@@ -15,6 +15,8 @@ export async function uploadBufferToStorage({ bucket, path, buffer, contentType 
       upsert: true
     })
 
+
+    
   if (error) {
     throw new Error(`[Storage] Failed to upload ${path}: ${error.message}`)
   }
